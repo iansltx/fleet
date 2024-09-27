@@ -69,6 +69,8 @@ func download(client *http.Client, u *url.URL, path string, extract bool) error 
 		}
 
 		req, err := http.NewRequest(http.MethodGet, u.String(), nil)
+		req.Header.Set("User-Agent", "Fleet Device Management Vulnerability Data Ingestion/4")
+		
 		if err != nil {
 			return fmt.Errorf("create request: %w", err)
 		}
