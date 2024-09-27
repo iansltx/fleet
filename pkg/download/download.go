@@ -80,7 +80,12 @@ func download(client *http.Client, u *url.URL, path string, extract bool) error 
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("unexpected status code %d", resp.StatusCode)
+			all, err := io.ReadAll(r)
+			if err != nil {
+				return fmt.Errorf("read response body: %w", err)
+			}
+
+			return fmt.Errorf("response: %v", string(all))
 		}
 
 		r := io.Reader(resp.Body)
