@@ -101,7 +101,7 @@ func (gh GitHubClient) list(ctx context.Context, prefix string, ctor func(fileNa
 
 	releases, r, err := gh.releases.ListReleases(
 		ctx,
-		"iansltx",
+		"fleetdm",
 		"nvd",
 		&github.ListOptions{Page: 0, PerPage: 10},
 	)
