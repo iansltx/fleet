@@ -38,7 +38,8 @@ func main() {
 
 	ctx := context.Background()
 	ghAPI := io.NewGitHubClient(httpC, github.NewClient(httpC).Repositories, wd)
-	msrcAPI := msrc.NewMSRCClient(httpC, inPath, msrc.MSRCBaseURL)
+	msrcHttp := fleethttp.NewClient()
+	msrcAPI := msrc.NewMSRCClient(msrcHttp, inPath, msrc.MSRCBaseURL)
 
 	fmt.Println("Downloading existing bulletins...")
 	eBulletins, err := ghAPI.MSRCBulletins(ctx)
