@@ -14,7 +14,7 @@ func TestUp_20250331154206(t *testing.T) {
 	// and change of the status and execution_status columns.
 	hostID := insertHost(t, db, nil)
 	dataStmts := `
-	  INSERT INTO script_contents (id, md5_checksum, contents) VALUES
+	  INSERT INTO script_contents (id, sha256_checksum, contents) VALUES
 	    (1, 'checksum', 'script content');
 
 	  INSERT INTO software_titles (id, name, source, browser) VALUES  (1, 'Foo.app', 'apps', '');

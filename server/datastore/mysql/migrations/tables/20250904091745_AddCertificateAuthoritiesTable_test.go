@@ -1,7 +1,7 @@
 package tables
 
 import (
-	"crypto/md5" // nolint:gosec // used only to hash for efficient comparisons
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func md5ChecksumBytes(b []byte) string {
-	rawChecksum := md5.Sum(b) //nolint:gosec
+func sha256ChecksumBytes(b []byte) string {
+	rawChecksum := sha256.Sum256(b)
 	return strings.ToUpper(hex.EncodeToString(rawChecksum[:]))
 }
 
@@ -118,8 +118,8 @@ func TestUp_20250904091745(t *testing.T) {
 	}
 	fmt.Printf("Marshalled integrations_json: %s\n", string(integrationJSONBytes))
 
-	insertNDESPasswordStmt := `INSERT INTO mdm_config_assets (name, value, md5_checksum) VALUES (?, ?, UNHEX(?))` // nolint:gosec // just test data, not hardcoded credentials
-	_, err = db.Exec(insertNDESPasswordStmt, fleet.MDMAssetNDESPassword, ndesEncryptedPassword, md5ChecksumBytes(ndesEncryptedPassword))
+	insertNDESPasswordStmt := `INSERT INTO mdm_config_assets (name, value, sha256_checksum) VALUES (?, ?, UNHEX(?))` // nolint:gosec // just test data, not hardcoded credentials
+	_, err = db.Exec(insertNDESPasswordStmt, fleet.MDMAssetNDESPassword, ndesEncryptedPassword, sha256ChecksumBytes(ndesEncryptedPassword))
 	require.NoError(t, err, "failed to insert NDES SCEP Proxy password")
 
 	insertCAAssetsStmt := `INSERT INTO ca_config_assets (name, value, type) VALUES (?, ?, ?), (?, ?, ?), (?, ?, ?), (?, ?, ?)`

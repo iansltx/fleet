@@ -39,7 +39,7 @@ func TestUp_20241021224359(t *testing.T) {
 		computerName, nil)
 
 	dataStmts := `
-	  INSERT INTO script_contents (id, md5_checksum, contents) VALUES
+	  INSERT INTO script_contents (id, sha256_checksum, contents) VALUES
 	    (1, 'checksum', 'script content');
 
 	  INSERT INTO software_titles (id, name, source, browser) VALUES  (1, 'Foo.app', 'apps', '');

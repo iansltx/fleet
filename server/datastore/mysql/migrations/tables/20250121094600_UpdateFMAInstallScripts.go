@@ -150,9 +150,9 @@ WHERE fla.token IN (?)
 
 		updatedScript := strings.Join(lines, "\n")
 
-		checksum := md5ChecksumScriptContent(updatedScript)
+		checksum := sha256ChecksumScriptContent(updatedScript)
 
-		if _, err = tx.Exec(`UPDATE script_contents SET contents = ?, md5_checksum = UNHEX(?) WHERE id = ?`, strings.Join(lines, "\n"), checksum, sc.ScriptContentID); err != nil {
+		if _, err = tx.Exec(`UPDATE script_contents SET contents = ?, sha256_checksum = UNHEX(?) WHERE id = ?`, strings.Join(lines, "\n"), checksum, sc.ScriptContentID); err != nil {
 			return fmt.Errorf("updating fma install script contents: %w", err)
 		}
 	}
@@ -195,9 +195,9 @@ WHERE fla.token IN (?)
 
 		updatedScript := strings.Join(lines, "\n")
 
-		checksum := md5ChecksumScriptContent(updatedScript)
+		checksum := sha256ChecksumScriptContent(updatedScript)
 
-		if _, err = tx.Exec(`UPDATE script_contents SET contents = ?, md5_checksum = UNHEX(?) WHERE id = ?`, strings.Join(lines, "\n"), checksum, sc.ScriptContentID); err != nil {
+		if _, err = tx.Exec(`UPDATE script_contents SET contents = ?, sha256_checksum = UNHEX(?) WHERE id = ?`, strings.Join(lines, "\n"), checksum, sc.ScriptContentID); err != nil {
 			return fmt.Errorf("updating fma install script contents: %w", err)
 		}
 	}

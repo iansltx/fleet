@@ -10,7 +10,7 @@ func TestUp_20241003145349(t *testing.T) {
 	db := applyUpToPrev(t)
 
 	// create an existing software installer before the migration
-	execNoErr(t, db, `INSERT INTO script_contents (id, md5_checksum, contents) VALUES (1, 'checksum', 'script content')`)
+	execNoErr(t, db, `INSERT INTO script_contents (id, sha256_checksum, contents) VALUES (1, 'checksum', 'script content')`)
 	swiID := execNoErrLastID(t, db, `
 		INSERT INTO software_installers
 			(filename, version, platform, install_script_content_id, storage_id, package_ids, uninstall_script_content_id)

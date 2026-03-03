@@ -17,7 +17,7 @@ func TestUp_20241002210000(t *testing.T) {
 		VALUES ('test_policy', "SELECT 1", "", ?, "a123b123")`, teamID)
 
 	// insert a script
-	scriptContentID := execNoErrLastID(t, db, `INSERT INTO script_contents (md5_checksum, contents) VALUES ("md5", "echo 'Hello World'")`)
+	scriptContentID := execNoErrLastID(t, db, `INSERT INTO script_contents (sha256_checksum, contents) VALUES ("md5", "echo 'Hello World'")`)
 	scriptID := execNoErrLastID(t, db, `INSERT INTO scripts (
 			team_id, global_or_team_id, name, script_content_id
 		) VALUES (?, ?, "hello-world.sh", ?)`, teamID, teamID, scriptContentID)

@@ -92,7 +92,7 @@ func TestUp_20240829165605(t *testing.T) {
 
 		// create an existing VPP token
 		existingToken, md5Checksum := createTokenAndHash()
-		execNoErr(t, db, `INSERT INTO mdm_config_assets (name, value, md5_checksum) VALUES ('vpp_token', ?, ?)`, existingToken, md5Checksum)
+		execNoErr(t, db, `INSERT INTO mdm_config_assets (name, value, sha256_checksum) VALUES ('vpp_token', ?, ?)`, existingToken, md5Checksum)
 
 		// create a vpp app
 		adamID := "abcdEFGH"

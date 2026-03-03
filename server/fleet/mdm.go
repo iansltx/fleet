@@ -928,7 +928,7 @@ const (
 type MDMConfigAsset struct {
 	Name        MDMAssetName `db:"name"`
 	Value       []byte       `db:"value"`
-	MD5Checksum string       `db:"md5_checksum"`
+	SHA256Checksum string       `db:"sha256_checksum"`
 }
 
 func (m MDMConfigAsset) Clone() (Cloner, error) {
@@ -939,7 +939,7 @@ func (m MDMConfigAsset) Copy() MDMConfigAsset {
 	var clone MDMConfigAsset
 
 	clone.Name = m.Name
-	clone.MD5Checksum = m.MD5Checksum
+	clone.SHA256Checksum = m.SHA256Checksum
 
 	if len(m.Value) > 0 {
 		clone.Value = make([]byte, len(m.Value))

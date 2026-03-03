@@ -8938,7 +8938,7 @@ VALUES
 		mysql.ExecAdhocSQL(t, s.ds, func(tx sqlx.ExtContext) error {
 			// First check if this script content already exists
 			row := tx.QueryRowxContext(ctx, `
-				SELECT id FROM script_contents WHERE md5_checksum = UNHEX(LEFT(SHA2(?, 256), 32))
+				SELECT id FROM script_contents WHERE sha256_checksum = UNHEX(SHA2(?, 256))
 			`, script.ScriptContents)
 			err := row.Scan(&scID)
 
@@ -8946,9 +8946,9 @@ VALUES
 				// Content doesn't exist, insert it
 				res, err := tx.ExecContext(ctx, `
 INSERT INTO
-	script_contents (md5_checksum, contents, created_at)
+	script_contents (sha256_checksum, contents, created_at)
 VALUES
-	(UNHEX(LEFT(SHA2(?, 256), 32)),?,?)`,
+	(UNHEX(SHA2(?, 256)),?,?)`,
 					script.ScriptContents,
 					script.ScriptContents,
 					createdAt,
@@ -9186,9 +9186,9 @@ VALUES
 			// create script_contents first
 			res, err := tx.ExecContext(ctx, `
 INSERT INTO
-	script_contents (md5_checksum, contents, created_at)
+	script_contents (sha256_checksum, contents, created_at)
 VALUES
-	(UNHEX(LEFT(SHA2(?, 256), 32)),?,?)`,
+	(UNHEX(SHA2(?, 256)),?,?)`,
 				"echo test-script-details-timeout",
 				"echo test-script-details-timeout",
 				now.Add(-1*time.Hour),
@@ -14305,14 +14305,14 @@ func (s *integrationEnterpriseTestSuite) TestSoftwareInstallerNewInstallRequestP
 		mysql.ExecAdhocSQL(t, s.ds, func(q sqlx.ExtContext) error {
 			ctx := context.Background()
 			installScript := fmt.Sprintf(`echo '%s'`, kind)
-			res, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(LEFT(SHA2(?, 256), 32)), ?)`, installScript, installScript)
+			res, err := q.ExecContext(ctx, `INSERT INTO script_contents (sha256_checksum, contents) VALUES (UNHEX(SHA2(?, 256)), ?)`, installScript, installScript)
 			if err != nil {
 				return err
 			}
 			scriptContentID, _ := res.LastInsertId()
 
 			uninstallScript := fmt.Sprintf(`echo uninstall '%s'`, kind)
-			resUninstall, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(LEFT(SHA2(?, 256), 32)), ?)`,
+			resUninstall, err := q.ExecContext(ctx, `INSERT INTO script_contents (sha256_checksum, contents) VALUES (UNHEX(SHA2(?, 256)), ?)`,
 				uninstallScript, uninstallScript)
 			if err != nil {
 				return err

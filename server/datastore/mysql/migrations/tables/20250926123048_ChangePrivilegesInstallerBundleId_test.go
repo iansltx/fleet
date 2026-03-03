@@ -11,8 +11,8 @@ func TestUp_20250926123048_NoPrivileges(t *testing.T) {
 	db := applyUpToPrev(t)
 
 	userId := execNoErrLastID(t, db, `INSERT INTO users (name, email, password, salt) VALUES (?, ?, ?, ?)`, "Alice", "alice@example.com", "password", "salt")
-	installScriptID := execNoErrLastID(t, db, `INSERT INTO script_contents (md5_checksum, contents) VALUES (?, ?)`, "a", "echo 'install script'")
-	uninstallScriptID := execNoErrLastID(t, db, `INSERT INTO script_contents (md5_checksum, contents) VALUES (?, ?)`, "b", "echo 'uninstall script'")
+	installScriptID := execNoErrLastID(t, db, `INSERT INTO script_contents (sha256_checksum, contents) VALUES (?, ?)`, "a", "echo 'install script'")
+	uninstallScriptID := execNoErrLastID(t, db, `INSERT INTO script_contents (sha256_checksum, contents) VALUES (?, ?)`, "b", "echo 'uninstall script'")
 
 	titleId := execNoErrLastID(t, db, `
 		INSERT INTO software_titles (name, source, bundle_identifier) VALUES
@@ -48,8 +48,8 @@ func TestUp_20250926123048_NoIndexedPrivileges(t *testing.T) {
 	db := applyUpToPrev(t)
 
 	userId := execNoErrLastID(t, db, `INSERT INTO users (name, email, password, salt) VALUES (?, ?, ?, ?)`, "Alice", "alice@example.com", "password", "salt")
-	installScriptID := execNoErrLastID(t, db, `INSERT INTO script_contents (md5_checksum, contents) VALUES (?, ?)`, "a", "echo 'install script'")
-	uninstallScriptID := execNoErrLastID(t, db, `INSERT INTO script_contents (md5_checksum, contents) VALUES (?, ?)`, "b", "echo 'uninstall script'")
+	installScriptID := execNoErrLastID(t, db, `INSERT INTO script_contents (sha256_checksum, contents) VALUES (?, ?)`, "a", "echo 'install script'")
+	uninstallScriptID := execNoErrLastID(t, db, `INSERT INTO script_contents (sha256_checksum, contents) VALUES (?, ?)`, "b", "echo 'uninstall script'")
 
 	titleId := execNoErrLastID(t, db, `
 		INSERT INTO software_titles (name, source, bundle_identifier) VALUES
@@ -116,8 +116,8 @@ func TestUp_20250926123048_IndexedPrivileges(t *testing.T) {
 	db := applyUpToPrev(t)
 
 	userId := execNoErrLastID(t, db, `INSERT INTO users (name, email, password, salt) VALUES (?, ?, ?, ?)`, "Alice", "alice@example.com", "password", "salt")
-	installScriptID := execNoErrLastID(t, db, `INSERT INTO script_contents (md5_checksum, contents) VALUES (?, ?)`, "a", "echo 'install script'")
-	uninstallScriptID := execNoErrLastID(t, db, `INSERT INTO script_contents (md5_checksum, contents) VALUES (?, ?)`, "b", "echo 'uninstall script'")
+	installScriptID := execNoErrLastID(t, db, `INSERT INTO script_contents (sha256_checksum, contents) VALUES (?, ?)`, "a", "echo 'install script'")
+	uninstallScriptID := execNoErrLastID(t, db, `INSERT INTO script_contents (sha256_checksum, contents) VALUES (?, ?)`, "b", "echo 'uninstall script'")
 
 	incorrectTitleId := execNoErrLastID(t, db, `
 		INSERT INTO software_titles (name, source, bundle_identifier) VALUES

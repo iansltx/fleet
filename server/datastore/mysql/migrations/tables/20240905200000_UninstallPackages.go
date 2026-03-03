@@ -128,8 +128,8 @@ MODIFY COLUMN host_deleted_at TIMESTAMP(6) NULL DEFAULT NULL
 func getOrInsertScript(txx sqlx.Tx, script string) (int64, error) {
 	var ids []int64
 	// check is script already exists
-	csum := md5ChecksumScriptContent(script)
-	if err := txx.Select(&ids, `SELECT id FROM script_contents WHERE md5_checksum = UNHEX(?)`, csum); err != nil {
+	csum := sha256ChecksumScriptContent(script)
+	if err := txx.Select(&ids, `SELECT id FROM script_contents WHERE sha256_checksum = UNHEX(?)`, csum); err != nil {
 		return 0, fmt.Errorf("failed to find script contents: %w", err)
 	}
 	var scriptID int64
@@ -139,7 +139,7 @@ func getOrInsertScript(txx sqlx.Tx, script string) (int64, error) {
 		// create new script
 		var result sql.Result
 		var err error
-		if result, err = txx.Exec(`INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(?), ?)`, csum,
+		if result, err = txx.Exec(`INSERT INTO script_contents (sha256_checksum, contents) VALUES (UNHEX(?), ?)`, csum,
 			script); err != nil {
 			return 0, fmt.Errorf("failed to insert script contents: %w", err)
 		}

@@ -1612,7 +1612,7 @@ CREATE TABLE `mdm_config_assets` (
   `value` longblob NOT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
   `deletion_uuid` varchar(127) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
-  `md5_checksum` binary(16) NOT NULL,
+  `sha256_checksum` binary(32) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_mdm_config_assets_name_deletion_uuid` (`name`,`deletion_uuid`)
@@ -2437,11 +2437,11 @@ CREATE TABLE `scim_users` (
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `script_contents` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `md5_checksum` binary(16) NOT NULL,
+  `sha256_checksum` binary(32) NOT NULL,
   `contents` mediumtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `idx_script_contents_md5_checksum` (`md5_checksum`)
+  UNIQUE KEY `idx_script_contents_sha256_checksum` (`sha256_checksum`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;

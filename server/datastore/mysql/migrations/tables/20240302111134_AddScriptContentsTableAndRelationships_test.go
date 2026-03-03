@@ -13,10 +13,10 @@ func TestUp_20240302111134(t *testing.T) {
 	db := applyUpToPrev(t)
 
 	scriptA, scriptB, scriptC, scriptD := "scriptA", "scriptB", "scriptC", "scriptD"
-	md5A, md5B, md5C, md5D := md5ChecksumScriptContent(scriptA),
-		md5ChecksumScriptContent(scriptB),
-		md5ChecksumScriptContent(scriptC),
-		md5ChecksumScriptContent(scriptD)
+	md5A, md5B, md5C, md5D := sha256ChecksumScriptContent(scriptA),
+		sha256ChecksumScriptContent(scriptB),
+		sha256ChecksumScriptContent(scriptC),
+		sha256ChecksumScriptContent(scriptD)
 
 	// create saved scripts for A and B
 	savedScriptAID := execNoErrLastID(t, db, `INSERT INTO scripts (name, script_contents) VALUES (?, ?)`, "A", scriptA)
@@ -35,18 +35,18 @@ func TestUp_20240302111134(t *testing.T) {
 
 	// there should be 4 scripts in script_contents
 	type scriptContent struct {
-		ID          uint   `db:"id"`
-		MD5Checksum string `db:"md5_checksum"`
-		Contents    string `db:"contents"`
+		ID             uint   `db:"id"`
+		SHA256Checksum string `db:"sha256_checksum"`
+		Contents       string `db:"contents"`
 	}
 	var scriptContents []*scriptContent
-	err := db.Select(&scriptContents, `SELECT id, HEX(md5_checksum) as md5_checksum, contents FROM script_contents`)
+	err := db.Select(&scriptContents, `SELECT id, HEX(sha256_checksum) as sha256_checksum, contents FROM script_contents`)
 	require.NoError(t, err)
 
 	// build a lookup map of contents hash to script_content_id
 	contentHashToID := make(map[string]uint, len(scriptContents))
 	for _, sc := range scriptContents {
-		contentHashToID[sc.MD5Checksum] = sc.ID
+		contentHashToID[sc.SHA256Checksum] = sc.ID
 		sc.ID = 0
 	}
 

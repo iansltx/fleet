@@ -10,7 +10,7 @@ import (
 func TestUp_20240612150059(t *testing.T) {
 	db := applyUpToPrev(t)
 
-	script1 := execNoErrLastID(t, db, "INSERT INTO script_contents(contents, md5_checksum) VALUES ('echo hello', 'a')")
+	script1 := execNoErrLastID(t, db, "INSERT INTO script_contents(contents, sha256_checksum) VALUES ('echo hello', 'a')")
 
 	host := insertHost(t, db, nil)
 

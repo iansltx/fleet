@@ -530,7 +530,7 @@ func testFleetMaintainedAppsInUse(t *testing.T, ds *Datastore) {
 	// Create script content (required for software installers)
 	var installScriptID, uninstallScriptID int64
 	ExecAdhocSQL(t, ds, func(q sqlx.ExtContext) error {
-		result, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(?), ?)`,
+		result, err := q.ExecContext(ctx, `INSERT INTO script_contents (sha256_checksum, contents) VALUES (UNHEX(?), ?)`,
 			"d41d8cd98f00b204e9800998ecf8427e", "echo 'install'")
 		if err != nil {
 			return err
@@ -539,7 +539,7 @@ func testFleetMaintainedAppsInUse(t *testing.T, ds *Datastore) {
 		return nil
 	})
 	ExecAdhocSQL(t, ds, func(q sqlx.ExtContext) error {
-		result, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(?), ?)`,
+		result, err := q.ExecContext(ctx, `INSERT INTO script_contents (sha256_checksum, contents) VALUES (UNHEX(?), ?)`,
 			"e10adc3949ba59abbe56e057f20f883e", "echo 'uninstall'")
 		if err != nil {
 			return err

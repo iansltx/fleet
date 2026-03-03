@@ -126,7 +126,7 @@ func testNewAndroidHost(t *testing.T, ds *Datastore) {
 
 func createAndroidHost(enterpriseSpecificID string) *fleet.AndroidHost {
 	// Device ID needs to be unique per device
-	deviceID := md5ChecksumBytes([]byte(enterpriseSpecificID))[:16]
+	deviceID := sha256ChecksumBytes([]byte(enterpriseSpecificID))[:16]
 	host := &fleet.AndroidHost{
 		Host: &fleet.Host{
 			Hostname:       "hostname",

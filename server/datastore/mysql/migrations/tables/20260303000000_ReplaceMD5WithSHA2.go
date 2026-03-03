@@ -1,8 +1,14 @@
 package tables
 
 import (
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"fmt"
+	"strings"
+
+	"github.com/jmoiron/sqlx"
+	"github.com/jmoiron/sqlx/reflectx"
 )
 
 func init() {
@@ -212,6 +218,77 @@ func Up_20260303000000(tx *sql.Tx) error {
 			ADD UNIQUE INDEX idx_software_checksum (checksum)`)
 		if err != nil {
 			return fmt.Errorf("re-adding unique index to software: %w", err)
+		}
+	}
+
+	// 9. script_contents: rename md5_checksum to sha256_checksum, widen
+	//    BINARY(16) to BINARY(32), and re-hash existing rows.
+	if columnExists(tx, "script_contents", "md5_checksum") {
+		_, err := tx.Exec(`ALTER TABLE script_contents
+			DROP INDEX idx_script_contents_md5_checksum,
+			CHANGE COLUMN md5_checksum sha256_checksum BINARY(32) NOT NULL`)
+		if err != nil {
+			return fmt.Errorf("renaming/widening md5_checksum in script_contents: %w", err)
+		}
+
+		// Re-hash existing rows using Go sha256 to match production code.
+		txx := sqlx.Tx{Tx: tx, Mapper: reflectx.NewMapperFunc("db", sqlx.NameMapper)}
+		type scriptRow struct {
+			ID       uint   `db:"id"`
+			Contents string `db:"contents"`
+		}
+		const batchSize = 1000
+		var lastID uint
+		for {
+			var rows []scriptRow
+			if err := txx.Select(&rows, `SELECT id, contents FROM script_contents WHERE id > ? ORDER BY id LIMIT ?`, lastID, batchSize); err != nil {
+				return fmt.Errorf("reading script_contents for re-hash: %w", err)
+			}
+			if len(rows) == 0 {
+				break
+			}
+			for _, r := range rows {
+				lastID = r.ID
+				raw := sha256.Sum256([]byte(r.Contents))
+				hexCS := strings.ToUpper(hex.EncodeToString(raw[:]))
+				if _, err := tx.Exec(`UPDATE script_contents SET sha256_checksum = UNHEX(?) WHERE id = ?`, hexCS, r.ID); err != nil {
+					return fmt.Errorf("re-hashing script_contents id=%d: %w", r.ID, err)
+				}
+			}
+		}
+
+		_, err = tx.Exec(`ALTER TABLE script_contents
+			ADD UNIQUE INDEX idx_script_contents_sha256_checksum (sha256_checksum)`)
+		if err != nil {
+			return fmt.Errorf("re-adding unique index to script_contents: %w", err)
+		}
+	}
+
+	// 10. mdm_config_assets: rename md5_checksum to sha256_checksum, widen
+	//     BINARY(16) to BINARY(32), and re-hash existing rows.
+	if columnExists(tx, "mdm_config_assets", "md5_checksum") {
+		_, err := tx.Exec(`ALTER TABLE mdm_config_assets
+			CHANGE COLUMN md5_checksum sha256_checksum BINARY(32) NOT NULL`)
+		if err != nil {
+			return fmt.Errorf("renaming/widening md5_checksum in mdm_config_assets: %w", err)
+		}
+
+		// Re-hash existing rows using Go sha256 to match production code.
+		txx := sqlx.Tx{Tx: tx, Mapper: reflectx.NewMapperFunc("db", sqlx.NameMapper)}
+		type assetRow struct {
+			ID    uint   `db:"id"`
+			Value []byte `db:"value"`
+		}
+		var rows []assetRow
+		if err := txx.Select(&rows, `SELECT id, value FROM mdm_config_assets`); err != nil {
+			return fmt.Errorf("reading mdm_config_assets for re-hash: %w", err)
+		}
+		for _, r := range rows {
+			raw := sha256.Sum256(r.Value)
+			hexCS := strings.ToUpper(hex.EncodeToString(raw[:]))
+			if _, err := tx.Exec(`UPDATE mdm_config_assets SET sha256_checksum = UNHEX(?) WHERE id = ?`, hexCS, r.ID); err != nil {
+				return fmt.Errorf("re-hashing mdm_config_assets id=%d: %w", r.ID, err)
+			}
 		}
 	}
 

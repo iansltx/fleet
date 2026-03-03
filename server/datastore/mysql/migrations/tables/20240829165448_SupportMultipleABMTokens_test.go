@@ -63,7 +63,7 @@ func TestUp_20240829165448(t *testing.T) {
 
 		// create an existing ABM token
 		existingToken, md5Checksum := createTokenAndHash()
-		execNoErr(t, db, `INSERT INTO mdm_config_assets (name, value, md5_checksum) VALUES ('abm_token', ?, ?)`, existingToken, md5Checksum)
+		execNoErr(t, db, `INSERT INTO mdm_config_assets (name, value, sha256_checksum) VALUES ('abm_token', ?, ?)`, existingToken, md5Checksum)
 
 		// set a config for ABM
 		execNoErr(t, db, `UPDATE app_config_json SET json_value = JSON_SET(json_value, '$.mdm', JSON_OBJECT('apple_bm_default_team', 'team1'))`)
@@ -123,7 +123,7 @@ LIMIT 1`)
 
 		// create an existing ABM token
 		existingToken, md5Checksum := createTokenAndHash()
-		execNoErr(t, db, `INSERT INTO mdm_config_assets (name, value, md5_checksum) VALUES ('abm_token', ?, ?)`, existingToken, md5Checksum)
+		execNoErr(t, db, `INSERT INTO mdm_config_assets (name, value, sha256_checksum) VALUES ('abm_token', ?, ?)`, existingToken, md5Checksum)
 
 		// set a config for ABM
 		execNoErr(t, db, `UPDATE app_config_json SET json_value = JSON_SET(json_value, '$.mdm', JSON_OBJECT('apple_bm_default_team', 'no-such-team', 'apple_bm_terms_expired', true))`)
@@ -180,7 +180,7 @@ LIMIT 1`)
 
 		// create an existing ABM token
 		existingToken, md5Checksum := createTokenAndHash()
-		execNoErr(t, db, `INSERT INTO mdm_config_assets (name, value, md5_checksum) VALUES ('abm_token', ?, ?)`, existingToken, md5Checksum)
+		execNoErr(t, db, `INSERT INTO mdm_config_assets (name, value, sha256_checksum) VALUES ('abm_token', ?, ?)`, existingToken, md5Checksum)
 
 		// app config does not have the MDM object
 		execNoErr(t, db, `UPDATE app_config_json SET json_value = JSON_REMOVE(json_value, '$.mdm')`)
@@ -233,7 +233,7 @@ LIMIT 1`)
 
 		// create an existing ABM token
 		existingToken, md5Checksum := createTokenAndHash()
-		execNoErr(t, db, `INSERT INTO mdm_config_assets (name, value, md5_checksum) VALUES ('abm_token', ?, ?)`, existingToken, md5Checksum)
+		execNoErr(t, db, `INSERT INTO mdm_config_assets (name, value, sha256_checksum) VALUES ('abm_token', ?, ?)`, existingToken, md5Checksum)
 
 		// set a corrupted JSON config for ABM
 		execNoErr(t, db, `UPDATE app_config_json SET json_value = JSON_SET(json_value, '$.mdm', JSON_OBJECT('apple_bm_default_team', 123, 'apple_bm_terms_expired', 'abc'))`)

@@ -42,7 +42,7 @@ func TestUp_20240905200000(t *testing.T) {
 		computerName, nil)
 
 	dataStmts := `
-	  INSERT INTO script_contents (id, md5_checksum, contents) VALUES
+	  INSERT INTO script_contents (id, sha256_checksum, contents) VALUES
 	    (1, 'checksum', 'script content');
 
 	  INSERT INTO software_titles (id, name, source, browser) VALUES

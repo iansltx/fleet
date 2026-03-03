@@ -69,7 +69,7 @@ func TestUp_20240826160025(t *testing.T) {
 	// 1 app will remain because it is not in the software table (sw1)
 	// 1 app will remain because it is still installed
 	// 1 app will be removed on host 1 but remain on host 2
-	execNoErr(t, db, `INSERT INTO script_contents (id, md5_checksum, contents) VALUES (1, 'checksum', 'script content')`)
+	execNoErr(t, db, `INSERT INTO script_contents (id, sha256_checksum, contents) VALUES (1, 'checksum', 'script content')`)
 	siStmt := `INSERT INTO software_installers
 	    (title_id, filename, version, platform, install_script_content_id, storage_id)
 	  VALUES

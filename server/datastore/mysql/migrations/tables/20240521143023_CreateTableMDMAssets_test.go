@@ -11,7 +11,7 @@ func TestUp_20240521143023(t *testing.T) {
 	db := applyUpToPrev(t)
 	applyNext(t, db)
 	const (
-		insertStmt     = `INSERT INTO mdm_config_assets (name, value, md5_checksum) VALUES (?, ?, "foo")`
+		insertStmt     = `INSERT INTO mdm_config_assets (name, value, sha256_checksum) VALUES (?, ?, "foo")`
 		selectStmt     = `SELECT * FROM mdm_config_assets WHERE name = ? AND deleted_at IS NULL`
 		softDeleteStmt = `UPDATE mdm_config_assets SET deleted_at = NOW(), deletion_uuid = UUID() WHERE name = ?`
 	)
@@ -27,7 +27,7 @@ func TestUp_20240521143023(t *testing.T) {
 		CreatedAt    time.Time  `db:"created_at"`
 		DeletedAt    *time.Time `db:"deleted_at"`
 		DeletionUUID string     `db:"deletion_uuid"`
-		MD5Checksum  string     `db:"md5_checksum"`
+		SHA256Checksum  string     `db:"sha256_checksum"`
 	}
 	var asset mdmAsset
 	err := db.Get(&asset, selectStmt, "scep_cert")

@@ -27,7 +27,7 @@ func TestUp_20260109231821(t *testing.T) {
 
 	// insert script contents for install/uninstall
 	scriptContentID := execNoErrLastID(t, db, `
-		INSERT INTO script_contents (md5_checksum, contents)
+		INSERT INTO script_contents (sha256_checksum, contents)
 		VALUES ("md5", "echo 'installing'")
 	`)
 

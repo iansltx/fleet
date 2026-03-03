@@ -294,9 +294,9 @@ func insertScriptContents(t *testing.T, db *sqlx.DB, count int) []uint {
 	ids := make([]uint, 0, count)
 	for i := 0; i < count; i++ {
 		content := fmt.Sprintf(`echo %d`, i)
-		csum := md5ChecksumScriptContent(content)
+		csum := sha256ChecksumScriptContent(content)
 		id := execNoErrLastID(t, db, `INSERT INTO script_contents
-			(md5_checksum, contents) VALUES (UNHEX(?), ?)`, csum, content)
+			(sha256_checksum, contents) VALUES (UNHEX(?), ?)`, csum, content)
 		ids = append(ids, uint(id)) //nolint:gosec
 	}
 	return ids
@@ -309,14 +309,14 @@ func insertSoftwareInstallers(t *testing.T, db *sqlx.DB, count int) (installerID
 
 	for i := 0; i < count; i++ {
 		content := fmt.Sprintf(`install %d`, i)
-		csum := md5ChecksumScriptContent(content)
+		csum := sha256ChecksumScriptContent(content)
 		installID := execNoErrLastID(t, db, `INSERT INTO script_contents
-			(md5_checksum, contents) VALUES (UNHEX(?), ?)`, csum, content)
+			(sha256_checksum, contents) VALUES (UNHEX(?), ?)`, csum, content)
 
 		content = fmt.Sprintf(`uninstall %d`, i)
-		csum = md5ChecksumScriptContent(content)
+		csum = sha256ChecksumScriptContent(content)
 		uninstallID := execNoErrLastID(t, db, `INSERT INTO script_contents
-			(md5_checksum, contents) VALUES (UNHEX(?), ?)`, csum, content)
+			(sha256_checksum, contents) VALUES (UNHEX(?), ?)`, csum, content)
 
 		titleID := execNoErrLastID(t, db, `INSERT INTO software_titles
 			(name, source, browser) VALUES (?, 'apps', '')`, fmt.Sprintf("Foo%d.app", i))

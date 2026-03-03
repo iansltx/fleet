@@ -6159,7 +6159,7 @@ func (ds *Datastore) GetAllMDMConfigAssetsHashes(ctx context.Context, assetNames
 	}
 
 	stmt := `
-SELECT name, HEX(md5_checksum) as md5_checksum
+SELECT name, HEX(sha256_checksum) as sha256_checksum
 FROM mdm_config_assets
 WHERE name IN (?) AND deletion_uuid = ''`
 
@@ -6179,7 +6179,7 @@ WHERE name IN (?) AND deletion_uuid = ''`
 
 	assetMap := make(map[fleet.MDMAssetName]string, len(res))
 	for _, asset := range res {
-		assetMap[asset.Name] = asset.MD5Checksum
+		assetMap[asset.Name] = asset.SHA256Checksum
 	}
 
 	if len(res) < len(assetNames) {
@@ -6233,7 +6233,7 @@ WHERE
 func insertMDMConfigAssets(ctx context.Context, tx sqlx.ExtContext, assets []fleet.MDMConfigAsset, privateKey string) error {
 	stmt := `
 INSERT INTO mdm_config_assets
-  (name, value, md5_checksum)
+  (name, value, sha256_checksum)
 VALUES
   %s`
 
@@ -6246,7 +6246,7 @@ VALUES
 			return ctxerr.Wrap(ctx, err, fmt.Sprintf("encrypting mdm config asset %s", a.Name))
 		}
 
-		hexChecksum := md5ChecksumBytes(encryptedVal)
+		hexChecksum := sha256ChecksumBytes(encryptedVal)
 		insertVals.WriteString(`(?, ?, UNHEX(?)),`)
 		args = append(args, a.Name, encryptedVal, hexChecksum)
 	}

@@ -6924,7 +6924,7 @@ func testPolicyModificationResetsAttemptNumber(t *testing.T, ds *Datastore) {
 	// Create script content
 	var scriptContentID int64
 	ExecAdhocSQL(t, ds, func(q sqlx.ExtContext) error {
-		res, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (?, ?)`,
+		res, err := q.ExecContext(ctx, `INSERT INTO script_contents (sha256_checksum, contents) VALUES (?, ?)`,
 			"md5hash", "echo 'test'")
 		if err != nil {
 			return err

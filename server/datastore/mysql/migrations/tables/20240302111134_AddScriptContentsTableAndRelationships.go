@@ -1,7 +1,7 @@
 package tables
 
 import (
-	"crypto/md5" //nolint:gosec
+	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
 	"fmt"
@@ -32,26 +32,16 @@ func Up_20240302111134(tx *sql.Tx) error {
 	// anonymous one) are only stored once and both host_script_results and
 	// scripts reference that entry.
 
-	// Using md5 checksum stored in binary (so,
-	// "UNHEX(md5-string-representation)" when storing) for efficient storage.
-	// The choice of md5 despite it being broken is because:
-	// 	 - we don't use it for anything critical, just deduplication of scripts
-	//   - it's available in mysql; sha2 is also a possibility, but there's this
-	//   note in mysql's documentation
-	//   (https://dev.mysql.com/doc/refman/5.7/en/encryption-functions.html#function_sha2):
-	//     > This function works only if MySQL has been configured with SSL support.
-	//   and we need to support a wide variety of MySQL installations in
-	//   the wild. (sha1 is also available without this constraint but also broken)
-	//   - it's same as what we use elsewhere in the DB, e.g. mdm apple profiles
+	// Using sha256 checksum stored in binary for deduplication of scripts.
 	// Note: MEDIUMTEXT can handle up to ~16 million bytes, so it should be plenty for our use case.
 	createScriptContentsStmt := `
 CREATE TABLE script_contents (
-	id            INT(10) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-	md5_checksum  BINARY(16) NOT NULL,
-	contents      MEDIUMTEXT COLLATE utf8mb4_unicode_ci NOT NULL,
-	created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	id                INT(10) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	sha256_checksum   BINARY(32) NOT NULL,
+	contents          MEDIUMTEXT COLLATE utf8mb4_unicode_ci NOT NULL,
+	created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-	UNIQUE KEY idx_script_contents_md5_checksum (md5_checksum)
+	UNIQUE KEY idx_script_contents_sha256_checksum (sha256_checksum)
 )`
 	if _, err := txx.Exec(createScriptContentsStmt); err != nil {
 		return fmt.Errorf("create table script_contents: %w", err)
@@ -190,7 +180,7 @@ func createScriptContentsEntries(txx *sqlx.Tx, stmtTable, stmt string, scriptCon
 	// in case of a duplicate key.
 	insertScriptContentsStmt := `
 	INSERT INTO
-		script_contents (md5_checksum, contents)
+		script_contents (sha256_checksum, contents)
 	VALUES
 		(UNHEX(?), ?)
 	ON DUPLICATE KEY UPDATE
@@ -217,7 +207,7 @@ func createScriptContentsEntries(txx *sqlx.Tx, stmtTable, stmt string, scriptCon
 		for _, s := range scriptContents {
 			lastID = s.ID
 
-			hexChecksum := md5ChecksumScriptContent(s.ScriptContents)
+			hexChecksum := sha256ChecksumScriptContent(s.ScriptContents)
 			contentHashToStmtTableIDs[hexChecksum] = append(contentHashToStmtTableIDs[hexChecksum], s.ID)
 			if id := scriptContentsIDLookup[hexChecksum]; id == 0 {
 				// insert the script content into the script_contents table, we don't
@@ -233,8 +223,8 @@ func createScriptContentsEntries(txx *sqlx.Tx, stmtTable, stmt string, scriptCon
 	}
 }
 
-func md5ChecksumScriptContent(s string) string {
-	rawChecksum := md5.Sum([]byte(s)) //nolint:gosec
+func sha256ChecksumScriptContent(s string) string {
+	rawChecksum := sha256.Sum256([]byte(s))
 	return strings.ToUpper(hex.EncodeToString(rawChecksum[:]))
 }
 

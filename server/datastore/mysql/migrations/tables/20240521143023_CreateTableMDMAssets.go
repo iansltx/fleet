@@ -29,8 +29,8 @@ CREATE TABLE mdm_config_assets (
     -- along with deleted_at
     deletion_uuid varchar(127) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
 
-    -- md5_checksum holds the binary checksum of the value column.
-    md5_checksum  BINARY(16) NOT NULL,
+    -- sha256_checksum holds the binary checksum of the value column.
+    sha256_checksum  BINARY(32) NOT NULL,
 
     created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

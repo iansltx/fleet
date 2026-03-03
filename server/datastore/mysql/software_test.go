@@ -4307,7 +4307,7 @@ func testListHostSoftware(t *testing.T, ds *Datastore) {
 
 		// create the install script content (same for all installers, doesn't matter)
 		installScript := `echo 'foo'`
-		res, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(LEFT(SHA2(?, 256), 32)), ?)`, installScript, installScript)
+		res, err := q.ExecContext(ctx, `INSERT INTO script_contents (sha256_checksum, contents) VALUES (UNHEX(SHA2(?, 256)), ?)`, installScript, installScript)
 		if err != nil {
 			return err
 		}
@@ -4315,7 +4315,7 @@ func testListHostSoftware(t *testing.T, ds *Datastore) {
 
 		// create the uninstall script content (same for all installers, doesn't matter)
 		uninstallScript := `echo 'bar'`
-		resUninstall, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(LEFT(SHA2(?, 256), 32)), ?)`,
+		resUninstall, err := q.ExecContext(ctx, `INSERT INTO script_contents (sha256_checksum, contents) VALUES (UNHEX(SHA2(?, 256)), ?)`,
 			uninstallScript, uninstallScript)
 		if err != nil {
 			return err
@@ -5210,13 +5210,13 @@ func testListHostSoftware(t *testing.T, ds *Datastore) {
 	var SoftwareInstallerID uint
 	ExecAdhocSQL(t, ds, func(q sqlx.ExtContext) error {
 		installScript := `install 'DummyApp.app'`
-		res, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(LEFT(SHA2(?, 256), 32)), ?)`, installScript, installScript)
+		res, err := q.ExecContext(ctx, `INSERT INTO script_contents (sha256_checksum, contents) VALUES (UNHEX(SHA2(?, 256)), ?)`, installScript, installScript)
 		if err != nil {
 			return err
 		}
 		scriptContentID, _ := res.LastInsertId()
 		uninstallScript := `uinstall 'DummyApp.app'`
-		resUninstall, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(LEFT(SHA2(?, 256), 32)), ?)`,
+		resUninstall, err := q.ExecContext(ctx, `INSERT INTO script_contents (sha256_checksum, contents) VALUES (UNHEX(SHA2(?, 256)), ?)`,
 			uninstallScript, uninstallScript)
 		if err != nil {
 			return err
@@ -5334,7 +5334,7 @@ func testListLinuxHostSoftware(t *testing.T, ds *Datastore) {
 	}
 	ExecAdhocSQL(t, ds, func(q sqlx.ExtContext) error {
 		script := `hello world`
-		res, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(LEFT(SHA2(?, 256), 32)), ?)`, script, script)
+		res, err := q.ExecContext(ctx, `INSERT INTO script_contents (sha256_checksum, contents) VALUES (UNHEX(SHA2(?, 256)), ?)`, script, script)
 		if err != nil {
 			return err
 		}
@@ -6228,14 +6228,14 @@ func testSetHostSoftwareInstallResult(t *testing.T, ds *Datastore) {
 	// create a software installer and some host install requests
 	ExecAdhocSQL(t, ds, func(q sqlx.ExtContext) error {
 		installScript := `echo 'foo'`
-		res, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(LEFT(SHA2(?, 256), 32)), ?)`, installScript, installScript)
+		res, err := q.ExecContext(ctx, `INSERT INTO script_contents (sha256_checksum, contents) VALUES (UNHEX(SHA2(?, 256)), ?)`, installScript, installScript)
 		if err != nil {
 			return err
 		}
 		scriptContentID, _ := res.LastInsertId()
 
 		uninstallScript := `echo 'bar'`
-		resUninstall, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(LEFT(SHA2(?, 256), 32)), ?)`,
+		resUninstall, err := q.ExecContext(ctx, `INSERT INTO script_contents (sha256_checksum, contents) VALUES (UNHEX(SHA2(?, 256)), ?)`,
 			uninstallScript, uninstallScript)
 		if err != nil {
 			return err

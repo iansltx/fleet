@@ -9,8 +9,8 @@ import (
 func TestUp_20241219180042(t *testing.T) {
 	db := applyUpToPrev(t)
 
-	script1 := execNoErrLastID(t, db, "INSERT INTO script_contents(contents, md5_checksum) VALUES ('echo hi', 'a')")
-	script2 := execNoErrLastID(t, db, "INSERT INTO script_contents(contents, md5_checksum) VALUES ('echo bye', 'b')")
+	script1 := execNoErrLastID(t, db, "INSERT INTO script_contents(contents, sha256_checksum) VALUES ('echo hi', 'a')")
+	script2 := execNoErrLastID(t, db, "INSERT INTO script_contents(contents, sha256_checksum) VALUES ('echo bye', 'b')")
 
 	software := execNoErrLastID(t, db, `
 INSERT INTO software_installers (

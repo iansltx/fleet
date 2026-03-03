@@ -40,7 +40,7 @@ func TestUp_20260218165545(t *testing.T) {
 		INSERT INTO software_titles (name, source, bundle_identifier) 
 		VALUES ('App 3', 'ios_apps', 'com.example3')
 	`)
-	scriptID := execNoErrLastID(t, db, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(LEFT(SHA2('echo hello', 256), 32)), 'echo hello')`)
+	scriptID := execNoErrLastID(t, db, `INSERT INTO script_contents (sha256_checksum, contents) VALUES (UNHEX(SHA2('echo hello', 256)), 'echo hello')`)
 	test3_installerID := execNoErrLastID(t, db, `
 	INSERT INTO software_installers (
 		team_id,

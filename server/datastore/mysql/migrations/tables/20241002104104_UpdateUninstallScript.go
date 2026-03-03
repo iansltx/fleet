@@ -1,7 +1,7 @@
 package tables
 
 import (
-	"crypto/md5" //nolint:gosec
+	"crypto/sha256"
 	"database/sql"
 	_ "embed"
 	"encoding/hex"
@@ -63,15 +63,15 @@ func Up_20241002104104(tx *sql.Tx) error {
 		const stmt = `
 INSERT INTO
   script_contents (
-	  md5_checksum, contents
+	  sha256_checksum, contents
   )
 VALUES (UNHEX(?),?)
 ON DUPLICATE KEY UPDATE
   id=LAST_INSERT_ID(id)
 		`
-		rawChecksum := md5.Sum([]byte(contents)) //nolint:gosec
-		md5Checksum := []byte(strings.ToUpper(hex.EncodeToString(rawChecksum[:])))
-		res, err := tx.Exec(stmt, md5Checksum, contents)
+		rawChecksum := sha256.Sum256([]byte(contents))
+		sha256Checksum := []byte(strings.ToUpper(hex.EncodeToString(rawChecksum[:])))
+		res, err := tx.Exec(stmt, sha256Checksum, contents)
 		if err != nil {
 			return 0, fmt.Errorf("update script contents: %w", err)
 		}

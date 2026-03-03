@@ -20,7 +20,7 @@ func TestUp_20241008083925(t *testing.T) {
 	titleID := execNoErrLastID(t, db, `INSERT INTO software_titles (name, source, browser) VALUES ("Test App", "deb_packages", "")`)
 
 	// insert script contents for install/uninstall
-	scriptContentID := execNoErrLastID(t, db, `INSERT INTO script_contents (md5_checksum, contents) VALUES ("md5", "echo 'Hello World'")`)
+	scriptContentID := execNoErrLastID(t, db, `INSERT INTO script_contents (sha256_checksum, contents) VALUES ("md5", "echo 'Hello World'")`)
 
 	// insert a software installer
 	installerID := execNoErrLastID(t, db, `

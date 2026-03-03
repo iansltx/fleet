@@ -1372,7 +1372,7 @@ func checkLockWipeState(t *testing.T, status *fleet.HostLockWipeStatus, unlocked
 
 type scriptContents struct {
 	ID       uint   `db:"id"`
-	Checksum string `db:"md5_checksum"`
+	Checksum string `db:"sha256_checksum"`
 }
 
 func testInsertScriptContents(t *testing.T, ds *Datastore) {
@@ -1382,7 +1382,7 @@ func testInsertScriptContents(t *testing.T, ds *Datastore) {
 	require.NoError(t, err)
 	id, _ := res.LastInsertId()
 	require.Equal(t, int64(1), id)
-	expectedCS := md5ChecksumScriptContent(contents)
+	expectedCS := sha256ChecksumScriptContent(contents)
 
 	// insert same contents again, verify that the checksum and ID stayed the same
 	res, err = insertScriptContents(ctx, ds.writer(ctx), contents)
@@ -1390,7 +1390,7 @@ func testInsertScriptContents(t *testing.T, ds *Datastore) {
 	id, _ = res.LastInsertId()
 	require.Equal(t, int64(1), id)
 
-	stmt := `SELECT id, HEX(md5_checksum) as md5_checksum FROM script_contents WHERE id = ?`
+	stmt := `SELECT id, HEX(sha256_checksum) as sha256_checksum FROM script_contents WHERE id = ?`
 
 	var sc []scriptContents
 	err = sqlx.SelectContext(ctx, ds.reader(ctx),
@@ -1444,7 +1444,7 @@ func testCleanupUnusedScriptContents(t *testing.T, ds *Datastore) {
 
 	// validate that script contents still exist
 	var sc []scriptContents
-	stmt := `SELECT id, HEX(md5_checksum) as md5_checksum FROM script_contents`
+	stmt := `SELECT id, HEX(sha256_checksum) as sha256_checksum FROM script_contents`
 	err = sqlx.SelectContext(ctx, ds.reader(ctx), &sc, stmt)
 	require.NoError(t, err)
 	require.Len(t, sc, 5)
@@ -1458,10 +1458,10 @@ func testCleanupUnusedScriptContents(t *testing.T, ds *Datastore) {
 	require.NoError(t, err)
 	require.Len(t, sc, 4)
 	require.ElementsMatch(t, []string{
-		md5ChecksumScriptContent(res.ScriptContents),
-		md5ChecksumScriptContent("install-script"),
-		md5ChecksumScriptContent("post-install-script"),
-		md5ChecksumScriptContent("uninstall-script"),
+		sha256ChecksumScriptContent(res.ScriptContents),
+		sha256ChecksumScriptContent("install-script"),
+		sha256ChecksumScriptContent("post-install-script"),
+		sha256ChecksumScriptContent("uninstall-script"),
 	}, []string{
 		sc[0].Checksum,
 		sc[1].Checksum,
@@ -1480,7 +1480,7 @@ func testCleanupUnusedScriptContents(t *testing.T, ds *Datastore) {
 	err = sqlx.SelectContext(ctx, ds.reader(ctx), &sc, stmt)
 	require.NoError(t, err)
 	require.Len(t, sc, 1)
-	require.Equal(t, md5ChecksumScriptContent(res.ScriptContents), sc[0].Checksum)
+	require.Equal(t, sha256ChecksumScriptContent(res.ScriptContents), sc[0].Checksum)
 
 	// create a software install without a post-install script
 	tfr2, err := fleet.NewTempFileReader(strings.NewReader("hello"), t.TempDir)
@@ -1517,7 +1517,7 @@ func testCleanupUnusedScriptContents(t *testing.T, ds *Datastore) {
 	err = sqlx.SelectContext(ctx, ds.reader(ctx), &sc, stmt)
 	require.NoError(t, err)
 	require.Len(t, sc, 1)
-	require.Equal(t, md5ChecksumScriptContent(res.ScriptContents), sc[0].Checksum)
+	require.Equal(t, sha256ChecksumScriptContent(res.ScriptContents), sc[0].Checksum)
 }
 
 func testGetAnyScriptContents(t *testing.T, ds *Datastore) {
@@ -3150,7 +3150,7 @@ func testScriptModificationResetsAttemptNumber(t *testing.T, ds *Datastore) {
 	// Create script content
 	var scriptContentID int64
 	ExecAdhocSQL(t, ds, func(q sqlx.ExtContext) error {
-		res, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (?, ?)`,
+		res, err := q.ExecContext(ctx, `INSERT INTO script_contents (sha256_checksum, contents) VALUES (?, ?)`,
 			"md5hash", "echo 'v1'")
 		if err != nil {
 			return err

@@ -44,7 +44,7 @@ func TestUp_20241224000000(t *testing.T) {
 		scriptContents: "b",
 	}
 
-	scriptContentsID := execNoErrLastID(t, db, "INSERT INTO script_contents(contents, md5_checksum) VALUES (?, 'a')", globalScript.scriptContents)
+	scriptContentsID := execNoErrLastID(t, db, "INSERT INTO script_contents(contents, sha256_checksum) VALUES (?, 'a')", globalScript.scriptContents)
 
 	res, err := db.Exec(insertScriptStmt, globalScript.teamID, globalScript.globalOrTeamID, globalScript.name, scriptContentsID)
 	require.NoError(t, err)

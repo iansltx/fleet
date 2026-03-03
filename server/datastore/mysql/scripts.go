@@ -2,7 +2,7 @@ package mysql
 
 import (
 	"context"
-	"crypto/md5" //nolint:gosec
+	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
@@ -654,15 +654,15 @@ func insertScriptContents(ctx context.Context, tx sqlx.ExtContext, contents stri
 	const insertStmt = `
 INSERT INTO
   script_contents (
-	  md5_checksum, contents
+	  sha256_checksum, contents
   )
 VALUES (UNHEX(?),?)
 ON DUPLICATE KEY UPDATE
   id=LAST_INSERT_ID(id)
 	`
 
-	md5Checksum := md5ChecksumScriptContent(contents)
-	res, err := tx.ExecContext(ctx, insertStmt, md5Checksum, contents)
+	hexChecksum := sha256ChecksumScriptContent(contents)
+	res, err := tx.ExecContext(ctx, insertStmt, hexChecksum, contents)
 	if err != nil {
 		return nil, ctxerr.Wrap(ctx, err, "insert script contents")
 	}
@@ -670,12 +670,12 @@ ON DUPLICATE KEY UPDATE
 	return res, nil
 }
 
-func md5ChecksumScriptContent(s string) string {
-	return md5ChecksumBytes([]byte(s))
+func sha256ChecksumScriptContent(s string) string {
+	return sha256ChecksumBytes([]byte(s))
 }
 
-func md5ChecksumBytes(b []byte) string {
-	rawChecksum := md5.Sum(b) //nolint:gosec
+func sha256ChecksumBytes(b []byte) string {
+	rawChecksum := sha256.Sum256(b)
 	return strings.ToUpper(hex.EncodeToString(rawChecksum[:]))
 }
 
@@ -2353,14 +2353,14 @@ WHERE
 }
 
 func (ds *Datastore) getOrGenerateScriptContentsID(ctx context.Context, contents string) (uint, error) {
-	csum := md5ChecksumScriptContent(contents)
+	csum := sha256ChecksumScriptContent(contents)
 	scriptContentsID, err := ds.optimisticGetOrInsert(ctx,
 		&parameterizedStmt{
-			Statement: `SELECT id FROM script_contents WHERE md5_checksum = UNHEX(?)`,
+			Statement: `SELECT id FROM script_contents WHERE sha256_checksum = UNHEX(?)`,
 			Args:      []interface{}{csum},
 		},
 		&parameterizedStmt{
-			Statement: `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(?), ?)`,
+			Statement: `INSERT INTO script_contents (sha256_checksum, contents) VALUES (UNHEX(?), ?)`,
 			Args:      []interface{}{csum, contents},
 		},
 	)

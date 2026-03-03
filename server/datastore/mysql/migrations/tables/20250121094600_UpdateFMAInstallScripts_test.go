@@ -183,24 +183,24 @@ sudo cp -R "$TMPDIR/%s" "$APPDIR"
 	var scriptContents struct {
 		InstallScriptContents   string `db:"contents"`
 		UninstallScriptContents string `db:"uninstall_contents"`
-		Checksum                string `db:"md5_checksum"`
+		Checksum                string `db:"sha256_checksum"`
 	}
 
 	selectStmt := `
-SELECT 
+SELECT
 	sc.contents AS contents,
-	HEX(sc.md5_checksum) AS md5_checksum
-FROM 
-	fleet_library_apps fla 
-	JOIN script_contents sc 
+	HEX(sc.sha256_checksum) AS sha256_checksum
+FROM
+	fleet_library_apps fla
+	JOIN script_contents sc
 	ON fla.install_script_content_id = sc.id
 WHERE fla.token = ?`
 
 	uninstallSelectStmt := `
-SELECT 
+SELECT
 	sc.contents AS uninstall_contents,
-	HEX(sc.md5_checksum) AS md5_checksum
-FROM 
+	HEX(sc.sha256_checksum) AS sha256_checksum
+FROM
 	fleet_library_apps fla 
 	JOIN script_contents sc 
 	ON fla.uninstall_script_content_id = sc.id
@@ -263,7 +263,7 @@ sudo cp -R "$TMPDIR/%[2]s" "$APPDIR"
 	require.NoError(t, err)
 
 	expectedContents := fmt.Sprintf(expectedContentsTmpl, "com.figma.Desktop", "Figma.app")
-	expectedChecksum := md5ChecksumScriptContent(expectedContents)
+	expectedChecksum := sha256ChecksumScriptContent(expectedContents)
 	require.Equal(t, expectedContents, scriptContents.InstallScriptContents)
 	require.Equal(t, expectedChecksum, scriptContents.Checksum)
 
@@ -271,7 +271,7 @@ sudo cp -R "$TMPDIR/%[2]s" "$APPDIR"
 	require.NoError(t, err)
 
 	expectedContents = fmt.Sprintf(expectedContentsTmpl, "org.mozilla.firefox", "Firefox.app")
-	expectedChecksum = md5ChecksumScriptContent(expectedContents)
+	expectedChecksum = sha256ChecksumScriptContent(expectedContents)
 	require.Equal(t, expectedContents, scriptContents.InstallScriptContents)
 	require.Equal(t, expectedChecksum, scriptContents.Checksum)
 
@@ -279,7 +279,7 @@ sudo cp -R "$TMPDIR/%[2]s" "$APPDIR"
 	require.NoError(t, err)
 
 	expectedContents = fmt.Sprintf(expectedContentsTmpl, "com.microsoft.VSCode", "Visual Studio Code.app")
-	expectedChecksum = md5ChecksumScriptContent(expectedContents)
+	expectedChecksum = sha256ChecksumScriptContent(expectedContents)
 	require.Equal(t, expectedContents, scriptContents.InstallScriptContents)
 	require.Equal(t, expectedChecksum, scriptContents.Checksum)
 
@@ -287,7 +287,7 @@ sudo cp -R "$TMPDIR/%[2]s" "$APPDIR"
 	require.NoError(t, err)
 
 	expectedContents = fmt.Sprintf(expectedContentsTmpl, "com.brave.Browser", "Brave Browser.app")
-	expectedChecksum = md5ChecksumScriptContent(expectedContents)
+	expectedChecksum = sha256ChecksumScriptContent(expectedContents)
 	require.Equal(t, expectedContents, scriptContents.InstallScriptContents)
 	require.Equal(t, expectedChecksum, scriptContents.Checksum)
 
@@ -304,5 +304,5 @@ sudo cp -R "$TMPDIR/%[2]s" "$APPDIR"
 	err = sqlx.Get(db, &scriptContents, selectStmt, "box-drive")
 	require.NoError(t, err)
 	require.Equal(t, "echo install", scriptContents.InstallScriptContents)
-	require.Equal(t, md5ChecksumScriptContent("echo install"), scriptContents.Checksum)
+	require.Equal(t, sha256ChecksumScriptContent("echo install"), scriptContents.Checksum)
 }

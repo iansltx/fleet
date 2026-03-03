@@ -20,7 +20,7 @@ func TestUp_20260124200020(t *testing.T) {
 
 	// Insert a script
 	scriptContentID := execNoErrLastID(t, db, `
-		INSERT INTO script_contents (md5_checksum, contents)
+		INSERT INTO script_contents (sha256_checksum, contents)
 		VALUES ("md5hash", "echo test")
 	`)
 	scriptID := execNoErrLastID(t, db, `

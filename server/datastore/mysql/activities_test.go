@@ -1990,7 +1990,7 @@ func testActivateScriptPackageInstallWithCorruptPayload(t *testing.T, ds *Datast
 
 	u := test.NewUser(t, ds, "user1", "user1@example.com", false)
 
-	scriptContentStmt := `INSERT INTO script_contents (md5_checksum, contents) VALUES (?, ?)`
+	scriptContentStmt := `INSERT INTO script_contents (sha256_checksum, contents) VALUES (?, ?)`
 	res, err = ds.writer(ctx).ExecContext(ctx, scriptContentStmt, "abc123", "#!/bin/bash\necho 'test'")
 	require.NoError(t, err)
 	scriptContentID, _ := res.LastInsertId()
@@ -2165,7 +2165,7 @@ func testActivateScriptPackageUninstallWithCorruptPayload(t *testing.T, ds *Data
 
 	u := test.NewUser(t, ds, "uninstall-user", "uninstall@example.com", false)
 
-	scriptStmt := `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(LEFT(SHA2('echo uninstalling', 256), 32)), 'echo uninstalling')`
+	scriptStmt := `INSERT INTO script_contents (sha256_checksum, contents) VALUES (UNHEX(SHA2('echo uninstalling', 256)), 'echo uninstalling')`
 	res, err = ds.writer(ctx).ExecContext(ctx, scriptStmt)
 	require.NoError(t, err)
 	scriptContentID, _ := res.LastInsertId()
