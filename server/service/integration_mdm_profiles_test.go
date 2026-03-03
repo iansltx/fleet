@@ -6968,7 +6968,7 @@ func forceSetAppleHostProfileStatus(t *testing.T, ds *mysql.Datastore, hostUUID 
 		_, err := q.ExecContext(ctx, `INSERT INTO host_mdm_apple_profiles
 				(profile_identifier, host_uuid, status, operation_type, command_uuid, profile_name, checksum, profile_uuid)
 			VALUES
-				(?, ?, ?, ?, ?, ?, UNHEX(MD5(?)), ?)
+				(?, ?, ?, ?, ?, ?, UNHEX(SHA2(?, 256)), ?)
 			ON DUPLICATE KEY UPDATE
 				status = VALUES(status),
 				operation_type = VALUES(operation_type)
@@ -6991,7 +6991,7 @@ func forceSetWindowsHostProfileStatus(t *testing.T, ds *mysql.Datastore, hostUUI
 		_, err := q.ExecContext(ctx, `INSERT INTO host_mdm_windows_profiles
 				(host_uuid, status, operation_type, command_uuid, profile_name, checksum, profile_uuid)
 			VALUES
-				(?, ?, ?, ?, ?, UNHEX(MD5(?)), ?)
+				(?, ?, ?, ?, ?, UNHEX(SHA2(?, 256)), ?)
 			ON DUPLICATE KEY UPDATE
 				status = VALUES(status),
 				operation_type = VALUES(operation_type)

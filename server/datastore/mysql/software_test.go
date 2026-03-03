@@ -1403,7 +1403,7 @@ func softwareChecksumComputedColumn(tableAlias string, source string) string {
 	// concatenate with separator \x00
 	return fmt.Sprintf(
 		` UNHEX(
-		MD5(
+		SHA2(
 			CONCAT_WS(CHAR(0),
 				%s
 				%[2]sversion,
@@ -1414,8 +1414,8 @@ func softwareChecksumComputedColumn(tableAlias string, source string) string {
 				%[2]svendor,
 				%[2]sextension_for,
 				%[2]sextension_id
-			)
-		)
+			),
+		256)
 	) `, nameCol, tableAlias,
 	)
 }
@@ -4307,7 +4307,7 @@ func testListHostSoftware(t *testing.T, ds *Datastore) {
 
 		// create the install script content (same for all installers, doesn't matter)
 		installScript := `echo 'foo'`
-		res, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(md5(?)), ?)`, installScript, installScript)
+		res, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(LEFT(SHA2(?, 256), 32)), ?)`, installScript, installScript)
 		if err != nil {
 			return err
 		}
@@ -4315,7 +4315,7 @@ func testListHostSoftware(t *testing.T, ds *Datastore) {
 
 		// create the uninstall script content (same for all installers, doesn't matter)
 		uninstallScript := `echo 'bar'`
-		resUninstall, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(md5(?)), ?)`,
+		resUninstall, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(LEFT(SHA2(?, 256), 32)), ?)`,
 			uninstallScript, uninstallScript)
 		if err != nil {
 			return err
@@ -5007,7 +5007,7 @@ func testListHostSoftware(t *testing.T, ds *Datastore) {
 			return err
 		}
 		res, err := q.ExecContext(ctx,
-			`INSERT INTO software (name, source, bundle_identifier, version, title_id, checksum) VALUES (?, ?, ?, ?, ?, UNHEX(MD5(?)))`,
+			`INSERT INTO software (name, source, bundle_identifier, version, title_id, checksum) VALUES (?, ?, ?, ?, ?, UNHEX(SHA2(?, 256)))`,
 			i4Title.Name,
 			i4Title.Source,
 			"i4Title.com.example",
@@ -5170,7 +5170,7 @@ func testListHostSoftware(t *testing.T, ds *Datastore) {
 		}
 		titleIDUint := uint(titleID)
 		softwareAlreadyInstalled.TitleID = &titleIDUint
-		res, err = q.ExecContext(ctx, `INSERT INTO software (name, source, bundle_identifier, version, title_id, checksum) VALUES (?, ?, ?, ?, ?, UNHEX(MD5(?)))`,
+		res, err = q.ExecContext(ctx, `INSERT INTO software (name, source, bundle_identifier, version, title_id, checksum) VALUES (?, ?, ?, ?, ?, UNHEX(SHA2(?, 256)))`,
 			softwareAlreadyInstalled.Name, softwareAlreadyInstalled.Source, softwareAlreadyInstalled.BundleIdentifier, softwareAlreadyInstalled.Version, titleID, "dummy-checksum")
 		if err != nil {
 			return err
@@ -5210,13 +5210,13 @@ func testListHostSoftware(t *testing.T, ds *Datastore) {
 	var SoftwareInstallerID uint
 	ExecAdhocSQL(t, ds, func(q sqlx.ExtContext) error {
 		installScript := `install 'DummyApp.app'`
-		res, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(md5(?)), ?)`, installScript, installScript)
+		res, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(LEFT(SHA2(?, 256), 32)), ?)`, installScript, installScript)
 		if err != nil {
 			return err
 		}
 		scriptContentID, _ := res.LastInsertId()
 		uninstallScript := `uinstall 'DummyApp.app'`
-		resUninstall, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(md5(?)), ?)`,
+		resUninstall, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(LEFT(SHA2(?, 256), 32)), ?)`,
 			uninstallScript, uninstallScript)
 		if err != nil {
 			return err
@@ -5334,7 +5334,7 @@ func testListLinuxHostSoftware(t *testing.T, ds *Datastore) {
 	}
 	ExecAdhocSQL(t, ds, func(q sqlx.ExtContext) error {
 		script := `hello world`
-		res, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(md5(?)), ?)`, script, script)
+		res, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(LEFT(SHA2(?, 256), 32)), ?)`, script, script)
 		if err != nil {
 			return err
 		}
@@ -6054,7 +6054,7 @@ func testListHostSoftwareVPPSelfServiceTeamFilter(t *testing.T, ds *Datastore) {
 	// Insert software entry for the installed VPP app
 	res, err := ds.writer(ctx).ExecContext(ctx, `
 		INSERT INTO software (name, version, source, bundle_identifier, title_id, checksum)
-		VALUES (?, ?, ?, ?, ?, UNHEX(MD5(?)))
+		VALUES (?, ?, ?, ?, ?, UNHEX(SHA2(?, 256)))
 	`, vppApp.Name, "1.0.0", "ios_apps", vppApp.BundleIdentifier, va.TitleID, "vppfilter_checksum_input")
 	require.NoError(t, err)
 	time.Sleep(time.Second)
@@ -6228,14 +6228,14 @@ func testSetHostSoftwareInstallResult(t *testing.T, ds *Datastore) {
 	// create a software installer and some host install requests
 	ExecAdhocSQL(t, ds, func(q sqlx.ExtContext) error {
 		installScript := `echo 'foo'`
-		res, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(md5(?)), ?)`, installScript, installScript)
+		res, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(LEFT(SHA2(?, 256), 32)), ?)`, installScript, installScript)
 		if err != nil {
 			return err
 		}
 		scriptContentID, _ := res.LastInsertId()
 
 		uninstallScript := `echo 'bar'`
-		resUninstall, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(md5(?)), ?)`,
+		resUninstall, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(LEFT(SHA2(?, 256), 32)), ?)`,
 			uninstallScript, uninstallScript)
 		if err != nil {
 			return err

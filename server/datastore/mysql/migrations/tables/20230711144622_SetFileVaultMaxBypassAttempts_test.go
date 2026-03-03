@@ -13,7 +13,7 @@ func TestUp_20230711144622(t *testing.T) {
 	stmt := `
 INSERT INTO
     mdm_apple_configuration_profiles (team_id, identifier, name, mobileconfig, checksum)
-VALUES (?, ?, ?, ?, UNHEX(MD5(mobileconfig)))`
+VALUES (?, ?, ?, ?, UNHEX(SHA2(mobileconfig, 256)))`
 
 	mcBytes := []byte(`<?xml version="1.0" encoding="UTF-8"?>
 <?xml version="1.0" encoding="UTF-8"?>

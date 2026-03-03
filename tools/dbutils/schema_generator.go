@@ -79,7 +79,7 @@ func main() {
 
 	// Dump schema to dumpfile
 	// --set-gtid-purged=OFF omits replication transaction IDs from the dump, making it
-	// portable across MySQL servers. This was the default behavior before MySQL 9.5.
+	// portable across MySQL servers. This was the default behavior before MySQL 9.5/9.6.
 	cmd := exec.Command(
 		"docker", "compose", "exec", "-T", "mysql_test",
 		// Command run inside container

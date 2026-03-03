@@ -2,7 +2,7 @@ package tables
 
 import (
 	"context"
-	"crypto/md5" //nolint:gosec // (only used for tests)
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -19,16 +19,16 @@ func TestUp_20240221112844(t *testing.T) {
 	checksumCol := func() string {
 		// concatenate with separator \x00
 		return ` UNHEX(
-		MD5(
+		SHA2(
 			CONCAT_WS(CHAR(0),
 				COALESCE(team_id, ''),
 				name
-			)
-		)
+			),
+		256)
 	) `
 	}
 	computeChecksum := func(policy fleet.Policy) string {
-		h := md5.New() //nolint:gosec // (only used for tests)
+		h := sha256.New()
 		// Compute the same way as DB does.
 		teamStr := ""
 		if policy.TeamID != nil {
@@ -83,7 +83,7 @@ func TestUp_20240221112844(t *testing.T) {
 		}
 		gotIDs[i] = pc.ID
 		assert.Equal(t, computeChecksum(fleet.Policy{PolicyData: fleet.PolicyData{Name: pc.Name}}), strings.ToLower(pc.Checksum))
-		assert.Len(t, pc.Checksum, 32)
+		assert.Len(t, pc.Checksum, 64)
 	}
 	assert.Equal(t, wantIDs, gotIDs)
 }

@@ -10,17 +10,9 @@ func init() {
 }
 
 func Up_20231212094238(tx *sql.Tx) error {
-	// binary(16) is the efficient way to store md5 hashes,
-	// see https://dev.mysql.com/doc/refman/8.0/en/encryption-functions.html
-	// We store it using UNHEX(MD5(<the string value to hash>)).
-	//
-	// We use md5 even though it is insecure because it is used only to
-	// deduplicate software entries, not for any security purpose (i.e. a
-	// maliciously-crafted collision would not cause serions issues, and the
-	// source of input is osquery-extracted software data), and we already use it
-	// for configuration profiles so instead of using different hashing
-	// algorithms, we'll stick to md5.
-	_, err := tx.Exec(`ALTER TABLE software ADD COLUMN checksum BINARY(16) DEFAULT NULL`)
+	// binary(32) stores SHA-256 hashes (via UNHEX(SHA2(<value>, 256))).
+	// We use SHA-256 for deduplication, not for security purposes.
+	_, err := tx.Exec(`ALTER TABLE software ADD COLUMN checksum BINARY(32) DEFAULT NULL`)
 	if err != nil {
 		return fmt.Errorf("failed to add checksum column to software table: %w", err)
 	}
@@ -37,7 +29,7 @@ UPDATE
 	software
 SET
 	checksum = UNHEX(
-		MD5(
+		SHA2(
 			-- concatenate with separator \x00
 			CONCAT_WS(CHAR(0),
 				name,
@@ -49,8 +41,8 @@ SET
 				vendor,
 				browser,
 				extension_id
-			)
-		)
+			),
+		256)
 	)
 `)
 	if err != nil {
@@ -59,7 +51,7 @@ SET
 
 	// now that every row has a checksum, make it non-nullable and unique
 	_, err = tx.Exec(`ALTER TABLE software
-		CHANGE COLUMN checksum checksum BINARY(16) NOT NULL,
+		CHANGE COLUMN checksum checksum BINARY(32) NOT NULL,
 		ADD UNIQUE INDEX idx_software_checksum (checksum)`)
 	if err != nil {
 		return fmt.Errorf("failed to make checksum column NOT NULL and UNIQUE in software table: %w", err)

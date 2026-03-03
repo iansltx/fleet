@@ -393,6 +393,6 @@ func insertAppleConfigProfile(t *testing.T, db *sqlx.DB, name, identifier string
 	contents = fmt.Sprintf(contents, varDict.String(), name, identifier, profileUUID)
 
 	execNoErr(t, db, `INSERT INTO mdm_apple_configuration_profiles (profile_uuid, identifier, name, mobileconfig, checksum)
-		VALUES (?, ?, ?, ?, UNHEX(MD5(?)))`, profileUUID, identifier, name, contents, contents)
+		VALUES (?, ?, ?, ?, UNHEX(SHA2(?, 256)))`, profileUUID, identifier, name, contents, contents)
 	return profileUUID
 }

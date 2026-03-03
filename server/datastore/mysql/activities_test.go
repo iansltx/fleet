@@ -2165,7 +2165,7 @@ func testActivateScriptPackageUninstallWithCorruptPayload(t *testing.T, ds *Data
 
 	u := test.NewUser(t, ds, "uninstall-user", "uninstall@example.com", false)
 
-	scriptStmt := `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(MD5('echo uninstalling')), 'echo uninstalling')`
+	scriptStmt := `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(LEFT(SHA2('echo uninstalling', 256), 32)), 'echo uninstalling')`
 	res, err = ds.writer(ctx).ExecContext(ctx, scriptStmt)
 	require.NoError(t, err)
 	scriptContentID, _ := res.LastInsertId()

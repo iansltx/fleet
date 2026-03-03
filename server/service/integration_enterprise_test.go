@@ -8938,7 +8938,7 @@ VALUES
 		mysql.ExecAdhocSQL(t, s.ds, func(tx sqlx.ExtContext) error {
 			// First check if this script content already exists
 			row := tx.QueryRowxContext(ctx, `
-				SELECT id FROM script_contents WHERE md5_checksum = UNHEX(MD5(?))
+				SELECT id FROM script_contents WHERE md5_checksum = UNHEX(LEFT(SHA2(?, 256), 32))
 			`, script.ScriptContents)
 			err := row.Scan(&scID)
 
@@ -8948,7 +8948,7 @@ VALUES
 INSERT INTO
 	script_contents (md5_checksum, contents, created_at)
 VALUES
-	(UNHEX(MD5(?)),?,?)`,
+	(UNHEX(LEFT(SHA2(?, 256), 32)),?,?)`,
 					script.ScriptContents,
 					script.ScriptContents,
 					createdAt,
@@ -9188,7 +9188,7 @@ VALUES
 INSERT INTO
 	script_contents (md5_checksum, contents, created_at)
 VALUES
-	(UNHEX(MD5(?)),?,?)`,
+	(UNHEX(LEFT(SHA2(?, 256), 32)),?,?)`,
 				"echo test-script-details-timeout",
 				"echo test-script-details-timeout",
 				now.Add(-1*time.Hour),
@@ -14305,14 +14305,14 @@ func (s *integrationEnterpriseTestSuite) TestSoftwareInstallerNewInstallRequestP
 		mysql.ExecAdhocSQL(t, s.ds, func(q sqlx.ExtContext) error {
 			ctx := context.Background()
 			installScript := fmt.Sprintf(`echo '%s'`, kind)
-			res, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(md5(?)), ?)`, installScript, installScript)
+			res, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(LEFT(SHA2(?, 256), 32)), ?)`, installScript, installScript)
 			if err != nil {
 				return err
 			}
 			scriptContentID, _ := res.LastInsertId()
 
 			uninstallScript := fmt.Sprintf(`echo uninstall '%s'`, kind)
-			resUninstall, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(md5(?)), ?)`,
+			resUninstall, err := q.ExecContext(ctx, `INSERT INTO script_contents (md5_checksum, contents) VALUES (UNHEX(LEFT(SHA2(?, 256), 32)), ?)`,
 				uninstallScript, uninstallScript)
 			if err != nil {
 				return err
