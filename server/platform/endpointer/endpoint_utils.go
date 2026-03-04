@@ -744,6 +744,14 @@ func WriteBrowserSecurityHeaders(w http.ResponseWriter) {
 	w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 }
 
+// RouteTag is a string label that can be attached to a route for categorization.
+type RouteTag string
+
+const (
+	// RouteTagPublic marks a route as public-facing (should be accessible from the public internet).
+	RouteTagPublic RouteTag = "public"
+)
+
 // handlerKey identifies a registered handler by HTTP method and unversioned path template.
 type handlerKey struct {
 	method string
@@ -754,11 +762,29 @@ type handlerKey struct {
 // enabling lookup for deprecated path alias registration.
 type HandlerRegistry struct {
 	handlers map[handlerKey]http.Handler
+	tags     map[handlerKey][]RouteTag
 }
 
 // NewHandlerRegistry creates an empty HandlerRegistry.
 func NewHandlerRegistry() *HandlerRegistry {
-	return &HandlerRegistry{handlers: make(map[handlerKey]http.Handler)}
+	return &HandlerRegistry{
+		handlers: make(map[handlerKey]http.Handler),
+		tags:     make(map[handlerKey][]RouteTag),
+	}
+}
+
+// RoutesByTag returns all registered route paths (unversioned) that have the given tag.
+func (r *HandlerRegistry) RoutesByTag(tag RouteTag) []string {
+	var routes []string
+	for key, tags := range r.tags {
+		for _, t := range tags {
+			if t == tag {
+				routes = append(routes, key.path)
+				break
+			}
+		}
+	}
+	return routes
 }
 
 // DeprecatedPathAlias maps a primary (canonical) path to one or more deprecated
@@ -851,6 +877,7 @@ type CommonEndpointer[H any] struct {
 	endingAtVersion   string
 	alternativePaths  []string
 	usePathPrefix     bool
+	tags              []RouteTag
 
 	// The limit of the request body size in bytes, if set to -1 there is no limit.
 	requestBodySizeLimit int64
@@ -979,6 +1006,13 @@ func (e *CommonEndpointer[H]) UsePathPrefix() *CommonEndpointer[H] {
 	return &ae
 }
 
+// WithTag returns a shallow copy of the endpointer with the given route tag appended.
+func (e *CommonEndpointer[H]) WithTag(tag RouteTag) *CommonEndpointer[H] {
+	ae := *e
+	ae.tags = append(append([]RouteTag(nil), e.tags...), tag)
+	return &ae
+}
+
 func (e *CommonEndpointer[H]) WithRequestBodySizeLimit(limit int64) *CommonEndpointer[H] {
 	ae := *e
 	if limit > 0 {
@@ -1065,7 +1099,11 @@ func (e *CommonEndpointer[H]) HandlePathHandler(path string, pathHandler func(pa
 		e.Router.Handle(versionedPath, handler).Name(nameAndVerb).Methods(verb)
 	}
 	if e.HandlerRegistry != nil {
-		e.HandlerRegistry.handlers[handlerKey{verb, path}] = handler
+		key := handlerKey{verb, path}
+		e.HandlerRegistry.handlers[key] = handler
+		if len(e.tags) > 0 {
+			e.HandlerRegistry.tags[key] = append(e.HandlerRegistry.tags[key], e.tags...)
+		}
 	}
 	for _, alias := range e.alternativePaths {
 		nameAndVerb := getNameFromPathAndVerb(verb, alias, e.startingAtVersion)

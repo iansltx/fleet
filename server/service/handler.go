@@ -181,6 +181,64 @@ func MakeHandler(
 	return r
 }
 
+// MakeHandlerWithRegistry is like MakeHandler but also returns the HandlerRegistry
+// containing route metadata (e.g. tags). This is used by tests to inspect route tags.
+func MakeHandlerWithRegistry(
+	svc fleet.Service,
+	config config.FleetConfig,
+	logger *slog.Logger,
+	limitStore throttled.GCRAStore,
+	redisPool fleet.RedisPool,
+	carveStore fleet.CarveStore,
+	featureRoutes []endpointer.HandlerRoutesFunc,
+	extra ...ExtraHandlerOption,
+) (http.Handler, *endpointer.HandlerRegistry) {
+	var eopts extraHandlerOpts
+	for _, fn := range extra {
+		fn(&eopts)
+	}
+
+	ipStrategy, err := endpointer.NewClientIPStrategy(config.Server.TrustedProxies)
+	if err != nil {
+		panic(fmt.Sprintf("invalid server.trusted_proxies configuration: %v", err))
+	}
+
+	fleetAPIOptions := []kithttp.ServerOption{
+		kithttp.ServerBefore(
+			kithttp.PopulateRequestContext,
+			auth.SetRequestsContexts(svc),
+			endpointer.LogDeprecatedPathAlias,
+			setCarveStoreInRequestContext(carveStore),
+		),
+		kithttp.ServerErrorHandler(&endpointer.ErrorHandler{Logger: logger}),
+		kithttp.ServerErrorEncoder(fleetErrorEncoder),
+		kithttp.ServerAfter(
+			kithttp.SetContentType("application/json; charset=utf-8"),
+			log.LogRequestEnd(logger),
+			checkLicenseExpiration(svc),
+		),
+	}
+
+	r := mux.NewRouter()
+	r.Use(func(handler http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ip := ipStrategy.ClientIP(r.Header, r.RemoteAddr)
+			if ip != "" {
+				r.RemoteAddr = ip
+			}
+			handler.ServeHTTP(w, r.WithContext(publicip.NewContext(r.Context(), ip)))
+		})
+	})
+
+	registry := attachFleetAPIRoutes(r, svc, config, logger, limitStore, redisPool, fleetAPIOptions, eopts)
+	for _, featureRoute := range featureRoutes {
+		featureRoute(r, fleetAPIOptions)
+	}
+	addMetrics(r)
+
+	return r, registry
+}
+
 // PrometheusMetricsHandler wraps the provided handler with prometheus metrics
 // middleware and returns the resulting handler that should be mounted for that
 // route.
@@ -280,12 +338,17 @@ const (
 func attachFleetAPIRoutes(r *mux.Router, svc fleet.Service, config config.FleetConfig,
 	logger *slog.Logger, limitStore throttled.GCRAStore, redisPool fleet.RedisPool, opts []kithttp.ServerOption,
 	extra extraHandlerOpts,
-) {
+) *endpointer.HandlerRegistry {
 	apiVersions := []string{"v1", "2022-04"}
 	registry := endpointer.NewHandlerRegistry()
 
+	// All routes are tagged as public because the markdown documentation
+	// (articles/what-api-endpoints-to-expose-to-the-public-internet.md)
+	// indicates that all API endpoint categories may need to be publicly
+	// accessible depending on the deployment scenario.
+
 	// user-authenticated endpoints
-	ue := newUserAuthenticatedEndpointer(svc, opts, r, apiVersions...)
+	ue := newUserAuthenticatedEndpointer(svc, opts, r, apiVersions...).WithTag(endpointer.RouteTagPublic)
 	ue.HandlerRegistry = registry
 
 	ue.POST("/api/_version_/fleet/trigger", triggerEndpoint, triggerRequest{})
@@ -878,7 +941,8 @@ func attachFleetAPIRoutes(r *mux.Router, svc fleet.Service, config config.FleetC
 	errorLimiter := ratelimit.NewErrorMiddleware(ipBanner).Limit(logger)
 
 	// Device-authenticated endpoints.
-	de := newDeviceAuthenticatedEndpointer(svc, logger, opts, r, apiVersions...)
+	de := newDeviceAuthenticatedEndpointer(svc, logger, opts, r, apiVersions...).WithTag(endpointer.RouteTagPublic)
+	de.HandlerRegistry = registry
 	de.WithCustomMiddleware(errorLimiter).GET("/api/_version_/fleet/device/{token}", getDeviceHostEndpoint, getDeviceHostRequest{})
 	de.WithCustomMiddleware(errorLimiter).GET("/api/_version_/fleet/device/{token}/desktop", getFleetDesktopEndpoint, getFleetDesktopRequest{})
 	de.WithCustomMiddleware(errorLimiter).HEAD("/api/_version_/fleet/device/{token}/ping", devicePingEndpoint, deviceAuthPingRequest{})
@@ -907,7 +971,8 @@ func attachFleetAPIRoutes(r *mux.Router, svc fleet.Service, config config.FleetC
 	demdm.AppendCustomMiddleware(errorLimiter).POST("/api/_version_/fleet/device/{token}/migrate_mdm", migrateMDMDeviceEndpoint, deviceMigrateMDMRequest{})
 
 	// host-authenticated endpoints
-	he := newHostAuthenticatedEndpointer(svc, logger, opts, r, apiVersions...)
+	he := newHostAuthenticatedEndpointer(svc, logger, opts, r, apiVersions...).WithTag(endpointer.RouteTagPublic)
+	he.HandlerRegistry = registry
 
 	// Note that the /osquery/ endpoints are *not* versioned, i.e. there is no
 	// `_version_` placeholder in the path. This is deliberate, see
@@ -933,12 +998,14 @@ func attachFleetAPIRoutes(r *mux.Router, svc fleet.Service, config config.FleetC
 	// Authentication is implemented using the orbit_node_key from the 'Authentication' header.
 	// The 'orbit_node_key' is used because it's the only thing we have available when the device gets enrolled
 	// after the MDM setup is complete.
-	androidEndpoints := androidAuthenticatedEndpointer(svc, logger, opts, r, apiVersions...)
+	androidEndpoints := androidAuthenticatedEndpointer(svc, logger, opts, r, apiVersions...).WithTag(endpointer.RouteTagPublic)
+	androidEndpoints.HandlerRegistry = registry
 	androidEndpoints.GET("/api/fleetd/certificates/{id:[0-9]+}", getDeviceCertificateTemplateEndpoint, getDeviceCertificateTemplateRequest{})
 	androidEndpoints.PUT("/api/fleetd/certificates/{id:[0-9]+}/status", updateCertificateStatusEndpoint, updateCertificateStatusRequest{})
 
 	// orbit authenticated endpoints
-	oe := newOrbitAuthenticatedEndpointer(svc, logger, opts, r, apiVersions...)
+	oe := newOrbitAuthenticatedEndpointer(svc, logger, opts, r, apiVersions...).WithTag(endpointer.RouteTagPublic)
+	oe.HandlerRegistry = registry
 	oe.POST("/api/fleet/orbit/device_token", setOrUpdateDeviceTokenEndpoint, setOrUpdateDeviceTokenRequest{})
 	oe.POST("/api/fleet/orbit/config", getOrbitConfigEndpoint, orbitGetConfigRequest{})
 	// using POST to get a script execution request since all authenticated orbit
@@ -965,7 +1032,8 @@ func attachFleetAPIRoutes(r *mux.Router, svc fleet.Service, config config.FleetC
 	// invite-related or host-enrolling. So they typically do some kind of
 	// one-time authentication by verifying that a valid secret token is provided
 	// with the request.
-	ne := newNoAuthEndpointer(svc, opts, r, apiVersions...)
+	ne := newNoAuthEndpointer(svc, opts, r, apiVersions...).WithTag(endpointer.RouteTagPublic)
+	ne.HandlerRegistry = registry
 	ne.WithAltPaths("/api/v1/osquery/enroll").
 		POST("/api/osquery/enroll", enrollAgentEndpoint, contract.EnrollOsqueryAgentRequest{})
 
@@ -1031,7 +1099,8 @@ func attachFleetAPIRoutes(r *mux.Router, svc fleet.Service, config config.FleetC
 	neWindowsMDM.WithRequestBodySizeLimit(fleet.MaxMicrosoftMDMSize).GET(microsoft_mdm.MDE2TOSPath, mdmMicrosoftTOSEndpoint, MDMWebContainer{})
 
 	// These endpoints are unauthenticated and made from orbit, and add the orbit capabilities header.
-	neOrbit := newOrbitNoAuthEndpointer(svc, opts, r, apiVersions...)
+	neOrbit := newOrbitNoAuthEndpointer(svc, opts, r, apiVersions...).WithTag(endpointer.RouteTagPublic)
+	neOrbit.HandlerRegistry = registry
 	neOrbit.POST("/api/fleet/orbit/enroll", enrollOrbitEndpoint, contract.EnrollOrbitRequest{})
 
 	ne.GET("/api/_version_/fleet/software/titles/{title_id:[0-9]+}/in_house_app", getInHouseAppPackageEndpoint, getInHouseAppPackageRequest{})
@@ -1100,6 +1169,8 @@ func attachFleetAPIRoutes(r *mux.Router, svc fleet.Service, config config.FleetC
 
 	// Register all deprecated URL path aliases from the declarative table.
 	endpointer.RegisterDeprecatedPathAliases(r, apiVersions, registry, deprecatedPathAliases)
+
+	return registry
 }
 
 // WithSetup is an http middleware that checks if setup procedures have been completed.
