@@ -3,7 +3,7 @@ package service
 import (
 	"bytes"
 	"context"
-	"crypto/md5" // nolint:gosec // used only for tests
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -194,7 +194,7 @@ func (s *integrationMDMTestSuite) TestMDMAppleDeviceManagementRequests() {
 	_, mdmDevice := createHostThenEnrollMDM(s.ds, s.server.URL, t)
 
 	calcChecksum := func(source []byte) string {
-		csum := fmt.Sprintf("%x", md5.Sum(source)) //nolint:gosec
+		csum := fmt.Sprintf("%x", sha256.Sum256(source))
 		return strings.ToUpper(csum)
 	}
 

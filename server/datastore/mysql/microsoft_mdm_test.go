@@ -2,7 +2,7 @@ package mysql
 
 import (
 	"context"
-	"crypto/md5" // nolint:gosec // used only to hash for efficient comparisons
+	"crypto/sha256"
 	"database/sql"
 	"encoding/xml"
 	"fmt"
@@ -2477,7 +2477,7 @@ func testMDMWindowsProfileLabels(t *testing.T, ds *Datastore) {
 	require.NoError(t, err)
 	require.NotEmpty(t, includeAnyProf.ProfileUUID)
 	profileChecksums := make(map[string][]byte)
-	checksum := md5.Sum(includeAnyProf.SyncML) // nolint:gosec // used only to hash for efficient comparisons
+	checksum := sha256.Sum256(includeAnyProf.SyncML)
 	profileChecksums[includeAnyProf.ProfileUUID] = checksum[:]
 
 	// Create a profile with "include-all" with l4 and l5
@@ -2488,7 +2488,7 @@ func testMDMWindowsProfileLabels(t *testing.T, ds *Datastore) {
 	)
 	require.NoError(t, err)
 	require.NotEmpty(t, includeAllProf.ProfileUUID)
-	checksum = md5.Sum(includeAllProf.SyncML) // nolint:gosec // used only to hash for efficient comparisons
+	checksum = sha256.Sum256(includeAllProf.SyncML)
 	profileChecksums[includeAllProf.ProfileUUID] = checksum[:]
 
 	// Create a profile with "exclude-any" with l6 and l7
@@ -2498,7 +2498,7 @@ func testMDMWindowsProfileLabels(t *testing.T, ds *Datastore) {
 		nil,
 	)
 	require.NoError(t, err)
-	checksum = md5.Sum(excludeAnyProf.SyncML) // nolint:gosec // used only to hash for efficient comparisons
+	checksum = sha256.Sum256(excludeAnyProf.SyncML)
 	profileChecksums[excludeAnyProf.ProfileUUID] = checksum[:]
 
 	// Create a profile with "exclude-any" with l7 only since it is a manual label
@@ -2508,7 +2508,7 @@ func testMDMWindowsProfileLabels(t *testing.T, ds *Datastore) {
 		nil,
 	)
 	require.NoError(t, err)
-	checksum = md5.Sum(excludeAnyManualProf.SyncML) // nolint:gosec // used only to hash for efficient comparisons
+	checksum = sha256.Sum256(excludeAnyManualProf.SyncML)
 	profileChecksums[excludeAnyManualProf.ProfileUUID] = checksum[:]
 
 	// Connect the host and l1, l4, l5

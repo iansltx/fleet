@@ -2,7 +2,7 @@ package mysql
 
 import (
 	"context"
-	"crypto/md5" //nolint:gosec // (only used for tests)
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -2348,7 +2348,7 @@ func testPoliciesSave(t *testing.T, ds *Datastore) {
 	requireLabels(t, []string{label1.Name, label2.Name}, gp.LabelsIncludeAny)
 
 	computeChecksum := func(policy fleet.Policy) string {
-		h := md5.New() //nolint:gosec // (only used for tests)
+		h := sha256.New()
 		// Compute the same way as DB does.
 		teamStr := ""
 		if policy.TeamID != nil {

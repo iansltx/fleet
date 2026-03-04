@@ -3,7 +3,6 @@ package mysql
 import (
 	"bytes"
 	"context"
-	"crypto/md5" // nolint:gosec // used only to hash for efficient comparisons
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
@@ -556,7 +555,7 @@ func checkConfigProfile(t *testing.T, expected, actual fleet.MDMAppleConfigProfi
 
 func checkConfigProfileWithChecksum(t *testing.T, expected, actual fleet.MDMAppleConfigProfile) {
 	checkConfigProfile(t, expected, actual)
-	require.ElementsMatch(t, md5.Sum(expected.Mobileconfig), actual.Checksum) // nolint:gosec // used only to hash for efficient comparisons
+	require.ElementsMatch(t, sha256.Sum256(expected.Mobileconfig), actual.Checksum)
 }
 
 func testHostDetailsMDMProfiles(t *testing.T, ds *Datastore) {
@@ -1501,7 +1500,7 @@ func scopedConfigProfileForTest(t *testing.T, name, identifier, uuid string, sco
 	cp.Name = name
 	cp.Scope = scope
 	require.NoError(t, err)
-	sum := md5.Sum(prof) // nolint:gosec // used only to hash for efficient comparisons
+	sum := sha256.Sum256(prof)
 	cp.Checksum = sum[:]
 
 	for _, lbl := range labels {
@@ -1555,7 +1554,7 @@ func teamConfigProfileForTest(t *testing.T, name, identifier, uuid string, teamI
 	prof := configProfileBytesForTest(name, identifier, uuid)
 	cp, err := fleet.NewMDMAppleConfigProfile(configProfileBytesForTest(name, identifier, uuid), &teamID)
 	require.NoError(t, err)
-	sum := md5.Sum(prof) // nolint:gosec // used only to hash for efficient comparisons
+	sum := sha256.Sum256(prof)
 	cp.Checksum = sum[:]
 	return cp
 }

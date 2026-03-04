@@ -2,7 +2,7 @@ package fleet
 
 import (
 	"context"
-	"crypto/md5" // nolint: gosec
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -467,12 +467,14 @@ type MDMApplePreassignProfilePayload struct {
 	Exclude                bool   `json:"exclude"`
 }
 
-// HexMD5Hash returns the hex-encoded MD5 hash of the profile. Note that MD5 is
-// broken and we should consider moving to a better hash, but it needs to match
-// the hashing algorithm used by the Mysql database for profiles (SHA2 would be
-// an option: https://dev.mysql.com/doc/refman/5.7/en/encryption-functions.html#function_sha2).
+// HexMD5Hash returns the hex-encoded SHA256 hash of the profile.
+// It must match the hashing algorithm used by the MySQL database for profiles
+// (SHA2(mobileconfig, 256)).
+//
+// Deprecated: The name is retained for API compatibility; the implementation
+// now uses SHA-256.
 func (p MDMApplePreassignProfilePayload) HexMD5Hash() string {
-	sum := md5.Sum(p.Profile) //nolint: gosec
+	sum := sha256.Sum256(p.Profile)
 
 	// mysql's HEX function returns uppercase
 	return strings.ToUpper(hex.EncodeToString(sum[:]))

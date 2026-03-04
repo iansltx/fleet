@@ -3,7 +3,7 @@ package mysql
 import (
 	"bytes"
 	"context"
-	"crypto/md5"
+	"crypto/sha256"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -563,7 +563,7 @@ func printDumpTable(t *testing.T, cols []string, rows [][]string) {
 
 func generateDummyWindowsProfileContents(uuid string) fleet.MDMWindowsProfileContents {
 	syncML := generateDummyWindowsProfile(uuid)
-	checksum := md5.Sum(syncML)
+	checksum := sha256.Sum256(syncML)
 	return fleet.MDMWindowsProfileContents{
 		SyncML:   syncML,
 		Checksum: checksum[:],

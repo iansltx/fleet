@@ -1,7 +1,7 @@
 package tables
 
 import (
-	"crypto/md5" // nolint:gosec // used only to hash for efficient comparisons
+	"crypto/sha256"
 	"fmt"
 	"testing"
 
@@ -78,10 +78,10 @@ VALUES (?, ?, ?, ?)`
 	var checksum []byte
 	err = db.QueryRow(`SELECT checksum FROM mdm_apple_configuration_profiles WHERE name = ? AND team_id = ?`, "TestPayloadName", 0).Scan(&checksum)
 	require.NoError(t, err)
-	require.Equal(t, fmt.Sprintf("%x", md5.Sum(mcBytes)), fmt.Sprintf("%x", checksum)) // nolint:gosec // used only to hash for efficient comparisons
+	require.Equal(t, fmt.Sprintf("%x", sha256.Sum256(mcBytes)), fmt.Sprintf("%x", checksum))
 
 	err = db.QueryRow(`SELECT checksum FROM host_mdm_apple_profiles WHERE profile_id = ?`, profileID).Scan(&checksum)
 	require.NoError(t, err)
-	require.Equal(t, fmt.Sprintf("%x", md5.Sum(mcBytes)), fmt.Sprintf("%x", checksum)) // nolint:gosec // used only to hash for efficient comparisons
+	require.Equal(t, fmt.Sprintf("%x", sha256.Sum256(mcBytes)), fmt.Sprintf("%x", checksum))
 
 }

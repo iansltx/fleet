@@ -3,7 +3,7 @@ package service
 import (
 	"bytes"
 	"context"
-	"crypto/md5" // nolint:gosec // used only for tests
+	"crypto/sha256"
 	"crypto/x509"
 	"database/sql"
 	_ "embed"
@@ -3696,7 +3696,7 @@ func (s *integrationMDMTestSuite) TestListMDMConfigProfiles() {
 	tm2ProfF, err := s.ds.NewMDMAppleConfigProfile(ctx, *tprof, nil)
 	require.NoError(t, err)
 	// checksum is not returned by New..., so compute it manually
-	checkSum := md5.Sum(tm2ProfF.Mobileconfig) // nolint:gosec // used only for test
+	checkSum := sha256.Sum256(tm2ProfF.Mobileconfig)
 	tm2ProfF.Checksum = checkSum[:]
 
 	// make tm2ProfG a "include-all" label-based profile

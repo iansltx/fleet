@@ -5,7 +5,7 @@ import (
 	"context"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/md5" // nolint:gosec // used only to hash for efficient comparisons
+	"crypto/sha256"
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
@@ -130,7 +130,7 @@ func (ds *Datastore) verifyAppleConfigProfileScopesDoNotConflict(ctx context.Con
 
 			if existingProfile.Scope != cp.Scope {
 				if cp.Checksum == nil {
-					checksum := md5.Sum(cp.Mobileconfig) // nolint:gosec // Dismiss G401, we are not using this for secret/security reasons
+					checksum := sha256.Sum256(cp.Mobileconfig)
 					cp.Checksum = checksum[:]
 				}
 
