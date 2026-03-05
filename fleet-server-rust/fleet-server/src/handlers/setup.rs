@@ -65,8 +65,22 @@ pub struct DeleteSetupExperienceScriptParams {
 ///
 /// Creates the initial admin user and configures the Fleet server.
 /// This endpoint is only available before setup is complete.
-pub async fn setup(Json(_body): Json<SetupBody>) -> FleetResponse {
-    // TODO: verify setup not already done, create admin user, configure org
+pub async fn setup(Json(body): Json<SetupBody>) -> FleetResponse {
+    // When AppState is available:
+    // let payload = CreateUserPayload {
+    //     name: body.admin.name,
+    //     email: body.admin.email,
+    //     password: Some(body.admin.password),
+    //     global_role: Some("admin".to_string()),
+    //     ..Default::default()
+    // };
+    // match state.service.create_initial_user(payload).await {
+    //     Ok(user) => {
+    //         // Also save org_info to app config
+    //         fleet_ok("admin", serde_json::to_value(&user).unwrap())
+    //     }
+    //     Err(e) => encode_service_error(&e),
+    // }
     fleet_ok("admin", serde_json::json!({}))
 }
 

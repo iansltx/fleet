@@ -14,6 +14,7 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+use fleet_service::ServiceError;
 use serde_json::Value;
 
 /// The standard Fleet API response type.
@@ -119,4 +120,37 @@ pub fn encode_error(err: &dyn std::error::Error) -> FleetResponse {
     // - ValidationError -> 422
     // - etc.
     fleet_error(StatusCode::INTERNAL_SERVER_ERROR, &err.to_string())
+}
+
+/// Convert a `ServiceError` into a Fleet API error response.
+///
+/// This maps each variant to the appropriate HTTP status code,
+/// matching the Go server's `fleetErrorEncoder` behavior.
+pub fn encode_service_error(err: &ServiceError) -> FleetResponse {
+    match err {
+        ServiceError::NotFound(msg) => fleet_error(StatusCode::NOT_FOUND, msg),
+        ServiceError::Unauthorized(msg) => fleet_error(StatusCode::UNAUTHORIZED, msg),
+        ServiceError::Forbidden(msg) => fleet_error(StatusCode::FORBIDDEN, msg),
+        ServiceError::BadRequest(msg) => fleet_error(StatusCode::BAD_REQUEST, msg),
+        ServiceError::Conflict(msg) => fleet_error(StatusCode::CONFLICT, msg),
+        ServiceError::MissingLicense => {
+            fleet_error(StatusCode::PAYMENT_REQUIRED, "missing license")
+        }
+        ServiceError::AuthFailed(msg) => fleet_error(StatusCode::UNAUTHORIZED, msg),
+        ServiceError::AuthRequired(msg) => fleet_error(StatusCode::UNAUTHORIZED, msg),
+        ServiceError::PasswordResetRequired => {
+            fleet_error(StatusCode::FORBIDDEN, "password reset required")
+        }
+        ServiceError::InvalidArgument { field, message } => fleet_validation_error(
+            &format!("validation failed: {}: {}", field, message),
+            vec![ValidationError {
+                name: field.clone(),
+                reason: message.clone(),
+            }],
+        ),
+        ServiceError::Internal(msg) => fleet_error(StatusCode::INTERNAL_SERVER_ERROR, msg),
+        ServiceError::Anyhow(err) => {
+            fleet_error(StatusCode::INTERNAL_SERVER_ERROR, &err.to_string())
+        }
+    }
 }

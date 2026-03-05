@@ -17,12 +17,23 @@ use axum::{
 /// the Bearer token and set the user in the request context.
 #[derive(Debug, Clone)]
 pub struct AuthenticatedUser {
-    pub id: u64,
+    pub id: u32,
     pub email: String,
     pub name: String,
     pub global_role: Option<String>,
-    pub session_id: u64,
+    pub session_id: u32,
 }
+
+// To convert an AuthenticatedUser to a `fleet_service::Viewer` for use with
+// the service layer, we need the full `User` and `Session` objects, which will
+// be available once AppState is wired into the router and we perform the
+// session/user lookups during extraction. At that point, add:
+//
+//   impl AuthenticatedUser {
+//       pub fn to_viewer(user: fleet_types::User, session: fleet_types::Session) -> fleet_service::Viewer {
+//           fleet_service::Viewer { user, session }
+//       }
+//   }
 
 impl<S: Send + Sync> FromRequestParts<S> for AuthenticatedUser {
     type Rejection = (StatusCode, &'static str);
@@ -36,16 +47,22 @@ impl<S: Send + Sync> FromRequestParts<S> for AuthenticatedUser {
             .ok_or((StatusCode::UNAUTHORIZED, "Missing authorization header"))?;
 
         // Expect "Bearer <token>"
-        let token = auth_header
+        let _token = auth_header
             .strip_prefix("Bearer ")
             .ok_or((StatusCode::UNAUTHORIZED, "Invalid authorization format"))?;
 
-        if token.is_empty() {
+        if _token.is_empty() {
             return Err((StatusCode::UNAUTHORIZED, "Empty authorization token"));
         }
 
-        // TODO: look up session by token in the datastore, validate it,
-        // and return the associated user.
+        // To implement this properly, we need AppState in the router.
+        // The flow will be:
+        // 1. Extract Bearer token (done above)
+        // 2. Call state.service.get_session_by_key(token) to get Session
+        // 3. Call state.service.get_user_unauthorized(session.user_id) to get User
+        // 4. Return AuthenticatedUser from user + session data
+        //
+        // For now, return an error until AppState is wired in.
         Err((StatusCode::UNAUTHORIZED, "Authentication not yet implemented"))
     }
 }
@@ -56,10 +73,10 @@ impl<S: Send + Sync> FromRequestParts<S> for AuthenticatedUser {
 /// This extractor validates the node_key against the datastore.
 #[derive(Debug, Clone)]
 pub struct AuthenticatedHost {
-    pub id: u64,
+    pub id: u32,
     pub uuid: String,
     pub node_key: String,
-    pub team_id: Option<u64>,
+    pub team_id: Option<u32>,
     pub platform: String,
 }
 
@@ -68,7 +85,7 @@ pub struct AuthenticatedHost {
 /// Fleet Desktop and the device API use a device token for authentication.
 #[derive(Debug, Clone)]
 pub struct AuthenticatedDevice {
-    pub host_id: u64,
+    pub host_id: u32,
     pub token: String,
 }
 
@@ -77,6 +94,6 @@ pub struct AuthenticatedDevice {
 /// Orbit endpoints pass the orbit_node_key in the JSON request body.
 #[derive(Debug, Clone)]
 pub struct AuthenticatedOrbit {
-    pub host_id: u64,
+    pub host_id: u32,
     pub orbit_node_key: String,
 }

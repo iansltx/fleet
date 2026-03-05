@@ -60,49 +60,102 @@ pub struct CallbackSSOBody {
 
 /// GET /api/_version_/fleet/me
 pub async fn me() -> FleetResponse {
-    // TODO: extract authenticated user from request context
+    // TODO: extract AppState and auth from request context
+    // let viewer = auth.to_viewer();
+    // match state.service.authenticated_user(&viewer).await {
+    //     Ok(user) => fleet_ok("user", serde_json::to_value(&user).unwrap()),
+    //     Err(e) => encode_error(&e),
+    // }
     fleet_ok("user", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/sessions/{id}
 pub async fn get_session_info(Path(_id): Path<u64>) -> FleetResponse {
-    // TODO: call service layer
+    // TODO: extract AppState and auth from request context
+    // let viewer = auth.to_viewer();
+    // match state.service.get_info_about_session(&viewer, id as u32).await {
+    //     Ok(session) => fleet_ok("session", serde_json::to_value(&session).unwrap()),
+    //     Err(e) => encode_error(&e),
+    // }
     fleet_ok("session", serde_json::json!({}))
 }
 
 /// DELETE /api/_version_/fleet/sessions/{id}
 pub async fn delete_session(Path(_id): Path<u64>) -> FleetResponse {
-    // TODO: call service layer
+    // TODO: extract AppState and auth from request context
+    // let viewer = auth.to_viewer();
+    // match state.service.delete_session(&viewer, id as u32).await {
+    //     Ok(()) => fleet_ok("", serde_json::json!({})),
+    //     Err(e) => encode_error(&e),
+    // }
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/login
 pub async fn login(Json(_body): Json<LoginBody>) -> FleetResponse {
-    // TODO: call service layer - authenticate user, create session, return token
+    // TODO: extract AppState from request context (no auth required)
+    // match state.service.login(&body.email, &body.password).await {
+    //     Ok((user, session)) => {
+    //         let mut user_json = serde_json::to_value(&user).unwrap();
+    //         if let Some(obj) = user_json.as_object_mut() {
+    //             obj.insert("token".to_string(), serde_json::Value::String(session.key));
+    //         }
+    //         fleet_ok("user", user_json)
+    //     }
+    //     Err(e) => encode_error(&e),
+    // }
     fleet_ok("user", serde_json::json!({"token": ""}))
 }
 
 /// POST /api/_version_/fleet/sessions (MFA-aware login)
 pub async fn session_create(Json(_body): Json<SessionCreateBody>) -> FleetResponse {
-    // TODO: call service layer
+    // TODO: extract AppState from request context (no auth required)
+    // match state.service.login(&body.email, &body.password).await {
+    //     Ok((user, session)) => {
+    //         let mut user_json = serde_json::to_value(&user).unwrap();
+    //         if let Some(obj) = user_json.as_object_mut() {
+    //             obj.insert("token".to_string(), serde_json::Value::String(session.key));
+    //         }
+    //         fleet_ok("user", user_json)
+    //     }
+    //     Err(e) => encode_error(&e),
+    // }
     fleet_ok("user", serde_json::json!({"token": ""}))
 }
 
 /// POST /api/_version_/fleet/logout
 pub async fn logout() -> FleetResponse {
-    // TODO: call service layer
+    // TODO: extract AppState and auth from request context
+    // let viewer = auth.to_viewer();
+    // match state.service.logout(&viewer).await {
+    //     Ok(()) => fleet_ok("", serde_json::json!({})),
+    //     Err(e) => encode_error(&e),
+    // }
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/forgot_password
 pub async fn forgot_password(Json(_body): Json<ForgotPasswordBody>) -> FleetResponse {
-    // TODO: call service layer
+    // TODO: extract AppState from request context (no auth required)
+    // Always return success to avoid leaking whether the email exists.
+    // match state.service.request_password_reset(&body.email).await {
+    //     Ok(()) => fleet_ok("", serde_json::json!({})),
+    //     Err(e) => {
+    //         // Log but don't expose the error to the client.
+    //         tracing::warn!("password reset request failed: {}", e);
+    //         fleet_ok("", serde_json::json!({}))
+    //     }
+    // }
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/reset_password
 pub async fn reset_password(Json(_body): Json<ResetPasswordBody>) -> FleetResponse {
-    // TODO: call service layer
+    // TODO: extract AppState from request context (no auth required)
+    // match state.service.reset_password(&body.password_reset_token, &body.new_password).await {
+    //     Ok(()) => fleet_ok("", serde_json::json!({})),
+    //     Err(e) => encode_error(&e),
+    // }
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -110,24 +163,51 @@ pub async fn reset_password(Json(_body): Json<ResetPasswordBody>) -> FleetRespon
 pub async fn perform_required_password_reset(
     Json(_body): Json<PerformRequiredPasswordResetBody>,
 ) -> FleetResponse {
-    // TODO: call service layer
+    // TODO: extract AppState and auth from request context
+    // let viewer = auth.to_viewer();
+    // let user = state.service.authenticated_user(&viewer).await?;
+    // match state.service.change_password(&viewer, "", &body.new_password).await {
+    //     Ok(()) => {
+    //         let user = state.service.get_user(&viewer, viewer.user_id()).await.unwrap();
+    //         fleet_ok("user", serde_json::to_value(&user).unwrap())
+    //     }
+    //     Err(e) => encode_error(&e),
+    // }
     fleet_ok("user", serde_json::json!({}))
 }
 
 /// POST /api/v1/fleet/sso
 pub async fn initiate_sso(Json(_body): Json<InitiateSSOBody>) -> FleetResponse {
-    // TODO: call service layer - return SSO redirect URL
+    // TODO: extract AppState from request context (no auth required)
+    // match state.service.initiate_sso(body.relay_url.as_deref()).await {
+    //     Ok(url) => fleet_ok("url", serde_json::json!(url)),
+    //     Err(e) => encode_error(&e),
+    // }
     fleet_ok("url", serde_json::json!(""))
 }
 
 /// POST /api/v1/fleet/sso/callback
 pub async fn callback_sso(Json(_body): Json<CallbackSSOBody>) -> FleetResponse {
-    // TODO: call service layer - validate SAML response, create session
+    // TODO: extract AppState from request context (no auth required)
+    // match state.service.callback_sso(body.saml_response.as_deref().unwrap_or("")).await {
+    //     Ok((user, session)) => {
+    //         let mut user_json = serde_json::to_value(&user).unwrap();
+    //         if let Some(obj) = user_json.as_object_mut() {
+    //             obj.insert("token".to_string(), serde_json::Value::String(session.key));
+    //         }
+    //         fleet_ok("user", user_json)
+    //     }
+    //     Err(e) => encode_error(&e),
+    // }
     fleet_ok("user", serde_json::json!({"token": ""}))
 }
 
 /// GET /api/v1/fleet/sso
 pub async fn settings_sso() -> FleetResponse {
-    // TODO: call service layer - return SSO settings for the login page
+    // TODO: extract AppState from request context (no auth required)
+    // match state.service.get_sso_settings().await {
+    //     Ok(settings) => fleet_ok("settings", serde_json::to_value(&settings).unwrap()),
+    //     Err(e) => encode_error(&e),
+    // }
     fleet_ok("settings", serde_json::json!({}))
 }

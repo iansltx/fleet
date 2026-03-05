@@ -12,7 +12,19 @@ mod routes;
 
 use clap::{Parser, Subcommand};
 use std::net::SocketAddr;
+use std::sync::Arc;
 use tracing_subscriber::{fmt, EnvFilter};
+
+use fleet_service::FleetService;
+
+/// Shared application state passed to all handlers via axum's State extractor.
+///
+/// This will hold the FleetService (which owns the datastore, Redis, config, etc.)
+/// once a real Datastore implementation is available.
+#[derive(Clone)]
+pub struct AppState {
+    pub service: Arc<FleetService>,
+}
 
 /// Fleet server - osquery management and orchestration.
 ///
@@ -142,6 +154,30 @@ async fn run_serve(
 
     tracing::info!("Starting Fleet server on {}", addr);
 
+    // Connect to MySQL
+    // let ds_config = fleet_datastore::MysqlDatastoreConfig {
+    //     protocol: cfg.mysql.protocol.clone(),
+    //     address: cfg.mysql.address.clone(),
+    //     username: cfg.mysql.username.clone(),
+    //     password: cfg.mysql.password.clone(),
+    //     database: cfg.mysql.database.clone(),
+    //     tls_cert: cfg.mysql.tls_cert.clone(),
+    //     tls_key: cfg.mysql.tls_key.clone(),
+    //     tls_ca: cfg.mysql.tls_ca.clone(),
+    //     tls_server_name: cfg.mysql.tls_server_name.clone(),
+    //     tls_config: cfg.mysql.tls_config.clone(),
+    //     max_open_conns: cfg.mysql.max_open_conns,
+    //     max_idle_conns: cfg.mysql.max_idle_conns,
+    //     conn_max_lifetime_secs: cfg.mysql.conn_max_lifetime,
+    //     sql_mode: cfg.mysql.sql_mode.clone(),
+    // };
+    // let ds = fleet_datastore::MysqlDatastore::new(ds_config).await?;
+    //
+    // Build FleetService
+    // let svc_config = fleet_service::FleetServiceConfig { ... };
+    // let svc = fleet_service::FleetService::new(Arc::new(ds), svc_config);
+    // let state = AppState { service: Arc::new(svc) };
+
     // Build the axum application with all routes
     let app = routes::build_router(cfg);
 
@@ -166,7 +202,27 @@ async fn run_prepare_db(cfg: &config::FleetConfig, _no_prompt: bool) -> anyhow::
         cfg.mysql.address
     );
 
-    // TODO: Connect to MySQL and run migrations using fleet-datastore
+    let ds_config = fleet_datastore::MysqlDatastoreConfig {
+        protocol: cfg.mysql.protocol.clone(),
+        address: cfg.mysql.address.clone(),
+        username: cfg.mysql.username.clone(),
+        password: cfg.mysql.password.clone(),
+        database: cfg.mysql.database.clone(),
+        tls_cert: cfg.mysql.tls_cert.clone(),
+        tls_key: cfg.mysql.tls_key.clone(),
+        tls_ca: cfg.mysql.tls_ca.clone(),
+        tls_server_name: cfg.mysql.tls_server_name.clone(),
+        tls_config: cfg.mysql.tls_config.clone(),
+        max_open_conns: cfg.mysql.max_open_conns,
+        max_idle_conns: cfg.mysql.max_idle_conns,
+        conn_max_lifetime_secs: cfg.mysql.conn_max_lifetime,
+        sql_mode: cfg.mysql.sql_mode.clone(),
+    };
+
+    let _ds = fleet_datastore::MysqlDatastore::new(ds_config).await
+        .map_err(|e| anyhow::anyhow!("Failed to connect to MySQL: {}", e))?;
+
+    // TODO: Run schema migrations using the datastore
     tracing::info!("Database migrations completed.");
     Ok(())
 }
