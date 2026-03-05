@@ -11,6 +11,8 @@ use axum::{
     http::{request::Parts, StatusCode},
 };
 
+use crate::AppState;
+
 /// Authenticated user extracted from the Authorization header.
 ///
 /// The Go server uses `auth.SetRequestsContexts(svc)` to validate
@@ -24,21 +26,22 @@ pub struct AuthenticatedUser {
     pub session_id: u32,
 }
 
-// To convert an AuthenticatedUser to a `fleet_service::Viewer` for use with
-// the service layer, we need the full `User` and `Session` objects, which will
-// be available once AppState is wired into the router and we perform the
-// session/user lookups during extraction. At that point, add:
-//
-//   impl AuthenticatedUser {
-//       pub fn to_viewer(user: fleet_types::User, session: fleet_types::Session) -> fleet_service::Viewer {
-//           fleet_service::Viewer { user, session }
-//       }
-//   }
+impl AuthenticatedUser {
+    /// Helper to create a Viewer by fetching user and session from the service.
+    /// Call this in handlers that need a Viewer.
+    pub async fn viewer(&self, state: &AppState) -> Result<fleet_service::Viewer, (StatusCode, &'static str)> {
+        let user = state.service.get_user_unauthorized(self.id).await
+            .map_err(|_| (StatusCode::UNAUTHORIZED, "User not found"))?;
+        let session = state.service.datastore().session_by_id(self.session_id).await
+            .map_err(|_| (StatusCode::UNAUTHORIZED, "Session not found"))?;
+        Ok(fleet_service::Viewer { user, session })
+    }
+}
 
-impl<S: Send + Sync> FromRequestParts<S> for AuthenticatedUser {
+impl FromRequestParts<AppState> for AuthenticatedUser {
     type Rejection = (StatusCode, &'static str);
 
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, Self::Rejection> {
         // Extract the Authorization header
         let auth_header = parts
             .headers
@@ -47,23 +50,29 @@ impl<S: Send + Sync> FromRequestParts<S> for AuthenticatedUser {
             .ok_or((StatusCode::UNAUTHORIZED, "Missing authorization header"))?;
 
         // Expect "Bearer <token>"
-        let _token = auth_header
+        let token = auth_header
             .strip_prefix("Bearer ")
             .ok_or((StatusCode::UNAUTHORIZED, "Invalid authorization format"))?;
 
-        if _token.is_empty() {
+        if token.is_empty() {
             return Err((StatusCode::UNAUTHORIZED, "Empty authorization token"));
         }
 
-        // To implement this properly, we need AppState in the router.
-        // The flow will be:
-        // 1. Extract Bearer token (done above)
-        // 2. Call state.service.get_session_by_key(token) to get Session
-        // 3. Call state.service.get_user_unauthorized(session.user_id) to get User
-        // 4. Return AuthenticatedUser from user + session data
-        //
-        // For now, return an error until AppState is wired in.
-        Err((StatusCode::UNAUTHORIZED, "Authentication not yet implemented"))
+        // Look up session by token
+        let session = state.service.get_session_by_key(token).await
+            .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid or expired session"))?;
+
+        // Look up user
+        let user = state.service.get_user_unauthorized(session.user_id).await
+            .map_err(|_| (StatusCode::UNAUTHORIZED, "User not found"))?;
+
+        Ok(AuthenticatedUser {
+            id: user.id,
+            email: user.email.clone(),
+            name: user.name.clone(),
+            global_role: user.global_role.clone(),
+            session_id: session.id,
+        })
     }
 }
 

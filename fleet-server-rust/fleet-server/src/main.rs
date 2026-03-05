@@ -155,31 +155,58 @@ async fn run_serve(
     tracing::info!("Starting Fleet server on {}", addr);
 
     // Connect to MySQL
-    // let ds_config = fleet_datastore::MysqlDatastoreConfig {
-    //     protocol: cfg.mysql.protocol.clone(),
-    //     address: cfg.mysql.address.clone(),
-    //     username: cfg.mysql.username.clone(),
-    //     password: cfg.mysql.password.clone(),
-    //     database: cfg.mysql.database.clone(),
-    //     tls_cert: cfg.mysql.tls_cert.clone(),
-    //     tls_key: cfg.mysql.tls_key.clone(),
-    //     tls_ca: cfg.mysql.tls_ca.clone(),
-    //     tls_server_name: cfg.mysql.tls_server_name.clone(),
-    //     tls_config: cfg.mysql.tls_config.clone(),
-    //     max_open_conns: cfg.mysql.max_open_conns,
-    //     max_idle_conns: cfg.mysql.max_idle_conns,
-    //     conn_max_lifetime_secs: cfg.mysql.conn_max_lifetime,
-    //     sql_mode: cfg.mysql.sql_mode.clone(),
-    // };
-    // let ds = fleet_datastore::MysqlDatastore::new(ds_config).await?;
-    //
+    let ds_config = fleet_datastore::MysqlDatastoreConfig {
+        protocol: cfg.mysql.protocol.clone(),
+        address: cfg.mysql.address.clone(),
+        username: cfg.mysql.username.clone(),
+        password: cfg.mysql.password.clone(),
+        database: cfg.mysql.database.clone(),
+        tls_cert: cfg.mysql.tls_cert.clone(),
+        tls_key: cfg.mysql.tls_key.clone(),
+        tls_ca: cfg.mysql.tls_ca.clone(),
+        tls_server_name: cfg.mysql.tls_server_name.clone(),
+        tls_config: cfg.mysql.tls_config.clone(),
+        max_open_conns: cfg.mysql.max_open_conns,
+        max_idle_conns: cfg.mysql.max_idle_conns,
+        conn_max_lifetime_secs: cfg.mysql.conn_max_lifetime,
+        sql_mode: cfg.mysql.sql_mode.clone(),
+    };
+    let ds = fleet_datastore::MysqlDatastore::new(ds_config).await
+        .map_err(|e| anyhow::anyhow!("Failed to connect to MySQL: {}", e))?;
+
     // Build FleetService
-    // let svc_config = fleet_service::FleetServiceConfig { ... };
-    // let svc = fleet_service::FleetService::new(Arc::new(ds), svc_config);
-    // let state = AppState { service: Arc::new(svc) };
+    let svc_config = fleet_service::FleetServiceConfig {
+        server: fleet_service::ServerConfig {
+            url_prefix: cfg.server.url_prefix.clone(),
+            server_url: format!("https://{}", cfg.server.address),
+        },
+        session: fleet_service::SessionConfig {
+            key_size: cfg.session.key_size,
+            duration: std::time::Duration::from_secs(cfg.session.duration_secs),
+        },
+        osquery: fleet_service::OsqueryConfig {
+            node_key_size: cfg.osquery.node_key_size,
+            host_identifier: cfg.osquery.host_identifier.clone(),
+            enroll_cooldown: std::time::Duration::from_secs(cfg.osquery.enroll_cooldown_secs),
+            label_update_interval: std::time::Duration::from_secs(cfg.osquery.label_update_interval_secs),
+            policy_update_interval: std::time::Duration::from_secs(cfg.osquery.policy_update_interval_secs),
+            detail_update_interval: std::time::Duration::from_secs(cfg.osquery.detail_update_interval_secs),
+        },
+        auth: fleet_service::AuthConfig {
+            jwt_key: cfg.server.private_key.clone(),
+            bcrypt_cost: cfg.auth.bcrypt_cost,
+            salt_key_size: cfg.auth.salt_key_size,
+        },
+        app: fleet_service::AppServiceConfig {
+            token_key_size: cfg.app.token_key_size,
+        },
+    };
+
+    let svc = fleet_service::FleetService::new(Arc::new(ds), svc_config);
+    let state = AppState { service: Arc::new(svc) };
 
     // Build the axum application with all routes
-    let app = routes::build_router(cfg);
+    let app = routes::build_router(state);
 
     // Create the TCP listener
     let listener = tokio::net::TcpListener::bind(addr).await?;

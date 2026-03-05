@@ -6,6 +6,7 @@ description = "MySQL datastore layer for Fleet server"
 
 [dependencies]
 fleet-types = { path = "../fleet-types", features = ["db"] }
+fleet-service = { path = "../fleet-service" }
 
 # Async runtime
 tokio = { workspace = true }

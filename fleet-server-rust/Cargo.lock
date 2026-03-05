@@ -752,6 +752,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
+ "fleet-service",
  "fleet-types",
  "serde",
  "serde_json",

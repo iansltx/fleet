@@ -9,13 +9,12 @@ use axum::{
     Router,
 };
 
-use crate::config::FleetConfig;
 use crate::frontend;
 use crate::handlers;
 use crate::middleware as fleet_mw;
 
 /// Build the complete axum Router with all Fleet API routes.
-pub fn build_router(cfg: FleetConfig) -> Router {
+pub fn build_router(state: crate::AppState) -> Router {
     let api_v1 = v1_routes();
     let api_v2 = v2_routes();
     let osquery = osquery_routes();
@@ -32,6 +31,7 @@ pub fn build_router(cfg: FleetConfig) -> Router {
         .merge(device)
         .merge(no_auth)
         .merge(frontend)
+        .with_state(state)
         // Global middleware applied to all routes
         .layer(tower_http::trace::TraceLayer::new_for_http())
 }
@@ -42,7 +42,7 @@ pub fn build_router(cfg: FleetConfig) -> Router {
 
 /// User-authenticated endpoints under /api/v1/fleet/...
 /// These correspond to the `ue` (user-authenticated endpointer) routes in handler.go.
-fn v1_routes() -> Router {
+fn v1_routes() -> Router<crate::AppState> {
     Router::new()
         // Trigger
         .route("/api/v1/fleet/trigger", post(handlers::app_config::trigger))
@@ -422,7 +422,7 @@ fn v1_routes() -> Router {
 // ---------------------------------------------------------------------------
 
 /// Routes that were introduced or moved in the 2022-04 API version.
-fn v2_routes() -> Router {
+fn v2_routes() -> Router<crate::AppState> {
     Router::new()
         // Policies (2022-04 paths without /global/)
         .route("/api/2022-04/fleet/policies", post(handlers::policies::create_global_policy))
@@ -448,7 +448,7 @@ fn v2_routes() -> Router {
 
 /// Host-authenticated osquery endpoints.
 /// These use the osquery node_key for authentication.
-fn osquery_routes() -> Router {
+fn osquery_routes() -> Router<crate::AppState> {
     Router::new()
         .route("/api/osquery/config", post(handlers::osquery::get_client_config))
         .route("/api/v1/osquery/config", post(handlers::osquery::get_client_config))
@@ -475,7 +475,7 @@ fn osquery_routes() -> Router {
 // ---------------------------------------------------------------------------
 
 /// Orbit-authenticated endpoints.
-fn orbit_routes() -> Router {
+fn orbit_routes() -> Router<crate::AppState> {
     Router::new()
         .route("/api/fleet/orbit/device_token", post(handlers::orbit::set_or_update_device_token))
         .route("/api/fleet/orbit/config", post(handlers::orbit::get_orbit_config))
@@ -503,7 +503,7 @@ fn orbit_routes() -> Router {
 // ---------------------------------------------------------------------------
 
 /// Device-authenticated endpoints (Fleet Desktop / device API).
-fn device_routes() -> Router {
+fn device_routes() -> Router<crate::AppState> {
     Router::new()
         .route("/api/v1/fleet/device/{token}", get(handlers::device::get_device_host))
         .route("/api/v1/fleet/device/{token}/desktop", get(handlers::device::get_fleet_desktop))
@@ -538,7 +538,7 @@ fn device_routes() -> Router {
 // ---------------------------------------------------------------------------
 
 /// Unauthenticated endpoints (login, setup, SSO, etc.).
-fn no_auth_routes() -> Router {
+fn no_auth_routes() -> Router<crate::AppState> {
     Router::new()
         // Setup
         .route("/api/v1/setup", post(handlers::setup::setup))

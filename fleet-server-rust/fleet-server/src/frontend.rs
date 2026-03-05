@@ -31,7 +31,10 @@ struct FrontendAssets;
 /// This serves:
 /// - Static files (JS, CSS, images) from the embedded assets
 /// - `index.html` for all other paths (SPA fallback)
-pub fn frontend_routes() -> Router {
+pub fn frontend_routes<S>() -> Router<S>
+where
+    S: Clone + Send + Sync + 'static,
+{
     Router::new()
         // Serve specific static asset paths
         .route("/assets/{*path}", get(serve_asset))
