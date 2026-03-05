@@ -124,6 +124,13 @@ pub trait Datastore: Send + Sync + 'static {
     async fn list_software(&self, opts: fleet_types::ListOptions, team_id: Option<u32>) -> ServiceResult<Vec<fleet_types::Software>>;
     async fn software_by_id(&self, id: u32) -> ServiceResult<fleet_types::Software>;
 
+    // ---- Email Changes ----
+    async fn confirm_pending_email_change(&self, user_id: u32, token: &str) -> ServiceResult<String>;
+
+    // ---- Batch User Operations ----
+    async fn save_users(&self, users: &[fleet_types::User]) -> ServiceResult<()>;
+    async fn team_by_name(&self, name: &str) -> ServiceResult<fleet_types::Team>;
+
     // ---- Orbit ----
     async fn load_host_by_orbit_node_key(&self, orbit_node_key: &str) -> ServiceResult<fleet_types::Host>;
     async fn enroll_orbit(

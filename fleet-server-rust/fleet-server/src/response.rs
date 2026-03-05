@@ -107,21 +107,6 @@ pub fn fleet_no_content() -> FleetResponse {
     (StatusCode::NO_CONTENT, Json(Value::Null))
 }
 
-/// Convert a service-layer error into a Fleet API error response.
-///
-/// This maps internal error types to appropriate HTTP status codes,
-/// matching the Go server's `fleetErrorEncoder` behavior.
-pub fn encode_error(err: &dyn std::error::Error) -> FleetResponse {
-    // TODO: match on specific error types from fleet-service:
-    // - NotFoundError -> 404
-    // - AuthRequiredError -> 401
-    // - ForbiddenError -> 403
-    // - ConflictError -> 409
-    // - ValidationError -> 422
-    // - etc.
-    fleet_error(StatusCode::INTERNAL_SERVER_ERROR, &err.to_string())
-}
-
 /// Convert a `ServiceError` into a Fleet API error response.
 ///
 /// This maps each variant to the appropriate HTTP status code,

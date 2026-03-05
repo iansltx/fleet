@@ -314,6 +314,160 @@ fn app_config_data_to_json(data: &AppConfigData) -> serde_json::Value {
     serde_json::to_value(data).unwrap_or_default()
 }
 
+/// Convert a host platform string to a Fleet platform (matching Go's PlatformFromHost).
+fn fleet_platform_from_host(platform: &str) -> String {
+    match platform {
+        "darwin" | "windows" | "CrOS" | "chrome" | "ios" | "ipados" | "android" => {
+            platform.to_string()
+        }
+        p if is_linux(p) => "linux".to_string(),
+        _ => String::new(),
+    }
+}
+
+fn is_linux(platform: &str) -> bool {
+    matches!(
+        platform,
+        "linux" | "ubuntu" | "debian" | "rhel" | "centos" | "sles" | "kali"
+            | "gentoo" | "amzn" | "pop" | "arch" | "linuxmint" | "void"
+            | "nixos" | "endeavouros" | "manjaro" | "opensuse-leap"
+            | "opensuse-tumbleweed" | "tuxedo" | "fedora"
+    )
+}
+
+/// Row type for host policy queries.
+#[derive(Debug, sqlx::FromRow)]
+struct HostPolicyRow {
+    id: u32,
+    team_id: Option<u32>,
+    resolution: String,
+    name: String,
+    query: String,
+    description: String,
+    author_id: Option<u32>,
+    platform: String,
+    critical: bool,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+    conditional_access_enabled: bool,
+    conditional_access_bypass_enabled: Option<bool>,
+    author_name: String,
+    author_email: String,
+    response: String,
+}
+
+fn host_policy_row_to_host_policy(row: HostPolicyRow) -> fleet_types::policy::HostPolicy {
+    fleet_types::policy::HostPolicy {
+        policy_data: fleet_types::PolicyData {
+            id: row.id,
+            name: row.name,
+            query: row.query,
+            critical: row.critical,
+            description: row.description,
+            author_id: row.author_id,
+            author_name: row.author_name,
+            author_email: row.author_email,
+            team_id: row.team_id,
+            resolution: Some(row.resolution),
+            platform: row.platform,
+            labels_include_any: Vec::new(),
+            labels_exclude_any: Vec::new(),
+            calendar_events_enabled: false,
+            conditional_access_enabled: row.conditional_access_enabled,
+            conditional_access_bypass_enabled: row.conditional_access_bypass_enabled,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+        },
+        response: row.response,
+    }
+}
+
+/// Row type for software-per-host queries.
+#[derive(Debug, sqlx::FromRow)]
+struct SoftwareForHostRow {
+    id: u32,
+    name: String,
+    version: String,
+    source: String,
+    extension_for: String,
+    bundle_identifier: String,
+    release: String,
+    vendor: String,
+    arch: String,
+    extension_id: String,
+    upgrade_code: Option<String>,
+    last_opened_at: Option<DateTime<Utc>>,
+}
+
+fn software_for_host_row_to_software(row: SoftwareForHostRow) -> fleet_types::Software {
+    fleet_types::Software {
+        id: row.id,
+        name: row.name.clone(),
+        version: row.version,
+        bundle_identifier: row.bundle_identifier,
+        source: row.source,
+        extension_id: row.extension_id,
+        extension_for: row.extension_for,
+        browser: String::new(),
+        release: row.release,
+        vendor: row.vendor,
+        arch: row.arch,
+        generated_cpe: String::new(),
+        vulnerabilities: Vec::new(),
+        hosts_count: 0,
+        last_opened_at: row.last_opened_at,
+        application_id: None,
+        upgrade_code: row.upgrade_code,
+        display_name: row.name,
+    }
+}
+
+/// Row type for device mapping queries.
+#[derive(Debug, sqlx::FromRow)]
+struct DeviceMappingRow {
+    id: u32,
+    host_id: u32,
+    email: String,
+    source: String,
+}
+
+/// Row type for host script results.
+#[derive(Debug, sqlx::FromRow)]
+struct HostScriptResultRow {
+    id: u32,
+    host_id: u32,
+    execution_id: String,
+    script_contents: String,
+    script_id: Option<u32>,
+    output: String,
+    runtime: i32,
+    exit_code: Option<i64>,
+    host_timeout: bool,
+    host_deleted_at: Option<DateTime<Utc>>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+fn host_script_result_row_to_result(
+    row: HostScriptResultRow,
+) -> fleet_types::script::HostScriptResult {
+    fleet_types::script::HostScriptResult {
+        id: row.id,
+        host_id: row.host_id,
+        execution_id: row.execution_id,
+        script_id: row.script_id,
+        script_contents: row.script_contents,
+        output: row.output,
+        runtime: row.runtime,
+        exit_code: row.exit_code,
+        message: None,
+        host_timeout: row.host_timeout,
+        host_deleted_at: row.host_deleted_at,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+    }
+}
+
 /// Helper to convert sqlx errors into ServiceError for inline queries.
 fn ds_error(e: sqlx::Error) -> ServiceError {
     ServiceError::Internal(e.to_string())
@@ -1167,6 +1321,57 @@ impl Datastore for MysqlDatastore {
         Ok(software_row_to_software(row))
     }
 
+    // ---- Email Changes ----
+
+    async fn confirm_pending_email_change(&self, user_id: u32, token: &str) -> ServiceResult<String> {
+        // Find the pending email change record
+        let row: Option<(u32, String)> = sqlx::query_as(
+            "SELECT id, new_email FROM email_changes WHERE token = ? AND user_id = ?",
+        )
+        .bind(token)
+        .bind(user_id)
+        .fetch_optional(self.pool())
+        .await
+        .map_err(ds_error)?;
+
+        let (change_id, new_email) = row.ok_or_else(|| {
+            ServiceError::not_found("email change with token not found")
+        })?;
+
+        // Update the user's email
+        sqlx::query("UPDATE users SET email = ? WHERE id = ?")
+            .bind(&new_email)
+            .bind(user_id)
+            .execute(self.pool())
+            .await
+            .map_err(ds_error)?;
+
+        // Delete the email change record
+        sqlx::query("DELETE FROM email_changes WHERE id = ?")
+            .bind(change_id)
+            .execute(self.pool())
+            .await
+            .map_err(ds_error)?;
+
+        Ok(new_email)
+    }
+
+    // ---- Batch User Operations ----
+
+    async fn save_users(&self, users: &[fleet_types::User]) -> ServiceResult<()> {
+        for user in users {
+            Datastore::save_user(self, user).await?;
+        }
+        Ok(())
+    }
+
+    async fn team_by_name(&self, name: &str) -> ServiceResult<fleet_types::Team> {
+        let row = MysqlDatastore::team_by_name(self, name)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(team_row_to_team(row))
+    }
+
     // ---- Orbit ----
 
     async fn load_host_by_orbit_node_key(&self, orbit_node_key: &str) -> ServiceResult<fleet_types::Host> {
@@ -1231,12 +1436,59 @@ impl Datastore for MysqlDatastore {
     }
 
     async fn get_host_script_execution(&self, execution_id: &str) -> ServiceResult<fleet_types::script::HostScriptResult> {
-        // Simplified stub - full impl would query host_script_results table
-        Err(ServiceError::not_found("script execution not found"))
+        let query = r#"
+            SELECT
+                hsr.id, hsr.host_id, hsr.execution_id,
+                COALESCE(sc.contents, '') as script_contents,
+                hsr.script_id,
+                COALESCE(hsr.output, '') as output,
+                COALESCE(hsr.runtime, 0) as runtime,
+                hsr.exit_code,
+                hsr.timeout as host_timeout,
+                hsr.host_deleted_at,
+                hsr.created_at,
+                hsr.updated_at
+            FROM host_script_results hsr
+            LEFT JOIN script_contents sc ON sc.id = hsr.script_content_id
+            WHERE hsr.execution_id = ?
+        "#;
+
+        let row = sqlx::query_as::<_, HostScriptResultRow>(query)
+            .bind(execution_id)
+            .fetch_optional(self.pool())
+            .await
+            .map_err(ds_error)?
+            .ok_or_else(|| ServiceError::not_found("script execution not found"))?;
+
+        Ok(host_script_result_row_to_result(row))
     }
 
     async fn save_host_script_result(&self, result: &fleet_types::script::HostScriptResult) -> ServiceResult<()> {
-        // Simplified stub - full impl would insert/update host_script_results
+        // Truncate output to 10000 chars like Go does
+        let output = if result.output.len() > 10000 {
+            &result.output[..10000]
+        } else {
+            &result.output
+        };
+
+        sqlx::query(
+            r#"UPDATE host_script_results SET
+                output = ?,
+                runtime = ?,
+                exit_code = ?,
+                timeout = ?
+            WHERE host_id = ? AND execution_id = ?"#,
+        )
+        .bind(output)
+        .bind(result.runtime)
+        .bind(result.exit_code)
+        .bind(result.host_timeout)
+        .bind(result.host_id)
+        .bind(&result.execution_id)
+        .execute(self.pool())
+        .await
+        .map_err(ds_error)?;
+
         Ok(())
     }
 
@@ -1293,19 +1545,103 @@ impl Datastore for MysqlDatastore {
         Ok(())
     }
 
-    async fn list_policies_for_host(&self, _host_id: u32) -> ServiceResult<Vec<fleet_types::policy::HostPolicy>> {
-        // Simplified: return empty for now. Full impl would JOIN policy_membership.
-        Ok(Vec::new())
+    async fn list_policies_for_host(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::policy::HostPolicy>> {
+        // Get the host's platform to filter policies by platform
+        let host = self.host_by_id(host_id).await.map_err(ServiceError::from)?;
+        let fleet_platform = fleet_platform_from_host(&host.platform);
+
+        let query = r#"
+            SELECT p.id, p.team_id, COALESCE(p.resolution, '') as resolution,
+                   p.name, p.query, p.description, p.author_id,
+                   COALESCE(p.platforms, '') as platform,
+                   p.critical, p.created_at, p.updated_at,
+                   p.conditional_access_enabled,
+                   p.conditional_access_bypass_enabled,
+                   COALESCE(u.name, '<deleted>') AS author_name,
+                   COALESCE(u.email, '') AS author_email,
+                   CASE
+                       WHEN pm.passes = 1 THEN 'pass'
+                       WHEN pm.passes = 0 THEN 'fail'
+                       ELSE ''
+                   END AS response
+            FROM policies p
+            LEFT JOIN policy_membership pm ON (p.id = pm.policy_id AND pm.host_id = ?)
+            LEFT JOIN users u ON p.author_id = u.id
+            WHERE (p.team_id IS NULL OR p.team_id = COALESCE((SELECT team_id FROM hosts WHERE id = ?), 0))
+            AND (p.platforms IS NULL OR p.platforms = '' OR FIND_IN_SET(?, p.platforms) != 0)
+            ORDER BY FIELD(response, 'fail', '', 'pass'), p.name
+        "#;
+
+        let rows = sqlx::query_as::<_, HostPolicyRow>(query)
+            .bind(host_id)
+            .bind(host_id)
+            .bind(&fleet_platform)
+            .fetch_all(self.pool())
+            .await
+            .map_err(ds_error)?;
+
+        Ok(rows.into_iter().map(host_policy_row_to_host_policy).collect())
     }
 
-    async fn list_software_for_host(&self, _host_id: u32) -> ServiceResult<Vec<fleet_types::Software>> {
-        // Simplified: return empty for now. Full impl would JOIN host_software.
-        Ok(Vec::new())
+    async fn list_software_for_host(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::Software>> {
+        let query = r#"
+            SELECT
+                s.id, s.name, s.version, s.source,
+                COALESCE(s.extension_for, '') as extension_for,
+                COALESCE(s.bundle_identifier, '') as bundle_identifier,
+                COALESCE(s.`release`, '') as `release`,
+                COALESCE(s.vendor, '') as vendor,
+                COALESCE(s.arch, '') as arch,
+                COALESCE(s.extension_id, '') as extension_id,
+                s.upgrade_code,
+                hs.last_opened_at
+            FROM software s
+            JOIN host_software hs ON hs.software_id = s.id
+            WHERE hs.host_id = ?
+        "#;
+
+        let rows = sqlx::query_as::<_, SoftwareForHostRow>(query)
+            .bind(host_id)
+            .fetch_all(self.pool())
+            .await
+            .map_err(ds_error)?;
+
+        Ok(rows.into_iter().map(software_for_host_row_to_software).collect())
     }
 
-    async fn device_mapping_for_host(&self, _host_id: u32) -> ServiceResult<serde_json::Value> {
-        // Simplified: return empty array. Full impl would query host_emails table.
-        Ok(serde_json::json!([]))
+    async fn device_mapping_for_host(&self, host_id: u32) -> ServiceResult<serde_json::Value> {
+        let query = r#"
+            SELECT
+                id, host_id, email,
+                CASE
+                    WHEN source LIKE 'custom_%' THEN 'custom'
+                    WHEN source = 'idp' THEN 'mdm_idp_accounts'
+                    ELSE source
+                END as source
+            FROM host_emails
+            WHERE host_id = ?
+            ORDER BY email, source
+        "#;
+
+        let rows = sqlx::query_as::<_, DeviceMappingRow>(query)
+            .bind(host_id)
+            .fetch_all(self.pool())
+            .await
+            .map_err(ds_error)?;
+
+        let mappings: Vec<serde_json::Value> = rows
+            .into_iter()
+            .map(|r| {
+                serde_json::json!({
+                    "id": r.id,
+                    "host_id": r.host_id,
+                    "email": r.email,
+                    "source": r.source,
+                })
+            })
+            .collect();
+
+        Ok(serde_json::Value::Array(mappings))
     }
 
     async fn mark_host_refetch_requested(&self, host_id: u32) -> ServiceResult<()> {

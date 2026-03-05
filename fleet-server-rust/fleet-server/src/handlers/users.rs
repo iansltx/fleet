@@ -249,26 +249,38 @@ pub async fn change_password(
 
 /// GET /api/_version_/fleet/email/change/{token}
 pub async fn change_email(
-    State(_state): State<AppState>,
-    Path(_token): Path<String>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(token): Path<String>,
 ) -> FleetResponse {
-    // TODO: add change_email to FleetService
-    fleet_ok("new_email", serde_json::json!(""))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.change_email(&viewer, &token).await {
+        Ok(new_email) => fleet_ok("new_email", serde_json::json!(new_email)),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/users/roles/spec
 pub async fn apply_user_role_specs(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<ApplyUserRoleSpecsBody>,
+    Json(body): Json<ApplyUserRoleSpecsBody>,
 ) -> FleetResponse {
-    // Verify authentication
-    let _viewer = match auth.viewer(&_state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: add apply_user_role_specs to FleetService
-    fleet_ok("", serde_json::json!({}))
+    let specs: fleet_service::users::UserRoleSpecs = match serde_json::from_value(body.spec) {
+        Ok(s) => s,
+        Err(e) => return fleet_error(axum::http::StatusCode::BAD_REQUEST, &e.to_string()),
+    };
+    match state.service.apply_user_role_specs(&viewer, specs).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/users (unauthenticated, from invite)

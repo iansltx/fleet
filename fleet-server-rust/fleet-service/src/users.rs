@@ -359,6 +359,95 @@ impl FleetService {
         info!(user_id = created.id, "initial user created");
         Ok(created)
     }
+
+    /// Confirms a pending email change using a token.
+    ///
+    /// Corresponds to Go's `(svc *Service) ChangeUserEmail`.
+    pub async fn change_email(
+        &self,
+        viewer: &Viewer,
+        token: &str,
+    ) -> ServiceResult<String> {
+        authz::authorize(viewer, Subject::User, Action::Write)?;
+        self.ds.confirm_pending_email_change(viewer.user_id(), token).await
+    }
+
+    /// Applies user role specifications (batch update roles).
+    ///
+    /// Corresponds to Go's `(svc *Service) ApplyUserRolesSpecs`.
+    pub async fn apply_user_role_specs(
+        &self,
+        viewer: &Viewer,
+        specs: UserRoleSpecs,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::User, Action::Write)?;
+
+        let mut users = Vec::new();
+        for (email, spec) in &specs.roles {
+            let mut user = self.ds.user_by_email(email).await?;
+
+            // If an admin is being downgraded, ensure at least one other admin remains
+            if user.global_role.as_deref() == Some("admin")
+                && spec.global_role.as_deref() != Some("admin")
+            {
+                let all_users = self
+                    .ds
+                    .list_users(fleet_types::user::UserListOptions::default())
+                    .await?;
+                let admins_except_current = all_users
+                    .iter()
+                    .filter(|u| u.email != *email)
+                    .filter(|u| u.global_role.as_deref() == Some("admin"))
+                    .count();
+                if admins_except_current == 0 {
+                    return Err(ServiceError::bad_request(
+                        "You need at least one admin",
+                    ));
+                }
+            }
+
+            user.global_role = spec.global_role.clone();
+
+            let mut teams = Vec::new();
+            for team_spec in &spec.teams {
+                let team = self.ds.team_by_name(&team_spec.name).await.map_err(|e| {
+                    match e {
+                        ServiceError::NotFound(_) => ServiceError::bad_request(e.to_string()),
+                        other => other,
+                    }
+                })?;
+                teams.push(fleet_types::team::UserTeam {
+                    team,
+                    role: team_spec.role.clone(),
+                });
+            }
+            user.teams = teams;
+            users.push(user);
+        }
+
+        self.ds.save_users(&users).await
+    }
+}
+
+/// Specification for a user's role.
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct UserRoleSpec {
+    pub global_role: Option<String>,
+    #[serde(default)]
+    pub teams: Vec<UserRoleTeamSpec>,
+}
+
+/// Specification for a user's role within a team.
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct UserRoleTeamSpec {
+    pub name: String,
+    pub role: String,
+}
+
+/// Batch user role specifications.
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct UserRoleSpecs {
+    pub roles: std::collections::HashMap<String, UserRoleSpec>,
 }
 
 /// Payload for creating a user (admin-initiated).
