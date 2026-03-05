@@ -145,11 +145,26 @@ pub async fn list_queries(
 
 /// GET /api/_version_/fleet/reports/{id}/report
 pub async fn get_query_report(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_id): Path<u64>,
+    Path(id): Path<u64>,
 ) -> FleetResponse {
-    fleet_ok("report", serde_json::json!({}))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // Verify the query exists and auth
+    match state.service.get_query(&viewer, id as u32).await {
+        Ok(query) => {
+            // If discard_data is set, return empty results
+            if query.discard_data {
+                return fleet_ok("report", serde_json::json!({"query_id": query.id, "results": [], "report_clipped": false}));
+            }
+            // Query report results require query_result_rows infrastructure (not yet implemented)
+            fleet_ok("report", serde_json::json!({"query_id": query.id, "results": [], "report_clipped": false}))
+        }
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/reports
@@ -262,56 +277,98 @@ pub async fn delete_queries(
 
 /// POST /api/_version_/fleet/spec/reports
 pub async fn apply_query_specs(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<ApplyQuerySpecsBody>,
+    Json(body): Json<ApplyQuerySpecsBody>,
 ) -> FleetResponse {
-    fleet_ok("", serde_json::json!({}))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let specs: Vec<fleet_service::queries::QuerySpec> = body.specs.into_iter().filter_map(|v| {
+        serde_json::from_value(v).ok()
+    }).collect();
+    match state.service.apply_query_specs(&viewer, specs).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/spec/reports
 pub async fn get_query_specs(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Query(_params): Query<GetQuerySpecsParams>,
+    Query(params): Query<GetQuerySpecsParams>,
 ) -> FleetResponse {
-    fleet_ok("specs", serde_json::json!([]))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let team_id = params.team_id.map(|v| v as u32);
+    match state.service.get_query_specs(&viewer, team_id).await {
+        Ok(specs) => fleet_ok("specs", serde_json::to_value(&specs).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/spec/reports/{name}
 pub async fn get_query_spec(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_name): Path<String>,
+    Path(name): Path<String>,
+    Query(params): Query<GetQuerySpecsParams>,
 ) -> FleetResponse {
-    fleet_ok("spec", serde_json::json!({}))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let team_id = params.team_id.map(|v| v as u32);
+    match state.service.get_query_spec(&viewer, team_id, &name).await {
+        Ok(spec) => fleet_ok("spec", serde_json::to_value(&spec).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/reports/{id}/run
 pub async fn run_one_live_query(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_id): Path<u64>,
     Json(_body): Json<RunOneLiveQueryBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // Live query execution requires distributed query campaign infrastructure
     fleet_ok("results", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/reports/run
 pub async fn run_live_query(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Query(_params): Query<RunLiveQueryParams>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // Live query execution requires distributed query campaign infrastructure
     fleet_ok("results", serde_json::json!([]))
 }
 
 /// POST /api/_version_/fleet/reports/run_by_identifiers
 pub async fn create_distributed_query_campaign_by_identifier(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Json(_body): Json<CreateDistributedQueryCampaignByIdentifierBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // Distributed query campaigns require live query infrastructure
     fleet_ok("campaign", serde_json::json!({}))
 }
 

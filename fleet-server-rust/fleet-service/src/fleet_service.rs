@@ -64,6 +64,7 @@ pub trait Datastore: Send + Sync + 'static {
     async fn save_query(&self, query: &fleet_types::Query) -> ServiceResult<fleet_types::Query>;
     async fn delete_query(&self, name: &str, team_id: Option<u32>) -> ServiceResult<()>;
     async fn delete_queries(&self, ids: &[u32]) -> ServiceResult<u32>;
+    async fn query_by_name(&self, team_id: Option<u32>, name: &str) -> ServiceResult<fleet_types::Query>;
 
     // ---- Packs ----
     async fn pack(&self, id: u32) -> ServiceResult<fleet_types::Pack>;
@@ -99,6 +100,9 @@ pub trait Datastore: Send + Sync + 'static {
     async fn save_team(&self, team: &fleet_types::Team) -> ServiceResult<fleet_types::Team>;
     async fn delete_team(&self, id: u32) -> ServiceResult<()>;
     async fn teams_summary(&self) -> ServiceResult<Vec<TeamSummaryInfo>>;
+    async fn list_team_users(&self, team_id: u32) -> ServiceResult<Vec<fleet_types::team::TeamUser>>;
+    async fn team_enroll_secrets(&self, team_id: u32) -> ServiceResult<Vec<fleet_types::enroll::EnrollSecret>>;
+    async fn apply_team_enroll_secrets(&self, team_id: u32, secrets: &[String]) -> ServiceResult<()>;
 
     // ---- AppConfig ----
     async fn app_config(&self) -> ServiceResult<AppConfigData>;

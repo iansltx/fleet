@@ -146,4 +146,65 @@ impl FleetService {
     pub async fn teams_summary(&self) -> ServiceResult<Vec<TeamSummaryInfo>> {
         self.ds.teams_summary().await
     }
+
+    /// Lists users belonging to a team.
+    ///
+    /// Corresponds to Go's `(svc *Service) ListTeamUsers`.
+    pub async fn list_team_users(
+        &self,
+        viewer: &Viewer,
+        team_id: u32,
+    ) -> ServiceResult<Vec<fleet_types::team::TeamUser>> {
+        authz::authorize(viewer, Subject::Team, Action::Read)?;
+        // Verify team exists
+        self.ds.team(team_id).await?;
+        self.ds.list_team_users(team_id).await
+    }
+
+    /// Gets enroll secrets for a team.
+    ///
+    /// Corresponds to Go's `(svc *Service) TeamEnrollSecrets`.
+    pub async fn team_enroll_secrets(
+        &self,
+        viewer: &Viewer,
+        team_id: u32,
+    ) -> ServiceResult<Vec<fleet_types::enroll::EnrollSecret>> {
+        authz::authorize(viewer, Subject::EnrollSecret, Action::Read)?;
+        self.ds.team_enroll_secrets(team_id).await
+    }
+
+    /// Modifies enroll secrets for a team.
+    ///
+    /// Corresponds to Go's `(svc *Service) ModifyTeamEnrollSecrets`.
+    pub async fn modify_team_enroll_secrets(
+        &self,
+        viewer: &Viewer,
+        team_id: u32,
+        secrets: Vec<String>,
+    ) -> ServiceResult<Vec<fleet_types::enroll::EnrollSecret>> {
+        authz::authorize(viewer, Subject::EnrollSecret, Action::Write)?;
+        // Verify team exists
+        self.ds.team(team_id).await?;
+        self.ds.apply_team_enroll_secrets(team_id, &secrets).await?;
+        self.ds.team_enroll_secrets(team_id).await
+    }
+
+    /// Modifies agent options for a team.
+    ///
+    /// Corresponds to Go's `(svc *Service) ModifyTeamAgentOptions`.
+    pub async fn modify_team_agent_options(
+        &self,
+        viewer: &Viewer,
+        team_id: u32,
+        agent_options: serde_json::Value,
+    ) -> ServiceResult<fleet_types::Team> {
+        authz::authorize(viewer, Subject::Team, Action::Write)?;
+
+        let mut team = self.ds.team(team_id).await?;
+        team.config.agent_options = Some(agent_options);
+        let saved = self.ds.save_team(&team).await?;
+
+        info!(team_id = saved.id, name = %saved.name, "team agent options modified");
+        Ok(saved)
+    }
 }

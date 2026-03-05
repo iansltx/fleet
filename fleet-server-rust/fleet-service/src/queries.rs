@@ -156,6 +156,94 @@ impl FleetService {
         info!(count = count, "queries deleted");
         Ok(count)
     }
+
+    /// Gets all query specs, optionally filtered by team.
+    ///
+    /// Corresponds to Go's `(svc *Service) GetQuerySpecs`.
+    pub async fn get_query_specs(
+        &self,
+        viewer: &Viewer,
+        team_id: Option<u32>,
+    ) -> ServiceResult<Vec<QuerySpec>> {
+        authz::authorize(viewer, Subject::Query, Action::Read)?;
+        let opts = fleet_types::ListOptions::default();
+        let queries = self.ds.list_queries(opts, team_id).await?;
+        Ok(queries.into_iter().map(query_to_spec).collect())
+    }
+
+    /// Gets a single query spec by name and optional team.
+    ///
+    /// Corresponds to Go's `(svc *Service) GetQuerySpec`.
+    pub async fn get_query_spec(
+        &self,
+        viewer: &Viewer,
+        team_id: Option<u32>,
+        name: &str,
+    ) -> ServiceResult<QuerySpec> {
+        authz::authorize(viewer, Subject::Query, Action::Read)?;
+        let query = self.ds.query_by_name(team_id, name).await?;
+        Ok(query_to_spec(query))
+    }
+
+    /// Applies query specs (create or update). Matches Go's `ApplyQuerySpecs`.
+    pub async fn apply_query_specs(
+        &self,
+        viewer: &Viewer,
+        specs: Vec<QuerySpec>,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Query, Action::Write)?;
+
+        let spec_count = specs.len();
+        for spec in specs {
+            if spec.name.is_empty() {
+                return Err(ServiceError::invalid_argument("name", "missing required argument"));
+            }
+            if spec.query.is_empty() {
+                return Err(ServiceError::invalid_argument("query", "missing required argument"));
+            }
+
+            // Try to find existing query by name + team
+            match self.ds.query_by_name(spec.team_id, &spec.name).await {
+                Ok(mut existing) => {
+                    // Update existing query
+                    existing.description = spec.description.unwrap_or(existing.description);
+                    existing.query = spec.query;
+                    existing.interval = spec.interval.unwrap_or(existing.interval);
+                    existing.platform = spec.platform.unwrap_or(existing.platform);
+                    existing.min_osquery_version = spec.min_osquery_version.unwrap_or(existing.min_osquery_version);
+                    existing.automations_enabled = spec.automations_enabled.unwrap_or(existing.automations_enabled);
+                    existing.logging = spec.logging.unwrap_or(existing.logging);
+                    existing.observer_can_run = spec.observer_can_run.unwrap_or(existing.observer_can_run);
+                    existing.discard_data = spec.discard_data.unwrap_or(existing.discard_data);
+                    self.ds.save_query(&existing).await?;
+                }
+                Err(ServiceError::NotFound(_)) => {
+                    // Create new query
+                    let mut query = default_query();
+                    query.name = spec.name;
+                    query.description = spec.description.unwrap_or_default();
+                    query.query = spec.query;
+                    query.saved = true;
+                    query.author_id = Some(viewer.user_id());
+                    query.author_name = viewer.user.name.clone();
+                    query.author_email = viewer.user.email.clone();
+                    query.team_id = spec.team_id;
+                    query.interval = spec.interval.unwrap_or(0);
+                    query.platform = spec.platform.unwrap_or_default();
+                    query.min_osquery_version = spec.min_osquery_version.unwrap_or_default();
+                    query.automations_enabled = spec.automations_enabled.unwrap_or(false);
+                    query.logging = spec.logging.unwrap_or_else(|| "snapshot".to_string());
+                    query.observer_can_run = spec.observer_can_run.unwrap_or(false);
+                    query.discard_data = spec.discard_data.unwrap_or(false);
+                    self.ds.new_query(&query).await?;
+                }
+                Err(e) => return Err(e),
+            }
+        }
+
+        info!(count = spec_count, "query specs applied");
+        Ok(())
+    }
 }
 
 /// Payload for creating a new query.
@@ -187,6 +275,49 @@ pub struct ModifyQueryPayload {
     pub automations_enabled: Option<bool>,
     pub logging: Option<String>,
     pub discard_data: Option<bool>,
+}
+
+/// Query spec for apply/get operations.
+/// Corresponds to Go's `fleet.QuerySpec`.
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct QuerySpec {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    pub query: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_id: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub interval: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub observer_can_run: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub platform: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_osquery_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub automations_enabled: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub logging: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub discard_data: Option<bool>,
+}
+
+/// Converts a Query to a QuerySpec.
+fn query_to_spec(q: fleet_types::Query) -> QuerySpec {
+    QuerySpec {
+        name: q.name,
+        description: Some(q.description),
+        query: q.query,
+        team_id: q.team_id,
+        interval: Some(q.interval),
+        observer_can_run: Some(q.observer_can_run),
+        platform: Some(q.platform),
+        min_osquery_version: Some(q.min_osquery_version),
+        automations_enabled: Some(q.automations_enabled),
+        logging: Some(q.logging),
+        discard_data: Some(q.discard_data),
+    }
 }
 
 /// Helper to create a new Query with default values.

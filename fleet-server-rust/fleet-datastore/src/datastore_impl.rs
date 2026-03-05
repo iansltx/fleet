@@ -861,6 +861,13 @@ impl Datastore for MysqlDatastore {
         Ok(count as u32)
     }
 
+    async fn query_by_name(&self, team_id: Option<u32>, name: &str) -> ServiceResult<fleet_types::Query> {
+        let row = MysqlDatastore::query_by_name(self, team_id, name)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(query_row_to_query(row))
+    }
+
     // ---- Packs ----
 
     async fn pack(&self, id: u32) -> ServiceResult<fleet_types::Pack> {
@@ -1185,6 +1192,49 @@ impl Datastore for MysqlDatastore {
                 name: r.name,
             })
             .collect())
+    }
+
+    async fn list_team_users(&self, team_id: u32) -> ServiceResult<Vec<fleet_types::team::TeamUser>> {
+        let rows = self.load_users_for_team(team_id).await.map_err(ServiceError::from)?;
+        let now = Utc::now();
+        Ok(rows.into_iter().map(|r| {
+            fleet_types::team::TeamUser {
+                user: fleet_types::User {
+                    id: r.id,
+                    created_at: now,
+                    updated_at: now,
+                    password: Vec::new(),
+                    salt: String::new(),
+                    name: r.name,
+                    email: r.email,
+                    admin_forced_password_reset: false,
+                    gravatar_url: String::new(),
+                    position: String::new(),
+                    sso_enabled: false,
+                    mfa_enabled: false,
+                    global_role: None,
+                    api_only: false,
+                    teams: Vec::new(),
+                    settings: None,
+                },
+                role: r.role,
+            }
+        }).collect())
+    }
+
+    async fn team_enroll_secrets(&self, team_id: u32) -> ServiceResult<Vec<fleet_types::enroll::EnrollSecret>> {
+        let rows = self.load_secrets_for_team(team_id).await.map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(|r| fleet_types::enroll::EnrollSecret {
+            secret: r.secret,
+            team_id: r.team_id,
+            created_at: r.created_at,
+        }).collect())
+    }
+
+    async fn apply_team_enroll_secrets(&self, team_id: u32, secrets: &[String]) -> ServiceResult<()> {
+        MysqlDatastore::apply_enroll_secrets(self, Some(team_id), secrets)
+            .await
+            .map_err(ServiceError::from)
     }
 
     // ---- AppConfig ----
