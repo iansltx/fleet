@@ -199,15 +199,44 @@ pub async fn modify_app_config(
 
 /// POST /api/_version_/fleet/spec/enroll_secret
 pub async fn apply_enroll_secret_spec(
-    State(_state): State<AppState>,
-    Json(_body): Json<ApplyEnrollSecretSpecBody>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Json(body): Json<ApplyEnrollSecretSpecBody>,
 ) -> FleetResponse {
-    fleet_ok("", serde_json::json!({}))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // Parse the spec body into a list of secrets.
+    let secrets: Vec<fleet_types::enroll::EnrollSecret> = match body.spec.get("secrets") {
+        Some(serde_json::Value::Array(arr)) => arr
+            .iter()
+            .filter_map(|v| serde_json::from_value(v.clone()).ok())
+            .collect(),
+        _ => Vec::new(),
+    };
+    match state.service.apply_enroll_secrets(&viewer, secrets).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/spec/enroll_secret
-pub async fn get_enroll_secret_spec(State(_state): State<AppState>) -> FleetResponse {
-    fleet_ok("spec", serde_json::json!({}))
+pub async fn get_enroll_secret_spec(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+) -> FleetResponse {
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.get_enroll_secrets(&viewer).await {
+        Ok(secrets) => fleet_ok(
+            "spec",
+            serde_json::json!({ "secrets": secrets }),
+        ),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/version

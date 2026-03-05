@@ -165,12 +165,35 @@ pub async fn get_labels_summary(
 
 /// GET /api/_version_/fleet/labels/{id}/hosts
 pub async fn list_hosts_in_label(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_id): Path<u64>,
-    Query(_params): Query<ListHostsInLabelParams>,
+    Path(id): Path<u64>,
+    Query(params): Query<ListHostsInLabelParams>,
 ) -> FleetResponse {
-    fleet_ok("hosts", serde_json::json!([]))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // Verify label exists
+    if let Err(e) = state.service.get_label(&viewer, id as u32).await {
+        return encode_service_error(&e);
+    }
+    // List hosts with label filter
+    let opts = fleet_types::HostListOptions {
+        list_options: fleet_types::ListOptions {
+            page: params.page.unwrap_or(0) as u32,
+            per_page: params.per_page.unwrap_or(0) as u32,
+            order_key: params.order_key.unwrap_or_default(),
+            match_query: params.query.unwrap_or_default(),
+            ..Default::default()
+        },
+        label_id_filter: Some(id as u32),
+        ..Default::default()
+    };
+    match state.service.list_hosts(&viewer, opts).await {
+        Ok(hosts) => fleet_ok("hosts", serde_json::to_value(&hosts).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// DELETE /api/_version_/fleet/labels/{name}
@@ -207,26 +230,50 @@ pub async fn delete_label_by_id(
 
 /// POST /api/_version_/fleet/spec/labels
 pub async fn apply_label_specs(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<ApplyLabelSpecsBody>,
+    Json(body): Json<ApplyLabelSpecsBody>,
 ) -> FleetResponse {
-    fleet_ok("", serde_json::json!({}))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let specs: Vec<fleet_service::labels::LabelSpec> = body.specs.into_iter().filter_map(|v| {
+        serde_json::from_value(v).ok()
+    }).collect();
+    match state.service.apply_label_specs(&viewer, specs).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/spec/labels
 pub async fn get_label_specs(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
 ) -> FleetResponse {
-    fleet_ok("specs", serde_json::json!([]))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.get_label_specs(&viewer).await {
+        Ok(specs) => fleet_ok("specs", serde_json::to_value(&specs).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/spec/labels/{name}
 pub async fn get_label_spec(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_name): Path<String>,
+    Path(name): Path<String>,
 ) -> FleetResponse {
-    fleet_ok("spec", serde_json::json!({}))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.get_label_spec(&viewer, &name).await {
+        Ok(spec) => fleet_ok("spec", serde_json::to_value(&spec).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }

@@ -118,6 +118,8 @@ pub trait Datastore: Send + Sync + 'static {
 
     // ---- Enroll Secrets ----
     async fn verify_enroll_secret(&self, secret: &str) -> ServiceResult<EnrollSecretInfo>;
+    async fn get_enroll_secrets(&self, team_id: Option<u32>) -> ServiceResult<Vec<fleet_types::enroll::EnrollSecret>>;
+    async fn apply_enroll_secrets(&self, team_id: Option<u32>, secrets: &[fleet_types::enroll::EnrollSecret]) -> ServiceResult<()>;
 
     // ---- Password Reset ----
     async fn new_password_reset_request(&self, user_id: u32, expires_at: DateTime<Utc>, token: &str) -> ServiceResult<()>;

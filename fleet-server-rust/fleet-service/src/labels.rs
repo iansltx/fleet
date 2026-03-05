@@ -215,4 +215,113 @@ impl FleetService {
         info!(label_id = id, name = %label.name, "label deleted by id");
         Ok(())
     }
+
+    /// Gets all label specs.
+    ///
+    /// Corresponds to Go's `(svc *Service) GetLabelSpecs`.
+    pub async fn get_label_specs(
+        &self,
+        viewer: &Viewer,
+    ) -> ServiceResult<Vec<LabelSpec>> {
+        authz::authorize(viewer, Subject::Label, Action::Read)?;
+        let labels = self.ds.list_labels(fleet_types::ListOptions::default()).await?;
+        Ok(labels.into_iter().map(label_to_spec).collect())
+    }
+
+    /// Gets a single label spec by name.
+    ///
+    /// Corresponds to Go's `(svc *Service) GetLabelSpec`.
+    pub async fn get_label_spec(
+        &self,
+        viewer: &Viewer,
+        name: &str,
+    ) -> ServiceResult<LabelSpec> {
+        authz::authorize(viewer, Subject::Label, Action::Read)?;
+        let label = self.ds.label_by_name(name).await?;
+        Ok(label_to_spec(label))
+    }
+
+    /// Applies label specs (create or update).
+    ///
+    /// Corresponds to Go's `(svc *Service) ApplyLabelSpecs`.
+    pub async fn apply_label_specs(
+        &self,
+        viewer: &Viewer,
+        specs: Vec<LabelSpec>,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Label, Action::Write)?;
+
+        let spec_count = specs.len();
+        for spec in specs {
+            if spec.name.is_empty() {
+                return Err(ServiceError::invalid_argument("name", "missing required argument"));
+            }
+
+            match self.ds.label_by_name(&spec.name).await {
+                Ok(mut label) => {
+                    if let Some(desc) = spec.description {
+                        label.description = desc;
+                    }
+                    if let Some(q) = spec.query {
+                        label.query = q;
+                    }
+                    if let Some(p) = spec.platform {
+                        label.platform = p;
+                    }
+                    self.ds.save_label(&label).await?;
+                }
+                Err(ServiceError::NotFound(_)) => {
+                    let label = fleet_types::Label {
+                        id: 0,
+                        author_id: Some(viewer.user_id()),
+                        name: spec.name,
+                        description: spec.description.unwrap_or_default(),
+                        query: spec.query.clone().unwrap_or_default(),
+                        platform: spec.platform.unwrap_or_default(),
+                        label_type: fleet_types::LabelType::Regular,
+                        label_membership_type: if spec.query.as_ref().map(|q| q.is_empty()).unwrap_or(true) {
+                            fleet_types::LabelMembershipType::Manual
+                        } else {
+                            fleet_types::LabelMembershipType::Dynamic
+                        },
+                        criteria: None,
+                        host_count: 0,
+                        team_id: None,
+                        created_at: chrono::Utc::now(),
+                        updated_at: chrono::Utc::now(),
+                    };
+                    self.ds.new_label(&label).await?;
+                }
+                Err(e) => return Err(e),
+            }
+        }
+
+        info!(count = spec_count, "label specs applied");
+        Ok(())
+    }
+}
+
+/// Label spec for apply/get operations.
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct LabelSpec {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub query: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub platform: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label_membership_type: Option<String>,
+}
+
+/// Converts a Label to a LabelSpec.
+fn label_to_spec(l: fleet_types::Label) -> LabelSpec {
+    LabelSpec {
+        name: l.name,
+        description: Some(l.description),
+        query: Some(l.query),
+        platform: Some(l.platform),
+        label_membership_type: Some(format!("{:?}", l.label_membership_type).to_lowercase()),
+    }
 }

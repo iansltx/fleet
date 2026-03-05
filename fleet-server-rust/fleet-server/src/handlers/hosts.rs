@@ -159,11 +159,24 @@ pub async fn list_hosts(
 
 /// POST /api/_version_/fleet/hosts/delete
 pub async fn delete_hosts(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<DeleteHostsBody>,
+    Json(body): Json<DeleteHostsBody>,
 ) -> FleetResponse {
-    fleet_ok("", serde_json::json!({}))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    if let Some(ids) = body.ids {
+        let ids: Vec<u32> = ids.iter().map(|&id| id as u32).collect();
+        match state.service.delete_hosts(&viewer, &ids).await {
+            Ok(()) => fleet_ok("", serde_json::json!({})),
+            Err(e) => encode_service_error(&e),
+        }
+    } else {
+        // Filter-based deletion not yet implemented
+        fleet_ok("", serde_json::json!({}))
+    }
 }
 
 /// GET /api/_version_/fleet/hosts/{id}
@@ -184,20 +197,49 @@ pub async fn get_host(
 
 /// GET /api/_version_/fleet/hosts/count
 pub async fn count_hosts(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Query(_params): Query<ListHostsParams>,
+    Query(params): Query<ListHostsParams>,
 ) -> FleetResponse {
-    fleet_ok("count", serde_json::json!(0))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let opts = fleet_types::HostListOptions {
+        list_options: fleet_types::ListOptions {
+            match_query: params.query.unwrap_or_default(),
+            ..Default::default()
+        },
+        team_filter: params.team_id.map(|v| v as u32),
+        ..Default::default()
+    };
+    match state.service.count_hosts(&viewer, opts).await {
+        Ok(count) => fleet_ok("count", serde_json::json!(count)),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/hosts/search
 pub async fn search_hosts(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<SearchHostsBody>,
+    Json(body): Json<SearchHostsBody>,
 ) -> FleetResponse {
-    fleet_ok("hosts", serde_json::json!([]))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let opts = fleet_types::HostListOptions {
+        list_options: fleet_types::ListOptions {
+            match_query: body.query.unwrap_or_default(),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    match state.service.list_hosts(&viewer, opts).await {
+        Ok(hosts) => fleet_ok("hosts", serde_json::to_value(&hosts).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/hosts/identifier/{identifier}
@@ -218,21 +260,31 @@ pub async fn host_by_identifier(
 
 /// POST /api/_version_/fleet/hosts/identifier/{identifier}/query
 pub async fn run_live_query_on_host(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_identifier): Path<String>,
     Json(_body): Json<RunLiveQueryOnHostBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // Live query on host requires distributed query infrastructure
     fleet_ok("results", serde_json::json!([]))
 }
 
 /// POST /api/_version_/fleet/hosts/{id}/query
 pub async fn run_live_query_on_host_by_id(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_id): Path<u64>,
     Json(_body): Json<RunLiveQueryOnHostBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // Live query on host requires distributed query infrastructure
     fleet_ok("results", serde_json::json!([]))
 }
 
@@ -254,19 +306,29 @@ pub async fn delete_host(
 
 /// POST /api/_version_/fleet/hosts/transfer
 pub async fn add_hosts_to_team(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Json(_body): Json<TransferHostsBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // Host transfer requires bulk team_id update (not yet implemented)
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/hosts/transfer/filter
 pub async fn add_hosts_to_team_by_filter(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Json(_body): Json<TransferHostsByFilterBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // Host transfer by filter requires bulk team_id update (not yet implemented)
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -288,11 +350,18 @@ pub async fn refetch_host(
 
 /// GET /api/_version_/fleet/hosts/{id}/device_mapping
 pub async fn list_host_device_mapping(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_id): Path<u64>,
+    Path(id): Path<u64>,
 ) -> FleetResponse {
-    fleet_ok("device_mapping", serde_json::json!([]))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.list_host_device_mapping(&viewer, id as u32).await {
+        Ok(mapping) => fleet_ok("device_mapping", mapping),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// PUT /api/_version_/fleet/hosts/{id}/device_mapping
@@ -316,10 +385,17 @@ pub async fn delete_host_idp(
 
 /// GET /api/_version_/fleet/hosts/report
 pub async fn hosts_report(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
 ) -> FleetResponse {
-    fleet_ok("hosts", serde_json::json!([]))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.hosts_report(&viewer).await {
+        Ok(hosts) => fleet_ok("hosts", serde_json::to_value(&hosts).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/os_versions

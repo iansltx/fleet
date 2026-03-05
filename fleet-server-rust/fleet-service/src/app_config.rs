@@ -121,6 +121,31 @@ impl FleetService {
         info!("app config modified");
         Ok(config)
     }
+
+    /// Returns the global enroll secrets (team_id = None).
+    ///
+    /// Corresponds to Go's `(svc *Service) GetEnrollSecretSpec`.
+    pub async fn get_enroll_secrets(
+        &self,
+        viewer: &Viewer,
+    ) -> ServiceResult<Vec<fleet_types::enroll::EnrollSecret>> {
+        authz::authorize(viewer, Subject::EnrollSecret, Action::Read)?;
+        self.ds.get_enroll_secrets(None).await
+    }
+
+    /// Applies global enroll secret spec (team_id = None).
+    ///
+    /// Corresponds to Go's `(svc *Service) ApplyEnrollSecretSpec`.
+    pub async fn apply_enroll_secrets(
+        &self,
+        viewer: &Viewer,
+        secrets: Vec<fleet_types::enroll::EnrollSecret>,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::EnrollSecret, Action::Write)?;
+        self.ds.apply_enroll_secrets(None, &secrets).await?;
+        info!(count = secrets.len(), "enroll secrets applied");
+        Ok(())
+    }
 }
 
 /// Obfuscates sensitive fields in the app configuration for API responses.

@@ -110,4 +110,55 @@ impl FleetService {
         authz::authorize(viewer, Subject::Host, Action::Read)?;
         self.ds.host_lite(id.into()).await
     }
+
+    /// Deletes multiple hosts by IDs.
+    ///
+    /// Corresponds to Go's `deleteHostsEndpoint`.
+    pub async fn delete_hosts(&self, viewer: &Viewer, ids: &[u32]) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Host, Action::Write)?;
+        for &id in ids {
+            self.ds.delete_host(id).await?;
+        }
+        info!(count = ids.len(), "hosts deleted");
+        Ok(())
+    }
+
+    /// Counts hosts matching filter options.
+    ///
+    /// Corresponds to Go's `countHostsEndpoint`.
+    pub async fn count_hosts(
+        &self,
+        viewer: &Viewer,
+        opts: fleet_types::HostListOptions,
+    ) -> ServiceResult<u64> {
+        authz::authorize(viewer, Subject::Host, Action::Read)?;
+        let hosts = self.ds.list_hosts(opts).await?;
+        Ok(hosts.len() as u64)
+    }
+
+    /// Gets device mapping (emails) for a host.
+    ///
+    /// Corresponds to Go's `listHostDeviceMappingEndpoint`.
+    pub async fn list_host_device_mapping(
+        &self,
+        viewer: &Viewer,
+        host_id: u32,
+    ) -> ServiceResult<serde_json::Value> {
+        authz::authorize(viewer, Subject::Host, Action::Read)?;
+        // Verify host exists
+        self.ds.host(host_id).await?;
+        self.ds.device_mapping_for_host(host_id).await
+    }
+
+    /// Gets a report of all hosts (CSV-style listing).
+    ///
+    /// Corresponds to Go's `hostsReportEndpoint`.
+    pub async fn hosts_report(
+        &self,
+        viewer: &Viewer,
+    ) -> ServiceResult<Vec<fleet_types::Host>> {
+        authz::authorize(viewer, Subject::Host, Action::Read)?;
+        let opts = fleet_types::HostListOptions::default();
+        self.ds.list_hosts(opts).await
+    }
 }

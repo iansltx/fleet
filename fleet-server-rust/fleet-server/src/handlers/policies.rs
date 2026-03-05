@@ -261,10 +261,15 @@ pub async fn modify_global_policy(
 
 /// POST /api/_version_/fleet/automations/reset
 pub async fn reset_automation(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Json(_body): Json<ResetAutomationBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement reset automation logic
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -415,18 +420,28 @@ pub async fn modify_team_policy(
 
 /// POST /api/_version_/fleet/spec/policies
 pub async fn apply_policy_specs(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Json(_body): Json<ApplyPolicySpecsBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement apply policy specs logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/autofill/policy
 pub async fn autofill_policies(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Json(_body): Json<AutofillPoliciesBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement autofill policies logic
     fleet_ok("policy", serde_json::json!({}))
 }

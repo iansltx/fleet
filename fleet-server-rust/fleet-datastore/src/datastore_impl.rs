@@ -1346,6 +1346,24 @@ impl Datastore for MysqlDatastore {
         })
     }
 
+    async fn get_enroll_secrets(&self, team_id: Option<u32>) -> ServiceResult<Vec<fleet_types::enroll::EnrollSecret>> {
+        let rows = MysqlDatastore::get_enroll_secrets(self, team_id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(|r| fleet_types::enroll::EnrollSecret {
+            secret: r.secret,
+            team_id: r.team_id,
+            created_at: r.created_at,
+        }).collect())
+    }
+
+    async fn apply_enroll_secrets(&self, team_id: Option<u32>, secrets: &[fleet_types::enroll::EnrollSecret]) -> ServiceResult<()> {
+        let secret_strings: Vec<String> = secrets.iter().map(|s| s.secret.clone()).collect();
+        MysqlDatastore::apply_enroll_secrets(self, team_id, &secret_strings)
+            .await
+            .map_err(ServiceError::from)
+    }
+
     // ---- Password Reset ----
 
     async fn new_password_reset_request(

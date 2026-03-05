@@ -105,6 +105,7 @@ pub struct HostListOptions {
     pub munki_issue_id_filter: Option<u32>,
     pub low_disk_space_filter: Option<i32>,
     pub vulnerability_filter: Option<String>,
+    pub label_id_filter: Option<u32>,
     // Additional filter fields omitted for brevity; add as needed.
 }
 
