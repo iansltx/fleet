@@ -305,29 +305,28 @@ pub async fn uninstall_software_title(
 pub async fn get_software_installer(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(title_id): Path<u64>,
+    Path(_title_id): Path<u64>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, title_id);
-    // Stub: binary installer download deferred
-    fleet_ok("", serde_json::json!({}))
+    let _ = &viewer;
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "binary downloads require blob storage integration")
 }
 
 /// POST /api/_version_/fleet/software/titles/{title_id}/package/token
 pub async fn get_software_installer_token(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(title_id): Path<u64>,
+    Path(_title_id): Path<u64>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, title_id);
-    fleet_ok("token", serde_json::json!(""))
+    let _ = &viewer;
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "binary downloads require blob storage integration")
 }
 
 /// POST /api/_version_/fleet/software/package
@@ -504,43 +503,42 @@ pub async fn get_software_install_results(
 pub async fn batch_set_software_installers(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(body): Json<BatchSetSoftwareInstallersBody>,
+    Json(_body): Json<BatchSetSoftwareInstallersBody>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &body);
-    fleet_ok("request_uuid", serde_json::json!(""))
+    let _ = &viewer;
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "batch software operations require job queue infrastructure")
 }
 
 /// GET /api/_version_/fleet/software/batch/{request_uuid}
 pub async fn batch_set_software_installers_result(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(request_uuid): Path<String>,
+    Path(_request_uuid): Path<String>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &request_uuid);
-    fleet_ok("status", serde_json::json!({}))
+    let _ = &viewer;
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "batch software operations require job queue infrastructure")
 }
 
 /// GET /api/_version_/fleet/software/titles/{title_id}/icon
 pub async fn get_software_title_icon(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(title_id): Path<u64>,
+    Path(_title_id): Path<u64>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, title_id);
-    // Stub: icon binary download deferred
-    fleet_ok("", serde_json::json!({}))
+    let _ = &viewer;
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "binary downloads require blob storage integration")
 }
 
 /// PUT /api/_version_/fleet/software/titles/{title_id}/icon
@@ -595,57 +593,57 @@ pub async fn delete_software_title_icon(
 pub async fn get_app_store_apps(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Query(params): Query<GetAppStoreAppsParams>,
+    Query(_params): Query<GetAppStoreAppsParams>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &params);
-    fleet_ok("app_store_apps", serde_json::json!([]))
+    let _ = &viewer;
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "app store integration not yet implemented")
 }
 
 /// POST /api/_version_/fleet/software/app_store_apps
 pub async fn add_app_store_app(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(body): Json<AddAppStoreAppBody>,
+    Json(_body): Json<AddAppStoreAppBody>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &body);
-    fleet_ok("", serde_json::json!({}))
+    let _ = &viewer;
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "app store integration not yet implemented")
 }
 
 /// PATCH /api/_version_/fleet/software/titles/{title_id}/app_store_app
 pub async fn update_app_store_app(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(title_id): Path<u64>,
-    Json(body): Json<UpdateAppStoreAppBody>,
+    Path(_title_id): Path<u64>,
+    Json(_body): Json<UpdateAppStoreAppBody>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, title_id, &body);
-    fleet_ok("", serde_json::json!({}))
+    let _ = &viewer;
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "app store integration not yet implemented")
 }
 
 /// POST /api/_version_/fleet/software/fleet_maintained_apps
 pub async fn add_fleet_maintained_app(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(body): Json<AddFleetMaintainedAppBody>,
+    Json(_body): Json<AddFleetMaintainedAppBody>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &body);
-    fleet_ok("", serde_json::json!({}))
+    let _ = &viewer;
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "fleet maintained app creation not yet implemented")
 }
 
 /// GET /api/_version_/fleet/software/fleet_maintained_apps
@@ -688,28 +686,28 @@ pub async fn get_fleet_maintained_app(
 pub async fn batch_associate_app_store_apps(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(body): Json<BatchAssociateAppStoreAppsBody>,
+    Json(_body): Json<BatchAssociateAppStoreAppsBody>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &body);
-    fleet_ok("", serde_json::json!({}))
+    let _ = &viewer;
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "app store integration not yet implemented")
 }
 
 /// POST /api/_version_/fleet/software/web_apps
 pub async fn create_android_web_app(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(body): Json<CreateAndroidWebAppBody>,
+    Json(_body): Json<CreateAndroidWebAppBody>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &body);
-    fleet_ok("", serde_json::json!({}))
+    let _ = &viewer;
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "Android web app creation not yet implemented")
 }
 
 /// GET /api/_version_/fleet/vulnerabilities
@@ -753,41 +751,40 @@ pub async fn get_vulnerability(
 pub async fn download_software_installer(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path((title_id, token)): Path<(u64, String)>,
+    Path((_title_id, _token)): Path<(u64, String)>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, title_id, &token);
-    // Stub: validate token and return binary installer deferred
-    fleet_ok("", serde_json::json!({}))
+    let _ = &viewer;
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "binary downloads require blob storage integration")
 }
 
 /// GET /api/_version_/fleet/software/titles/{title_id}/in_house_app
 pub async fn get_in_house_app_package(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(title_id): Path<u64>,
+    Path(_title_id): Path<u64>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, title_id);
-    fleet_ok("", serde_json::json!({}))
+    let _ = &viewer;
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "binary downloads require blob storage integration")
 }
 
 /// GET /api/_version_/fleet/software/titles/{title_id}/in_house_app/manifest
 pub async fn get_in_house_app_manifest(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(title_id): Path<u64>,
+    Path(_title_id): Path<u64>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, title_id);
-    fleet_ok("", serde_json::json!({}))
+    let _ = &viewer;
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "binary downloads require blob storage integration")
 }

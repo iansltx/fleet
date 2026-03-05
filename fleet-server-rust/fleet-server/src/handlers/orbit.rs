@@ -10,7 +10,7 @@ use axum::{
 };
 use serde::Deserialize;
 
-use crate::response::{encode_service_error, fleet_ok, FleetResponse};
+use crate::response::{encode_service_error, fleet_error, fleet_ok, FleetResponse};
 use crate::AppState;
 
 // ---------------------------------------------------------------------------
@@ -246,9 +246,8 @@ pub async fn orbit_download_software_installer(
     State(state): State<AppState>,
     Json(body): Json<OrbitDownloadSoftwareInstallerBody>,
 ) -> FleetResponse {
-    // Authenticate the orbit agent. Full implementation would return the installer binary.
     match state.service.authenticate_orbit(&body.orbit_node_key).await {
-        Ok(_host) => fleet_ok("", serde_json::json!({})),
+        Ok(_host) => fleet_error(StatusCode::NOT_IMPLEMENTED, "installer downloads require blob storage"),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -259,7 +258,7 @@ pub async fn get_orbit_software_install_details(
     Json(body): Json<OrbitGetSoftwareInstallBody>,
 ) -> FleetResponse {
     match state.service.authenticate_orbit(&body.orbit_node_key).await {
-        Ok(_host) => fleet_ok("", serde_json::json!({})),
+        Ok(_host) => fleet_error(StatusCode::NOT_IMPLEMENTED, "install details tracking not yet implemented"),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -281,7 +280,7 @@ pub async fn get_orbit_setup_experience_status(
     Json(body): Json<GetOrbitSetupExperienceStatusBody>,
 ) -> FleetResponse {
     match state.service.authenticate_orbit(&body.orbit_node_key).await {
-        Ok(_host) => fleet_ok("status", serde_json::json!({})),
+        Ok(_host) => fleet_ok("status", serde_json::json!({"status": "pending", "software": [], "profiles": []})),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -346,10 +345,11 @@ pub async fn get_device_certificate_template(
 
 /// PUT /api/fleetd/certificates/{id}/status
 pub async fn update_certificate_status(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Path(id): Path<u64>,
     Json(body): Json<UpdateCertificateStatusBody>,
 ) -> FleetResponse {
-    let _ = (&state, id, &body);
+    let _ = &body;
+    tracing::info!(certificate_id = id, "certificate status update received");
     fleet_ok("", serde_json::json!({}))
 }

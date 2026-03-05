@@ -6,6 +6,7 @@
 //! backwards compatibility.
 
 use axum::extract::{Json, Path, Query, State};
+use axum::http::StatusCode;
 use serde::Deserialize;
 
 use crate::middleware::auth::AuthenticatedUser;
@@ -191,15 +192,14 @@ pub struct MdmAppleEnrollParams {
 pub async fn update_mdm_apple_setup(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(body): Json<UpdateMDMAppleSetupBody>,
+    Json(_body): Json<UpdateMDMAppleSetupBody>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Stub: MDM operations deferred
-    let _ = (&viewer, &body);
-    fleet_ok("", serde_json::json!({}))
+    let _ = &viewer;
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 // ---------------------------------------------------------------------------
@@ -216,9 +216,8 @@ pub async fn enqueue_mdm_apple_command(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Stub: MDM operations deferred
     let _ = (&viewer, &body);
-    fleet_ok("command_uuid", serde_json::json!(""))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// GET /api/_version_/fleet/mdm/apple/commandresults (deprecated)
@@ -231,9 +230,8 @@ pub async fn get_mdm_apple_command_results(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Stub: MDM operations deferred
     let _ = (&viewer, &params);
-    fleet_ok("results", serde_json::json!([]))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// GET /api/_version_/fleet/mdm/apple/commands (deprecated)
@@ -246,9 +244,8 @@ pub async fn list_mdm_apple_commands(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Stub: MDM operations deferred
     let _ = (&viewer, &params);
-    fleet_ok("commands", serde_json::json!([]))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 // ---------------------------------------------------------------------------
@@ -265,9 +262,8 @@ pub async fn get_mdm_apple_config_profile(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Stub: MDM operations deferred
     let _ = (&viewer, &profile_id);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// DELETE /api/_version_/fleet/mdm/apple/profiles/{profile_id} (deprecated)
@@ -280,9 +276,8 @@ pub async fn delete_mdm_apple_config_profile(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Stub: MDM operations deferred
     let _ = (&viewer, &profile_id);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// POST /api/_version_/fleet/mdm/apple/profiles (deprecated)
@@ -294,9 +289,8 @@ pub async fn new_mdm_apple_config_profile(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Stub: MDM operations deferred
     let _ = &viewer;
-    fleet_ok("profile_id", serde_json::json!(0))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// GET /api/_version_/fleet/mdm/apple/profiles (deprecated)
@@ -309,9 +303,8 @@ pub async fn list_mdm_apple_config_profiles(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Stub: MDM operations deferred
     let _ = (&viewer, &params);
-    fleet_ok("profiles", serde_json::json!([]))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// GET /api/_version_/fleet/mdm/apple/filevault/summary (deprecated)
@@ -324,9 +317,8 @@ pub async fn get_mdm_apple_filevault_summary(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Stub: MDM operations deferred
     let _ = (&viewer, &params);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// GET /api/_version_/fleet/mdm/apple/profiles/summary (deprecated)
@@ -339,9 +331,8 @@ pub async fn get_mdm_apple_profiles_summary(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Stub: MDM operations deferred
     let _ = (&viewer, &params);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 // ---------------------------------------------------------------------------
@@ -358,9 +349,8 @@ pub async fn create_mdm_apple_setup_assistant(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Stub: MDM operations deferred
     let _ = &viewer;
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// GET /api/_version_/fleet/mdm/apple/enrollment_profile
@@ -373,9 +363,8 @@ pub async fn get_mdm_apple_setup_assistant(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Stub: MDM operations deferred
     let _ = &viewer;
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// DELETE /api/_version_/fleet/mdm/apple/enrollment_profile
@@ -388,9 +377,8 @@ pub async fn delete_mdm_apple_setup_assistant(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Stub: MDM operations deferred
     let _ = &viewer;
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 // ---------------------------------------------------------------------------
@@ -406,9 +394,8 @@ pub async fn upload_apple_installer(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Stub: MDM operations deferred
     let _ = &viewer;
-    fleet_ok("installer_id", serde_json::json!(0))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// GET /api/_version_/fleet/mdm/apple/installers/{installer_id}
@@ -421,9 +408,8 @@ pub async fn get_apple_installer(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Stub: MDM operations deferred
     let _ = (&viewer, &installer_id);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// DELETE /api/_version_/fleet/mdm/apple/installers/{installer_id}
@@ -436,9 +422,8 @@ pub async fn delete_apple_installer(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Stub: MDM operations deferred
     let _ = (&viewer, &installer_id);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// GET /api/_version_/fleet/mdm/apple/installers
@@ -450,9 +435,8 @@ pub async fn list_mdm_apple_installers(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Stub: MDM operations deferred
     let _ = &viewer;
-    fleet_ok("installers", serde_json::json!([]))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// GET /api/_version_/fleet/mdm/apple/devices
@@ -464,9 +448,8 @@ pub async fn list_mdm_apple_devices(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Stub: MDM operations deferred
     let _ = &viewer;
-    fleet_ok("devices", serde_json::json!([]))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 // ---------------------------------------------------------------------------
@@ -483,9 +466,8 @@ pub async fn get_manual_enrollment_profile(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Stub: MDM operations deferred
     let _ = &viewer;
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 // ---------------------------------------------------------------------------
@@ -503,9 +485,8 @@ pub async fn upload_bootstrap_package(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Stub: MDM operations deferred
     let _ = &viewer;
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// GET /api/_version_/fleet/mdm/bootstrap/{fleet_id}/metadata
@@ -520,9 +501,8 @@ pub async fn bootstrap_package_metadata(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Stub: MDM operations deferred
     let _ = (&viewer, &fleet_id);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// DELETE /api/_version_/fleet/mdm/bootstrap/{fleet_id}
@@ -537,9 +517,8 @@ pub async fn delete_bootstrap_package(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Stub: MDM operations deferred
     let _ = (&viewer, &fleet_id);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// GET /api/_version_/fleet/mdm/bootstrap/summary
@@ -564,9 +543,8 @@ pub async fn get_bootstrap_package_summary(
 pub async fn download_bootstrap_package(
     State(state): State<AppState>,
 ) -> FleetResponse {
-    // Stub: MDM operations deferred
     let _ = &state;
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 // ---------------------------------------------------------------------------
@@ -627,7 +605,7 @@ pub async fn get_apple_mdm(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 // ---------------------------------------------------------------------------
@@ -647,7 +625,7 @@ pub async fn create_mdm_eula(
     };
     // Stub: MDM operations deferred
     let _ = &viewer;
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// GET /api/_version_/fleet/mdm/setup/eula/metadata
@@ -662,7 +640,7 @@ pub async fn get_mdm_eula_metadata(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// DELETE /api/_version_/fleet/mdm/setup/eula/{token}
@@ -678,7 +656,7 @@ pub async fn delete_mdm_eula(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &token);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// GET /api/_version_/fleet/mdm/setup/eula/{token} (unauthenticated)
@@ -690,7 +668,7 @@ pub async fn get_mdm_eula(
 ) -> FleetResponse {
     // Stub: MDM operations deferred
     let _ = (&state, &token);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 // ---------------------------------------------------------------------------
@@ -708,7 +686,7 @@ pub async fn preassign_mdm_apple_profile(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &body);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// POST /api/_version_/fleet/mdm/apple/profiles/match
@@ -722,7 +700,7 @@ pub async fn match_mdm_apple_preassignment(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &body);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 // ---------------------------------------------------------------------------
@@ -741,7 +719,7 @@ pub async fn run_mdm_command(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &body);
-    fleet_ok("command_uuid", serde_json::json!(""))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// GET /api/_version_/fleet/mdm/commandresults (deprecated)
@@ -756,7 +734,7 @@ pub async fn get_mdm_command_results(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &params);
-    fleet_ok("results", serde_json::json!([]))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// GET /api/_version_/fleet/mdm/commands (deprecated)
@@ -771,7 +749,7 @@ pub async fn list_mdm_commands(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &params);
-    fleet_ok("commands", serde_json::json!([]))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// PATCH /api/_version_/fleet/mdm/hosts/{id}/unenroll (deprecated)
@@ -786,7 +764,7 @@ pub async fn mdm_unenroll(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &id);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 // ---------------------------------------------------------------------------
@@ -805,7 +783,7 @@ pub async fn get_mdm_disk_encryption_summary(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &params);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// GET /api/_version_/fleet/mdm/hosts/{id}/encryption_key (deprecated)
@@ -820,7 +798,7 @@ pub async fn get_host_encryption_key(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &id);
-    fleet_ok("encryption_key", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// PATCH /api/_version_/fleet/mdm/apple/settings (deprecated)
@@ -834,7 +812,7 @@ pub async fn update_mdm_apple_settings(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &body);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// POST /api/_version_/fleet/disk_encryption
@@ -848,7 +826,7 @@ pub async fn update_disk_encryption(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &body);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 // ---------------------------------------------------------------------------
@@ -867,7 +845,7 @@ pub async fn get_mdm_profiles_summary(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &params);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 // ---------------------------------------------------------------------------
@@ -886,7 +864,7 @@ pub async fn get_mdm_config_profile(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &profile_uuid);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// DELETE /api/_version_/fleet/mdm/profiles/{profile_uuid} (deprecated)
@@ -901,7 +879,7 @@ pub async fn delete_mdm_config_profile(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &profile_uuid);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// GET /api/_version_/fleet/mdm/profiles (deprecated)
@@ -916,7 +894,7 @@ pub async fn list_mdm_config_profiles(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &params);
-    fleet_ok("profiles", serde_json::json!([]))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// POST /api/_version_/fleet/mdm/profiles (deprecated)
@@ -930,7 +908,7 @@ pub async fn new_mdm_config_profile(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_ok("profile_uuid", serde_json::json!(""))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// POST /api/_version_/fleet/configuration_profiles/batch
@@ -944,7 +922,7 @@ pub async fn batch_modify_mdm_config_profiles(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &body);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// POST /api/_version_/fleet/hosts/{host_id}/configuration_profiles/resend/{profile_uuid} (deprecated)
@@ -959,7 +937,7 @@ pub async fn resend_host_mdm_profile(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &host_id, &profile_uuid);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// POST /api/_version_/fleet/configuration_profiles/resend/batch
@@ -973,7 +951,7 @@ pub async fn batch_resend_mdm_profile_to_hosts(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &body);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// GET /api/_version_/fleet/configuration_profiles/{profile_uuid}/status
@@ -988,7 +966,7 @@ pub async fn get_mdm_config_profile_status(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &profile_uuid, &params);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 // ---------------------------------------------------------------------------
@@ -1006,7 +984,7 @@ pub async fn request_mdm_apple_csr(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &body);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// GET /api/_version_/fleet/mdm/apple/request_csr
@@ -1019,7 +997,7 @@ pub async fn get_mdm_apple_csr(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// POST /api/_version_/fleet/mdm/apple/dep/key_pair (deprecated)
@@ -1032,7 +1010,7 @@ pub async fn new_mdm_apple_dep_key_pair(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// GET /api/_version_/fleet/mdm/apple/abm_public_key
@@ -1045,7 +1023,7 @@ pub async fn generate_abm_key_pair(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// POST /api/_version_/fleet/mdm/apple/apns_certificate
@@ -1059,7 +1037,7 @@ pub async fn upload_mdm_apple_apns_cert(
     };
     // Stub: multipart upload deferred
     let _ = &viewer;
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// DELETE /api/_version_/fleet/mdm/apple/apns_certificate
@@ -1072,7 +1050,7 @@ pub async fn delete_mdm_apple_apns_cert(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 // ---------------------------------------------------------------------------
@@ -1090,7 +1068,7 @@ pub async fn upload_abm_token(
     };
     // Stub: multipart upload deferred
     let _ = &viewer;
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// DELETE /api/_version_/fleet/abm_tokens/{id}
@@ -1104,7 +1082,7 @@ pub async fn delete_abm_token(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &id);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// GET /api/_version_/fleet/abm_tokens
@@ -1117,7 +1095,7 @@ pub async fn list_abm_tokens(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_ok("abm_tokens", serde_json::json!([]))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// GET /api/_version_/fleet/abm_tokens/count
@@ -1130,7 +1108,7 @@ pub async fn count_abm_tokens(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_ok("count", serde_json::json!(0))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// PATCH /api/_version_/fleet/abm_tokens/{id}/fleets
@@ -1145,7 +1123,7 @@ pub async fn update_abm_token_teams(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &id, &body);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// PATCH /api/_version_/fleet/abm_tokens/{id}/renew
@@ -1159,7 +1137,7 @@ pub async fn renew_abm_token(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &id);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 // ---------------------------------------------------------------------------
@@ -1176,7 +1154,7 @@ pub async fn get_vpp_tokens(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_ok("vpp_tokens", serde_json::json!([]))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// POST /api/_version_/fleet/vpp_tokens
@@ -1190,7 +1168,7 @@ pub async fn upload_vpp_token(
     };
     // Stub: multipart upload deferred
     let _ = &viewer;
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// PATCH /api/_version_/fleet/vpp_tokens/{id}/fleets
@@ -1205,7 +1183,7 @@ pub async fn patch_vpp_tokens_teams(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &id, &body);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// PATCH /api/_version_/fleet/vpp_tokens/{id}/renew
@@ -1219,7 +1197,7 @@ pub async fn patch_vpp_token_renew(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &id);
-    fleet_ok("", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
 }
 
 /// DELETE /api/_version_/fleet/vpp_tokens/{id}

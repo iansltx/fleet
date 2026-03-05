@@ -10,7 +10,7 @@ use axum::{
 };
 use serde::Deserialize;
 
-use crate::response::{encode_service_error, fleet_ok, FleetResponse};
+use crate::response::{encode_service_error, fleet_error, fleet_ok, FleetResponse};
 use crate::AppState;
 
 // ---------------------------------------------------------------------------
@@ -249,7 +249,7 @@ pub async fn get_device_setup_experience_status(
     Path(token): Path<String>,
 ) -> FleetResponse {
     match state.service.authenticate_device(&token).await {
-        Ok(_host) => fleet_ok("status", serde_json::json!({})),
+        Ok(_host) => fleet_ok("status", serde_json::json!({"status": "pending", "software": [], "profiles": []})),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -260,7 +260,7 @@ pub async fn get_device_software_icon(
     Path((token, _software_title_id)): Path<(String, u64)>,
 ) -> FleetResponse {
     match state.service.authenticate_device(&token).await {
-        Ok(_host) => fleet_ok("", serde_json::json!({})),
+        Ok(_host) => fleet_error(StatusCode::NOT_IMPLEMENTED, "icon downloads require blob storage"),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -269,12 +269,10 @@ pub async fn get_device_software_icon(
 pub async fn trigger_linux_disk_encryption_escrow(
     State(state): State<AppState>,
     Path(token): Path<String>,
-    Json(body): Json<TriggerLinuxDiskEncryptionEscrowBody>,
+    Json(_body): Json<TriggerLinuxDiskEncryptionEscrowBody>,
 ) -> FleetResponse {
-    let _ = &body;
-    // MDM operations deferred -- authenticate only.
     match state.service.authenticate_device(&token).await {
-        Ok(_host) => fleet_ok("", serde_json::json!({})),
+        Ok(_host) => fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM disk encryption requires MDM infrastructure"),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -283,11 +281,10 @@ pub async fn trigger_linux_disk_encryption_escrow(
 pub async fn bypass_conditional_access(
     State(state): State<AppState>,
     Path(token): Path<String>,
-    Json(body): Json<BypassConditionalAccessBody>,
+    Json(_body): Json<BypassConditionalAccessBody>,
 ) -> FleetResponse {
-    let _ = &body;
     match state.service.authenticate_device(&token).await {
-        Ok(_host) => fleet_ok("", serde_json::json!({})),
+        Ok(_host) => fleet_error(StatusCode::NOT_IMPLEMENTED, "conditional access requires external integration"),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -297,9 +294,8 @@ pub async fn get_device_mdm_manual_enroll_profile(
     State(state): State<AppState>,
     Path(token): Path<String>,
 ) -> FleetResponse {
-    // MDM operations deferred -- authenticate only.
     match state.service.authenticate_device(&token).await {
-        Ok(_host) => fleet_ok("", serde_json::json!({})),
+        Ok(_host) => fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM enrollment profiles require MDM infrastructure"),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -310,7 +306,7 @@ pub async fn get_device_mdm_command_results(
     Path((token, _command_uuid)): Path<(String, String)>,
 ) -> FleetResponse {
     match state.service.authenticate_device(&token).await {
-        Ok(_host) => fleet_ok("results", serde_json::json!([])),
+        Ok(_host) => fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM command results require MDM infrastructure"),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -321,7 +317,7 @@ pub async fn resend_device_configuration_profile(
     Path((token, _profile_uuid)): Path<(String, String)>,
 ) -> FleetResponse {
     match state.service.authenticate_device(&token).await {
-        Ok(_host) => fleet_ok("", serde_json::json!({})),
+        Ok(_host) => fleet_error(StatusCode::NOT_IMPLEMENTED, "configuration profiles require MDM infrastructure"),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -330,12 +326,10 @@ pub async fn resend_device_configuration_profile(
 pub async fn migrate_mdm_device(
     State(state): State<AppState>,
     Path(token): Path<String>,
-    Json(body): Json<DeviceMigrateMDMBody>,
+    Json(_body): Json<DeviceMigrateMDMBody>,
 ) -> FleetResponse {
-    let _ = &body;
-    // MDM operations deferred -- authenticate only.
     match state.service.authenticate_device(&token).await {
-        Ok(_host) => fleet_ok("", serde_json::json!({})),
+        Ok(_host) => fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM migration requires MDM infrastructure"),
         Err(e) => encode_service_error(&e),
     }
 }
