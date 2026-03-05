@@ -654,6 +654,13 @@ impl Datastore for MysqlDatastore {
             .map_err(ServiceError::from)
     }
 
+    async fn list_sessions_for_user(&self, user_id: u32) -> ServiceResult<Vec<fleet_types::Session>> {
+        let rows = MysqlDatastore::list_sessions_for_user(self, user_id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(session_row_to_session).collect())
+    }
+
     // ---- Hosts ----
 
     async fn host(&self, id: u32) -> ServiceResult<fleet_types::Host> {

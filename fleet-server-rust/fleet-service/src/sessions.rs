@@ -143,18 +143,17 @@ impl FleetService {
     }
 
     /// Returns all sessions for a user.
+    ///
+    /// Corresponds to Go's `(svc *Service) GetInfoAboutSessionsForUser`.
     pub async fn get_info_about_sessions_for_user(
         &self,
         viewer: &Viewer,
         user_id: u32,
     ) -> ServiceResult<Vec<fleet_types::Session>> {
-        // For now, users can only see their own sessions
         if viewer.user_id() != user_id {
             authz::authorize(viewer, authz::Subject::Session, authz::Action::Read)?;
         }
-        // We don't have a list_sessions_for_user in the Datastore trait yet
-        // Return empty for now
-        Ok(Vec::new())
+        self.ds.list_sessions_for_user(user_id).await
     }
 
     /// Returns SSO settings for display on the login page.

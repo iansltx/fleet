@@ -34,6 +34,7 @@ pub trait Datastore: Send + Sync + 'static {
     async fn mark_session_accessed(&self, session: &fleet_types::Session) -> ServiceResult<()>;
     async fn destroy_session(&self, session: &fleet_types::Session) -> ServiceResult<()>;
     async fn destroy_all_sessions_for_user(&self, user_id: u32) -> ServiceResult<()>;
+    async fn list_sessions_for_user(&self, user_id: u32) -> ServiceResult<Vec<fleet_types::Session>>;
 
     // ---- Hosts ----
     async fn host(&self, id: u32) -> ServiceResult<fleet_types::Host>;
