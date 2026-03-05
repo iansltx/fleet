@@ -398,6 +398,16 @@ fn app_config_data_to_json(data: &AppConfigData) -> serde_json::Value {
     serde_json::to_value(data).unwrap_or_default()
 }
 
+fn sv_row_to_secret_variable(row: crate::app_config::SecretVariableRow) -> fleet_types::config::SecretVariable {
+    fleet_types::config::SecretVariable {
+        id: row.id,
+        name: row.name,
+        value: row.value,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+    }
+}
+
 /// Convert a host platform string to a Fleet platform (matching Go's PlatformFromHost).
 fn fleet_platform_from_host(platform: &str) -> String {
     match platform {
@@ -1567,6 +1577,37 @@ impl Datastore for MysqlDatastore {
     async fn save_app_config(&self, config: &AppConfigData) -> ServiceResult<()> {
         let json = app_config_data_to_json(config);
         MysqlDatastore::save_app_config(self, &json)
+            .await
+            .map_err(ServiceError::from)
+    }
+
+    // ---- Secret Variables ----
+
+    async fn list_secret_variables(&self) -> ServiceResult<Vec<fleet_types::config::SecretVariable>> {
+        let rows = MysqlDatastore::list_secret_variables(self)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(sv_row_to_secret_variable).collect())
+    }
+
+    async fn create_secret_variable(&self, name: &str, value: &str) -> ServiceResult<fleet_types::config::SecretVariable> {
+        let id = MysqlDatastore::create_secret_variable(self, name, value)
+            .await
+            .map_err(ServiceError::from)?;
+        let row = MysqlDatastore::secret_variable_by_id(self, id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(sv_row_to_secret_variable(row))
+    }
+
+    async fn delete_secret_variable(&self, id: u32) -> ServiceResult<()> {
+        MysqlDatastore::delete_secret_variable(self, id)
+            .await
+            .map_err(ServiceError::from)
+    }
+
+    async fn upsert_secret_variables(&self, secrets: &[(String, String)]) -> ServiceResult<()> {
+        MysqlDatastore::upsert_secret_variables(self, secrets)
             .await
             .map_err(ServiceError::from)
     }

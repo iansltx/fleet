@@ -162,6 +162,20 @@ pub struct UIGitOpsModeConfig {
     // Fields can be added as needed.
 }
 
+/// SecretVariable represents a custom variable with encrypted value.
+/// Corresponds to Go's `fleet.SecretVariable`.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct SecretVariable {
+    pub id: u32,
+    pub name: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub value: String,
+    #[serde(default)]
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    #[serde(default)]
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
 /// AppConfig is the top-level application configuration.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AppConfig {

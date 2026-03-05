@@ -132,6 +132,12 @@ pub trait Datastore: Send + Sync + 'static {
     async fn app_config(&self) -> ServiceResult<AppConfigData>;
     async fn save_app_config(&self, config: &AppConfigData) -> ServiceResult<()>;
 
+    // ---- Secret Variables ----
+    async fn list_secret_variables(&self) -> ServiceResult<Vec<fleet_types::config::SecretVariable>>;
+    async fn create_secret_variable(&self, name: &str, value: &str) -> ServiceResult<fleet_types::config::SecretVariable>;
+    async fn delete_secret_variable(&self, id: u32) -> ServiceResult<()>;
+    async fn upsert_secret_variables(&self, secrets: &[(String, String)]) -> ServiceResult<()>;
+
     // ---- Invites ----
     async fn invite_by_email(&self, email: &str) -> ServiceResult<Option<InviteData>>;
     async fn invite_by_token(&self, token: &str) -> ServiceResult<InviteData>;

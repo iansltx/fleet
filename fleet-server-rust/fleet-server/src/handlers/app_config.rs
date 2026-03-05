@@ -371,9 +371,16 @@ pub async fn create_secret_variables(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &body);
-    // Stub: backing service not yet implemented
-    fleet_ok("", serde_json::json!({}))
+    // Parse secrets as (name, value) pairs
+    let secrets: Vec<(String, String)> = body.secrets.iter().filter_map(|v| {
+        let name = v.get("name")?.as_str()?.to_string();
+        let value = v.get("value")?.as_str()?.to_string();
+        Some((name, value))
+    }).collect();
+    match state.service.upsert_secret_variables(&viewer, &secrets).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/custom_variables
@@ -386,9 +393,12 @@ pub async fn create_secret_variable(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &body);
-    // Stub: backing service not yet implemented
-    fleet_ok("secret_variable", serde_json::json!({}))
+    let name = body.name.unwrap_or_default();
+    let value = body.value.unwrap_or_default();
+    match state.service.create_secret_variable(&viewer, &name, &value).await {
+        Ok(sv) => fleet_ok("secret_variable", serde_json::to_value(&sv).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/custom_variables
@@ -401,9 +411,11 @@ pub async fn list_secret_variables(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &params);
-    // Stub: backing service not yet implemented
-    fleet_ok("secret_variables", serde_json::json!([]))
+    let _ = &params;
+    match state.service.list_secret_variables(&viewer).await {
+        Ok(vars) => fleet_ok("secret_variables", serde_json::to_value(&vars).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// DELETE /api/_version_/fleet/custom_variables/{id}
@@ -416,9 +428,10 @@ pub async fn delete_secret_variable(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id);
-    // Stub: backing service not yet implemented
-    fleet_ok("", serde_json::json!({}))
+    match state.service.delete_secret_variable(&viewer, id as u32).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/scim/details

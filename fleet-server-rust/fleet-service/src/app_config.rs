@@ -146,6 +146,54 @@ impl FleetService {
         info!(count = secrets.len(), "enroll secrets applied");
         Ok(())
     }
+
+    // ---- Secret Variables ----
+
+    /// Lists all secret variables.
+    pub async fn list_secret_variables(
+        &self,
+        viewer: &Viewer,
+    ) -> ServiceResult<Vec<fleet_types::config::SecretVariable>> {
+        authz::authorize(viewer, Subject::AppConfig, Action::Read)?;
+        self.ds.list_secret_variables().await
+    }
+
+    /// Creates a new secret variable.
+    pub async fn create_secret_variable(
+        &self,
+        viewer: &Viewer,
+        name: &str,
+        value: &str,
+    ) -> ServiceResult<fleet_types::config::SecretVariable> {
+        authz::authorize(viewer, Subject::AppConfig, Action::Write)?;
+        let sv = self.ds.create_secret_variable(name, value).await?;
+        info!(name = %name, "secret variable created");
+        Ok(sv)
+    }
+
+    /// Deletes a secret variable by ID.
+    pub async fn delete_secret_variable(
+        &self,
+        viewer: &Viewer,
+        id: u32,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::AppConfig, Action::Write)?;
+        self.ds.delete_secret_variable(id).await?;
+        info!(id, "secret variable deleted");
+        Ok(())
+    }
+
+    /// Upserts secret variables (batch).
+    pub async fn upsert_secret_variables(
+        &self,
+        viewer: &Viewer,
+        secrets: &[(String, String)],
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::AppConfig, Action::Write)?;
+        self.ds.upsert_secret_variables(secrets).await?;
+        info!(count = secrets.len(), "secret variables upserted");
+        Ok(())
+    }
 }
 
 /// Obfuscates sensitive fields in the app configuration for API responses.
