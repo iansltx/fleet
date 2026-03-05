@@ -6,6 +6,7 @@
 
 pub mod datastore_impl;
 pub mod activities;
+pub mod campaigns;
 pub mod app_config;
 pub mod carves;
 pub mod certificates;

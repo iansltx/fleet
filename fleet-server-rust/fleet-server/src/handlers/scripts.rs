@@ -77,9 +77,42 @@ pub async fn run_script(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &body);
-    // Script execution requires async job queue (deferred)
-    fleet_ok("execution_id", serde_json::json!(""))
+
+    // Resolve script contents: either from script_id or inline script_contents
+    let (script_contents, _script_id) = if let Some(script_id) = body.script_id {
+        match state.service.get_script_contents(&viewer, script_id as u32).await {
+            Ok(contents) => (contents, Some(script_id as u32)),
+            Err(e) => return encode_service_error(&e),
+        }
+    } else if let Some(ref contents) = body.script_contents {
+        (contents.clone(), None)
+    } else {
+        return fleet_error(StatusCode::BAD_REQUEST, "either script_id or script_contents is required");
+    };
+
+    // Create a host_script_result record for tracking
+    let execution_id = uuid::Uuid::new_v4().to_string();
+    let result = fleet_types::script::HostScriptResult {
+        id: 0,
+        host_id: body.host_id as u32,
+        execution_id: execution_id.clone(),
+        script_id: body.script_id.map(|id| id as u32),
+        script_contents,
+        output: String::new(),
+        runtime: 0,
+        exit_code: None,
+        message: None,
+        host_timeout: false,
+        host_deleted_at: None,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+
+    if let Err(e) = state.service.save_host_script_result(&viewer, &result).await {
+        return encode_service_error(&e);
+    }
+
+    fleet_ok("execution_id", serde_json::json!(execution_id))
 }
 
 /// POST /api/_version_/fleet/scripts/run/sync
@@ -131,14 +164,54 @@ pub async fn get_script_result(
 pub async fn create_script(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
+    mut multipart: axum::extract::Multipart,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    // Stub: multipart upload deferred
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "multipart upload not yet implemented")
+
+    let mut team_id: Option<u32> = None;
+    let mut script_name: Option<String> = None;
+    let mut script_contents: Option<String> = None;
+
+    while let Ok(Some(field)) = multipart.next_field().await {
+        let name = field.name().unwrap_or("").to_string();
+        match name.as_str() {
+            "team_id" => {
+                if let Ok(text) = field.text().await {
+                    team_id = text.parse::<u32>().ok();
+                }
+            }
+            "script" => {
+                // The file name becomes the script name
+                if let Some(file_name) = field.file_name().map(|s| s.to_string()) {
+                    script_name = Some(file_name);
+                }
+                match field.text().await {
+                    Ok(text) => script_contents = Some(text),
+                    Err(e) => return fleet_error(StatusCode::BAD_REQUEST, &format!("failed to read script contents: {}", e)),
+                }
+            }
+            _ => {
+                // Skip unknown fields
+            }
+        }
+    }
+
+    let name = match script_name {
+        Some(n) => n,
+        None => return fleet_error(StatusCode::BAD_REQUEST, "script file is required"),
+    };
+    let contents = match script_contents {
+        Some(c) => c,
+        None => return fleet_error(StatusCode::BAD_REQUEST, "script contents are required"),
+    };
+
+    match state.service.create_script(&viewer, team_id, &name, &contents).await {
+        Ok(script) => fleet_ok("script", serde_json::to_value(&script).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/scripts
@@ -195,14 +268,44 @@ pub async fn update_script(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(script_id): Path<u64>,
+    mut multipart: axum::extract::Multipart,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, script_id);
-    // Stub: multipart upload deferred
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "multipart upload not yet implemented")
+
+    let mut script_contents: Option<String> = None;
+
+    while let Ok(Some(field)) = multipart.next_field().await {
+        let name = field.name().unwrap_or("").to_string();
+        if name == "script" {
+            match field.text().await {
+                Ok(text) => script_contents = Some(text),
+                Err(e) => return fleet_error(StatusCode::BAD_REQUEST, &format!("failed to read script contents: {}", e)),
+            }
+        }
+    }
+
+    let contents = match script_contents {
+        Some(c) => c,
+        None => return fleet_error(StatusCode::BAD_REQUEST, "script file is required"),
+    };
+
+    // Get existing script to verify it exists and get its name
+    let existing = match state.service.get_script(&viewer, script_id as u32).await {
+        Ok(s) => s,
+        Err(e) => return encode_service_error(&e),
+    };
+
+    // Delete and recreate (scripts are immutable content-wise in Fleet)
+    if let Err(e) = state.service.delete_script(&viewer, script_id as u32).await {
+        return encode_service_error(&e);
+    }
+    match state.service.create_script(&viewer, existing.team_id, &existing.name, &contents).await {
+        Ok(script) => fleet_ok("script", serde_json::to_value(&script).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// DELETE /api/_version_/fleet/scripts/{script_id}

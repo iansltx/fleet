@@ -75,6 +75,16 @@ impl FleetService {
         self.ds.get_host_script_execution(execution_id).await
     }
 
+    /// Saves a host script execution result.
+    pub async fn save_host_script_result(
+        &self,
+        viewer: &Viewer,
+        result: &fleet_types::script::HostScriptResult,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Script, Action::Write)?;
+        self.ds.save_host_script_result(result).await
+    }
+
     /// Deletes a script by ID.
     pub async fn delete_script(
         &self,

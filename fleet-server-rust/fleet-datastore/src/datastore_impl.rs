@@ -500,6 +500,23 @@ fn carve_row_to_carve(row: crate::carves::CarveRow) -> fleet_types::CarveMetadat
     }
 }
 
+fn campaign_row_to_type(row: crate::campaigns::CampaignRow) -> fleet_types::campaign::DistributedQueryCampaign {
+    let status = match row.status {
+        0 => fleet_types::campaign::DistributedQueryStatus::Waiting,
+        1 => fleet_types::campaign::DistributedQueryStatus::Running,
+        _ => fleet_types::campaign::DistributedQueryStatus::Complete,
+    };
+    fleet_types::campaign::DistributedQueryCampaign {
+        id: row.id,
+        query_id: row.query_id,
+        status,
+        user_id: row.user_id,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        metrics: Default::default(),
+    }
+}
+
 fn script_row_to_script(row: crate::scripts::ScriptRow) -> fleet_types::script::Script {
     fleet_types::script::Script {
         id: row.id,
@@ -2612,5 +2629,54 @@ impl Datastore for MysqlDatastore {
             .await
             .map_err(ServiceError::from)?;
         Ok(fma_row_to_type(row))
+    }
+
+    // ---- Campaigns ----
+
+    async fn new_distributed_query_campaign(
+        &self,
+        query_id: u32,
+        user_id: u32,
+    ) -> ServiceResult<fleet_types::campaign::DistributedQueryCampaign> {
+        let row = MysqlDatastore::new_distributed_query_campaign(self, query_id, user_id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(campaign_row_to_type(row))
+    }
+    async fn new_distributed_query_campaign_target(
+        &self,
+        campaign_id: u32,
+        target_type: fleet_types::target::TargetType,
+        target_id: u32,
+    ) -> ServiceResult<()> {
+        let type_val = match target_type {
+            fleet_types::target::TargetType::Host => 0,
+            fleet_types::target::TargetType::Label => 1,
+            fleet_types::target::TargetType::Team => 2,
+        };
+        MysqlDatastore::new_distributed_query_campaign_target(self, campaign_id, type_val, target_id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(())
+    }
+    async fn distributed_query_campaign(&self, id: u32) -> ServiceResult<fleet_types::campaign::DistributedQueryCampaign> {
+        let row = MysqlDatastore::get_distributed_query_campaign(self, id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(campaign_row_to_type(row))
+    }
+    async fn save_distributed_query_campaign(
+        &self,
+        campaign: &fleet_types::campaign::DistributedQueryCampaign,
+    ) -> ServiceResult<()> {
+        MysqlDatastore::save_distributed_query_campaign(self, campaign.id, campaign.status as u8)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(())
+    }
+    async fn hosts_ids_for_targets(&self, targets: &fleet_types::target::HostTargets) -> ServiceResult<Vec<u32>> {
+        MysqlDatastore::hosts_ids_for_targets(self, &targets.hosts, &targets.labels, &targets.teams)
+            .await
+            .map_err(ServiceError::from)
     }
 }

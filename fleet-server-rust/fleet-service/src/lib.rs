@@ -15,6 +15,7 @@ pub mod fleet_service;
 pub mod hosts;
 pub mod invites;
 pub mod labels;
+pub mod live_query;
 pub mod orbit;
 pub mod osquery;
 pub mod packs;

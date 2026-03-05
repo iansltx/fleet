@@ -331,9 +331,11 @@ pub async fn run_one_live_query(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id, &body);
-    // Live query execution requires distributed query campaign infrastructure (deferred)
-    fleet_ok("results", serde_json::json!([]))
+    let host_ids: Vec<u32> = body.host_ids.unwrap_or_default().iter().map(|&h| h as u32).collect();
+    match state.service.run_live_query(&viewer, id as u32, &host_ids).await {
+        Ok(results) => fleet_ok("results", serde_json::to_value(&results).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/reports/run
@@ -346,9 +348,17 @@ pub async fn run_live_query(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &params);
-    // Live query execution requires distributed query campaign infrastructure (deferred)
-    fleet_ok("results", serde_json::json!([]))
+    let host_ids: Vec<u32> = params.host_ids
+        .as_deref()
+        .unwrap_or("")
+        .split(',')
+        .filter_map(|s| s.trim().parse::<u32>().ok())
+        .collect();
+    let query_id = params.query_id.unwrap_or(0) as u32;
+    match state.service.run_live_query(&viewer, query_id, &host_ids).await {
+        Ok(results) => fleet_ok("results", serde_json::to_value(&results).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/reports/run_by_identifiers
@@ -361,9 +371,26 @@ pub async fn create_distributed_query_campaign_by_identifier(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &body);
-    // Distributed query campaigns require live query infrastructure (deferred)
-    fleet_ok("campaign", serde_json::json!({}))
+    let query_id = body.query_id.unwrap_or(0) as u32;
+    let targets = if let Some(selected) = body.selected {
+        let hosts: Vec<u32> = selected.get("hosts").and_then(|v| v.as_array())
+            .map(|arr| arr.iter().filter_map(|v| v.as_u64().map(|n| n as u32)).collect())
+            .unwrap_or_default();
+        let labels: Vec<u32> = selected.get("labels").and_then(|v| v.as_array())
+            .map(|arr| arr.iter().filter_map(|v| v.as_u64().map(|n| n as u32)).collect())
+            .unwrap_or_default();
+        let teams: Vec<u32> = selected.get("teams").and_then(|v| v.as_array())
+            .map(|arr| arr.iter().filter_map(|v| v.as_u64().map(|n| n as u32)).collect())
+            .unwrap_or_default();
+        fleet_types::target::HostTargets { hosts, labels, teams }
+    } else {
+        fleet_types::target::HostTargets::default()
+    };
+
+    match state.service.new_distributed_query_campaign_by_query_id(&viewer, query_id, &targets).await {
+        Ok((campaign, _host_ids)) => fleet_ok("campaign", serde_json::to_value(&campaign).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/results/{campaign_id} (WebSocket)
@@ -372,8 +399,71 @@ pub async fn stream_campaign_results(
     Path(campaign_id): Path<u64>,
     ws: WebSocketUpgrade,
 ) -> impl IntoResponse {
-    let _ = (&state, campaign_id);
-    ws.on_upgrade(|_socket| async move {
-        // TODO: stream live query results over the websocket
+    ws.on_upgrade(move |mut socket| async move {
+        use axum::extract::ws::Message;
+
+        let campaign_id = campaign_id as u32;
+
+        // Subscribe to Redis pub/sub channel for this campaign
+        let mut rx = match state.query_results.read_channel(campaign_id).await {
+            Ok(rx) => rx,
+            Err(e) => {
+                tracing::error!(campaign_id, error = %e, "failed to subscribe to campaign results");
+                let _ = socket.send(Message::Text(
+                    serde_json::json!({"type": "status", "data": {"status": "error", "message": e.to_string()}}).to_string().into()
+                )).await;
+                return;
+            }
+        };
+
+        // Send initial status
+        let _ = socket.send(Message::Text(
+            serde_json::json!({"type": "status", "data": {"status": "running"}}).to_string().into()
+        )).await;
+
+        // Stream results from Redis to WebSocket
+        loop {
+            tokio::select! {
+                msg = rx.recv() => {
+                    match msg {
+                        Some(Ok(result)) => {
+                            let payload = serde_json::json!({
+                                "type": "result",
+                                "data": result,
+                            });
+                            if socket.send(Message::Text(payload.to_string().into())).await.is_err() {
+                                break; // Client disconnected
+                            }
+                        }
+                        Some(Err(e)) => {
+                            tracing::warn!(campaign_id, error = %e, "error reading campaign result");
+                            let _ = socket.send(Message::Text(
+                                serde_json::json!({"type": "status", "data": {"status": "error", "message": e.to_string()}}).to_string().into()
+                            )).await;
+                            break;
+                        }
+                        None => {
+                            // Channel closed
+                            break;
+                        }
+                    }
+                }
+                // Also check for incoming WebSocket messages (close frames)
+                ws_msg = socket.recv() => {
+                    match ws_msg {
+                        Some(Ok(Message::Close(_))) | None => break,
+                        _ => {} // Ignore other messages
+                    }
+                }
+            }
+        }
+
+        // Send completion status
+        let _ = socket.send(Message::Text(
+            serde_json::json!({"type": "status", "data": {"status": "finished"}}).to_string().into()
+        )).await;
+
+        // Stop the query in Redis
+        let _ = state.live_query.stop_query(&campaign_id.to_string()).await;
     })
 }

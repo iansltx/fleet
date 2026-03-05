@@ -16,6 +16,7 @@ use std::sync::Arc;
 use tracing_subscriber::{fmt, EnvFilter};
 
 use fleet_service::FleetService;
+use fleet_redis::{RedisLiveQuery, RedisQueryResults, RedisPool, RedisConfig as RedisPoolConfig};
 
 /// Shared application state passed to all handlers via axum's State extractor.
 ///
@@ -24,6 +25,8 @@ use fleet_service::FleetService;
 #[derive(Clone)]
 pub struct AppState {
     pub service: Arc<FleetService>,
+    pub live_query: Arc<RedisLiveQuery>,
+    pub query_results: Arc<RedisQueryResults>,
 }
 
 /// Fleet server - osquery management and orchestration.
@@ -174,6 +177,28 @@ async fn run_serve(
     let ds = fleet_datastore::MysqlDatastore::new(ds_config).await
         .map_err(|e| anyhow::anyhow!("Failed to connect to MySQL: {}", e))?;
 
+    // Connect to Redis
+    let redis_pool_config = RedisPoolConfig {
+        server: cfg.redis.address.clone(),
+        username: if cfg.redis.username.is_empty() { None } else { Some(cfg.redis.username.clone()) },
+        password: if cfg.redis.password.is_empty() { None } else { Some(cfg.redis.password.clone()) },
+        database: cfg.redis.database as i64,
+        use_tls: cfg.redis.use_tls,
+        connect_timeout: std::time::Duration::from_secs(cfg.redis.connect_timeout_secs),
+        cluster_follow_redirections: cfg.redis.cluster_follow_redirections,
+        cluster_read_from_replica: cfg.redis.cluster_read_from_replica,
+        connect_retry_attempts: cfg.redis.connect_retry_attempts,
+    };
+    let redis_pool = RedisPool::new(&redis_pool_config).await
+        .map_err(|e| anyhow::anyhow!("Failed to connect to Redis: {}", e))?;
+    tracing::info!(mode = %redis_pool.mode(), "Redis connected");
+
+    let live_query = Arc::new(RedisLiveQuery::new(redis_pool.clone(), std::time::Duration::from_secs(1)));
+    let query_results = Arc::new(
+        RedisQueryResults::new_standalone(redis_pool.clone(), cfg.redis.duplicate_results)
+            .map_err(|e| anyhow::anyhow!("Failed to create query results pubsub: {}", e))?
+    );
+
     // Build FleetService
     let svc_config = fleet_service::FleetServiceConfig {
         server: fleet_service::ServerConfig {
@@ -203,7 +228,11 @@ async fn run_serve(
     };
 
     let svc = fleet_service::FleetService::new(Arc::new(ds), svc_config);
-    let state = AppState { service: Arc::new(svc) };
+    let state = AppState {
+        service: Arc::new(svc),
+        live_query,
+        query_results,
+    };
 
     // Build the axum application with all routes
     let app = routes::build_router(state);

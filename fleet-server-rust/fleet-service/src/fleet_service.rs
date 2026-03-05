@@ -217,6 +217,25 @@ pub trait Datastore: Send + Sync + 'static {
     async fn delete_script(&self, id: u32) -> ServiceResult<()>;
     async fn get_script_contents(&self, script_id: u32) -> ServiceResult<String>;
 
+    // ---- Campaigns ----
+    async fn new_distributed_query_campaign(
+        &self,
+        query_id: u32,
+        user_id: u32,
+    ) -> ServiceResult<fleet_types::campaign::DistributedQueryCampaign>;
+    async fn new_distributed_query_campaign_target(
+        &self,
+        campaign_id: u32,
+        target_type: fleet_types::target::TargetType,
+        target_id: u32,
+    ) -> ServiceResult<()>;
+    async fn distributed_query_campaign(&self, id: u32) -> ServiceResult<fleet_types::campaign::DistributedQueryCampaign>;
+    async fn save_distributed_query_campaign(
+        &self,
+        campaign: &fleet_types::campaign::DistributedQueryCampaign,
+    ) -> ServiceResult<()>;
+    async fn hosts_ids_for_targets(&self, targets: &fleet_types::target::HostTargets) -> ServiceResult<Vec<u32>>;
+
     // ---- Certificates ----
     async fn list_host_certificates(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::certificate::HostCertificate>>;
     async fn create_certificate_template(&self, team_id: u32, ca_id: i32, name: &str, subject_name: &str) -> ServiceResult<fleet_types::certificate::CertificateTemplate>;
