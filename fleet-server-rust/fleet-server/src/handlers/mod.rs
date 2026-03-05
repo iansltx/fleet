@@ -8,6 +8,8 @@
 //! but not directly referenced in Rust code, producing dead_code warnings.
 
 #[allow(dead_code)]
+pub mod activities;
+#[allow(dead_code)]
 pub mod app_config;
 #[allow(dead_code)]
 pub mod carves;

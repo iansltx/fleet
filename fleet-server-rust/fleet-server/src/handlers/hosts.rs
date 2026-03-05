@@ -602,14 +602,19 @@ pub async fn get_host_script_details(
 pub async fn list_host_upcoming_activities(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_id): Path<u64>,
+    Path(id): Path<u64>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement list_host_upcoming_activities logic
-    fleet_ok("activities", serde_json::json!([]))
+    match state.service.count_host_upcoming_activities(&viewer, id as u32).await {
+        Ok(count) => fleet_ok("activities", serde_json::json!({
+            "count": count,
+            "host_id": id,
+        })),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// DELETE /api/_version_/fleet/hosts/{id}/activities/upcoming/{activity_id}

@@ -78,6 +78,8 @@ fn v1_routes() -> Router<crate::AppState> {
         .route("/api/v1/fleet/invites", get(handlers::invites::list_invites))
         .route("/api/v1/fleet/invites/{id}", delete(handlers::invites::delete_invite))
         .route("/api/v1/fleet/invites/{id}", patch(handlers::invites::update_invite))
+        // Activities
+        .route("/api/v1/fleet/activities", get(handlers::activities::list_activities))
         // Policies (v1 paths with /global/)
         .route("/api/v1/fleet/global/policies", post(handlers::policies::create_global_policy))
         .route("/api/v1/fleet/global/policies", get(handlers::policies::list_global_policies))
