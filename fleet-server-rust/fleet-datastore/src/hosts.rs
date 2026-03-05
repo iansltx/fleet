@@ -47,6 +47,8 @@ pub struct HostRow {
     pub refetch_critical_queries_until: Option<DateTime<Utc>>,
     pub last_enrolled_at: Option<DateTime<Utc>>,
     pub last_restarted_at: Option<DateTime<Utc>>,
+    #[sqlx(default)]
+    pub seen_time: Option<DateTime<Utc>>,
 }
 
 /// Parameters for creating a new host. Matches Go's `NewHost`.
@@ -164,7 +166,9 @@ impl MysqlDatastore {
     ///
     /// SELECT * FROM hosts WHERE id = ?
     pub async fn host_by_id(&self, id: u32) -> Result<HostRow> {
-        sqlx::query_as::<_, HostRow>("SELECT * FROM hosts WHERE id = ?")
+        sqlx::query_as::<_, HostRow>(
+            "SELECT h.*, hst.seen_time FROM hosts h LEFT JOIN host_seen_times hst ON h.id = hst.host_id WHERE h.id = ?"
+        )
             .bind(id)
             .fetch_optional(self.pool())
             .await?
@@ -191,7 +195,7 @@ impl MysqlDatastore {
         limit: u32,
         offset: u32,
     ) -> Result<Vec<HostRow>> {
-        let mut sql = "SELECT h.* FROM hosts h".to_string();
+        let mut sql = "SELECT h.*, hst.seen_time FROM hosts h LEFT JOIN host_seen_times hst ON h.id = hst.host_id".to_string();
 
         if label_id.is_some() {
             sql.push_str(" JOIN label_membership lm ON h.id = lm.host_id");
@@ -209,13 +213,13 @@ impl MysqlDatastore {
 
         match status_filter {
             Some("online") => {
-                sql.push_str(" AND h.seen_time >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)");
+                sql.push_str(" AND hst.seen_time >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)");
             }
             Some("offline") => {
-                sql.push_str(" AND h.seen_time >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND h.seen_time < DATE_SUB(NOW(), INTERVAL 30 MINUTE)");
+                sql.push_str(" AND hst.seen_time >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND hst.seen_time < DATE_SUB(NOW(), INTERVAL 30 MINUTE)");
             }
             Some("mia") => {
-                sql.push_str(" AND h.seen_time < DATE_SUB(NOW(), INTERVAL 30 DAY)");
+                sql.push_str(" AND hst.seen_time < DATE_SUB(NOW(), INTERVAL 30 DAY)");
             }
             Some("new") => {
                 sql.push_str(" AND h.created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)");
@@ -315,7 +319,7 @@ impl MysqlDatastore {
     ///
     /// SELECT * FROM hosts WHERE node_key = ?
     pub async fn authenticate_host(&self, node_key: &str) -> Result<HostRow> {
-        sqlx::query_as::<_, HostRow>("SELECT * FROM hosts WHERE node_key = ? LIMIT 1")
+        sqlx::query_as::<_, HostRow>("SELECT h.*, hst.seen_time FROM hosts h LEFT JOIN host_seen_times hst ON h.id = hst.host_id WHERE h.node_key = ? LIMIT 1")
             .bind(node_key)
             .fetch_optional(self.pool())
             .await?

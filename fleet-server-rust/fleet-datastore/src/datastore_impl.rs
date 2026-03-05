@@ -127,8 +127,7 @@ fn host_row_to_host(row: crate::hosts::HostRow) -> fleet_types::Host {
         refetch_critical_queries_until: row.refetch_critical_queries_until,
         last_enrolled_at: row.last_enrolled_at.unwrap_or_default(),
         last_restarted_at: row.last_restarted_at.unwrap_or_default(),
-        // Default values for fields not in HostRow
-        seen_time: DateTime::<Utc>::default(),
+        seen_time: row.seen_time.unwrap_or_default(),
         host_software: fleet_types::host::HostSoftware::default(),
         orbit_version: None,
         desktop_version: None,
@@ -968,10 +967,10 @@ impl Datastore for MysqlDatastore {
     async fn search_hosts(&self, query: &str, omit_ids: &[u32], limit: u32) -> ServiceResult<Vec<fleet_types::Host>> {
         let search = format!("%{}%", query);
         let limit = limit.min(100);
-        let base_sql = "SELECT * FROM hosts WHERE (hostname LIKE ? OR computer_name LIKE ? OR hardware_serial LIKE ?)";
+        let base_sql = "SELECT h.*, hst.seen_time FROM hosts h LEFT JOIN host_seen_times hst ON h.id = hst.host_id WHERE (h.hostname LIKE ? OR h.computer_name LIKE ? OR h.hardware_serial LIKE ?)";
 
         if omit_ids.is_empty() {
-            let sql = format!("{} ORDER BY hostname LIMIT ?", base_sql);
+            let sql = format!("{} ORDER BY h.hostname LIMIT ?", base_sql);
             let rows: Vec<crate::hosts::HostRow> = sqlx::query_as(&sql)
                 .bind(&search)
                 .bind(&search)
@@ -984,7 +983,7 @@ impl Datastore for MysqlDatastore {
         } else {
             let placeholders: Vec<&str> = omit_ids.iter().map(|_| "?").collect();
             let sql = format!(
-                "{} AND id NOT IN ({}) ORDER BY hostname LIMIT ?",
+                "{} AND h.id NOT IN ({}) ORDER BY h.hostname LIMIT ?",
                 base_sql,
                 placeholders.join(",")
             );
@@ -1893,7 +1892,7 @@ impl Datastore for MysqlDatastore {
 
     async fn load_host_by_orbit_node_key(&self, orbit_node_key: &str) -> ServiceResult<fleet_types::Host> {
         let row = sqlx::query_as::<_, crate::hosts::HostRow>(
-            "SELECT h.* FROM hosts h JOIN host_orbit_info hoi ON h.id = hoi.host_id WHERE hoi.orbit_node_key = ?"
+            "SELECT h.*, hst.seen_time FROM hosts h JOIN host_orbit_info hoi ON h.id = hoi.host_id LEFT JOIN host_seen_times hst ON h.id = hst.host_id WHERE hoi.orbit_node_key = ?"
         )
         .bind(orbit_node_key)
         .fetch_optional(self.pool())
@@ -1912,7 +1911,7 @@ impl Datastore for MysqlDatastore {
     ) -> ServiceResult<fleet_types::Host> {
         // Try to find existing host by hardware UUID or serial
         let existing = sqlx::query_as::<_, crate::hosts::HostRow>(
-            "SELECT * FROM hosts WHERE uuid = ? OR hardware_serial = ? LIMIT 1"
+            "SELECT h.*, hst.seen_time FROM hosts h LEFT JOIN host_seen_times hst ON h.id = hst.host_id WHERE h.uuid = ? OR h.hardware_serial = ? LIMIT 1"
         )
         .bind(hardware_uuid)
         .bind(hardware_serial)
