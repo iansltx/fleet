@@ -1,0 +1,25 @@
+[package]
+name = "fleet-service"
+version = "0.1.0"
+edition = "2021"
+description = "Business logic layer for Fleet server"
+
+[dependencies]
+fleet-types = { path = "../fleet-types" }
+#fleet-redis = { path = "../fleet-redis" }
+
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+async-trait = { workspace = true }
+anyhow = { workspace = true }
+bcrypt = { workspace = true }
+jsonwebtoken = { workspace = true }
+rand = { workspace = true }
+sha2 = { workspace = true }
+hmac = { workspace = true }
+base64 = { workspace = true }

@@ -1,0 +1,17 @@
+[package]
+name = "fleet-redis"
+version = "0.1.0"
+edition = "2021"
+description = "Redis interactions for Fleet server"
+
+[dependencies]
+redis = { workspace = true }
+fleet-types = { path = "../fleet-types" }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+futures = { workspace = true }

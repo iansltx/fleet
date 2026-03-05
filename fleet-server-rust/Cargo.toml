@@ -1,0 +1,70 @@
+[workspace]
+members = [
+    "fleet-types",
+    "fleet-datastore",
+    "fleet-redis",
+    "fleet-service",
+    "fleet-server",
+]
+resolver = "2"
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Web framework
+axum = { version = "0.8", features = ["multipart", "ws"] }
+axum-extra = { version = "0.10", features = ["typed-header", "query", "cookie"] }
+tower = { version = "0.5", features = ["full"] }
+tower-http = { version = "0.6", features = ["cors", "compression-gzip", "trace", "fs"] }
+hyper = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+
+# Database
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "mysql", "chrono", "json", "uuid"] }
+
+# Redis
+redis = { version = "0.27", features = ["tokio-comp", "cluster-async"] }
+
+# S3
+aws-sdk-s3 = "1"
+aws-config = { version = "1", features = ["behavior-version-latest"] }
+aws-credential-types = "1"
+
+# Crypto
+bcrypt = "0.16"
+jsonwebtoken = "9"
+rand = "0.8"
+sha2 = "0.10"
+hmac = "0.12"
+base64 = "0.22"
+uuid = { version = "1", features = ["v4", "serde"] }
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Logging/tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Error handling
+thiserror = "2"
+anyhow = "1"
+
+# Config
+config = "0.14"
+clap = { version = "4", features = ["derive", "env"] }
+
+# Misc
+rust-embed = { version = "8", features = ["compression"] }
+mime_guess = "2"
+url = "2"
+regex = "1"
+async-trait = "0.1"
+futures = "0.3"
+bytes = "1"
+prometheus = "0.13"

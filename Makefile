@@ -198,6 +198,12 @@ endif
 fleet: .prefix .pre-build .pre-fleet
 	CGO_ENABLED=1 go build -race=${GO_BUILD_RACE_ENABLED_VAR} -tags full,fts5,netgo -o build/${OUTPUT} -ldflags ${LDFLAGS_VERSION} ./cmd/fleet
 
+fleet-rust: .prefix generate-js
+	@echo "Building Fleet server (Rust)..."
+	cd fleet-server-rust && cargo build --release --package fleet-server
+	cp fleet-server-rust/target/release/fleet-server build/${OUTPUT}
+	@echo "Fleet server (Rust) built: build/${OUTPUT}"
+
 fleet-dev: GO_BUILD_RACE_ENABLED_VAR=true
 fleet-dev: fleet
 

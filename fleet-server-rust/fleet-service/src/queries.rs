@@ -1,0 +1,218 @@
+//! Query service operations.
+//!
+//! Implements query CRUD and report retrieval.
+//! Corresponds to Go's `server/service/queries.go`.
+
+use tracing::info;
+
+use crate::authz::{self, Action, Subject};
+use crate::fleet_service::FleetService;
+use crate::{ServiceError, ServiceResult, Viewer};
+
+impl FleetService {
+    /// Gets a single query by ID.
+    ///
+    /// Corresponds to Go's `(svc *Service) GetQuery`.
+    pub async fn get_query(
+        &self,
+        viewer: &Viewer,
+        id: u32,
+    ) -> ServiceResult<fleet_types::Query> {
+        let query = self.ds.query(id).await?;
+        authz::authorize(viewer, Subject::Query, Action::Read)?;
+        Ok(query)
+    }
+
+    /// Lists queries, optionally filtered by team.
+    ///
+    /// Corresponds to Go's `(svc *Service) ListQueries`.
+    pub async fn list_queries(
+        &self,
+        viewer: &Viewer,
+        opts: fleet_types::ListOptions,
+        team_id: Option<u32>,
+    ) -> ServiceResult<Vec<fleet_types::Query>> {
+        authz::authorize(viewer, Subject::Query, Action::Read)?;
+        self.ds.list_queries(opts, team_id).await
+    }
+
+    /// Creates a new query.
+    ///
+    /// Corresponds to Go's `(svc *Service) NewQuery`.
+    pub async fn new_query(
+        &self,
+        viewer: &Viewer,
+        payload: QueryPayload,
+    ) -> ServiceResult<fleet_types::Query> {
+        authz::authorize(viewer, Subject::Query, Action::Write)?;
+
+        if payload.name.is_empty() {
+            return Err(ServiceError::invalid_argument("name", "missing required argument"));
+        }
+        if payload.query.is_empty() {
+            return Err(ServiceError::invalid_argument("query", "missing required argument"));
+        }
+
+        let mut query = default_query();
+        query.name = payload.name;
+        query.description = payload.description.unwrap_or_default();
+        query.query = payload.query;
+        query.saved = true;
+        query.author_id = Some(viewer.user_id());
+        query.author_name = viewer.user.name.clone();
+        query.author_email = viewer.user.email.clone();
+        query.observer_can_run = payload.observer_can_run.unwrap_or(false);
+        query.team_id = payload.team_id;
+        query.interval = payload.interval.unwrap_or(0);
+        query.platform = payload.platform.unwrap_or_default();
+        query.min_osquery_version = payload.min_osquery_version.unwrap_or_default();
+        query.automations_enabled = payload.automations_enabled.unwrap_or(false);
+        query.logging = payload.logging.unwrap_or_else(|| "snapshot".to_string());
+        query.discard_data = payload.discard_data.unwrap_or(false);
+
+        let created = self.ds.new_query(&query).await?;
+
+        info!(query_id = created.id, name = %created.name, "query created");
+        Ok(created)
+    }
+
+    /// Modifies an existing query.
+    ///
+    /// Corresponds to Go's `(svc *Service) ModifyQuery`.
+    pub async fn modify_query(
+        &self,
+        viewer: &Viewer,
+        id: u32,
+        payload: ModifyQueryPayload,
+    ) -> ServiceResult<fleet_types::Query> {
+        authz::authorize(viewer, Subject::Query, Action::Write)?;
+
+        let mut query = self.ds.query(id).await?;
+
+        if let Some(name) = payload.name {
+            query.name = name;
+        }
+        if let Some(description) = payload.description {
+            query.description = description;
+        }
+        if let Some(sql) = payload.query {
+            query.query = sql;
+        }
+        if let Some(observer_can_run) = payload.observer_can_run {
+            query.observer_can_run = observer_can_run;
+        }
+        if let Some(interval) = payload.interval {
+            query.interval = interval;
+        }
+        if let Some(platform) = payload.platform {
+            query.platform = platform;
+        }
+        if let Some(min_osquery_version) = payload.min_osquery_version {
+            query.min_osquery_version = min_osquery_version;
+        }
+        if let Some(automations_enabled) = payload.automations_enabled {
+            query.automations_enabled = automations_enabled;
+        }
+        if let Some(logging) = payload.logging {
+            query.logging = logging;
+        }
+        if let Some(discard_data) = payload.discard_data {
+            query.discard_data = discard_data;
+        }
+
+        let saved = self.ds.save_query(&query).await?;
+        info!(query_id = saved.id, name = %saved.name, "query modified");
+        Ok(saved)
+    }
+
+    /// Deletes a query by name.
+    ///
+    /// Corresponds to Go's `(svc *Service) DeleteQuery`.
+    pub async fn delete_query(
+        &self,
+        viewer: &Viewer,
+        name: &str,
+        team_id: Option<u32>,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Query, Action::Write)?;
+
+        self.ds.delete_query(name, team_id).await?;
+
+        info!(name = %name, "query deleted");
+        Ok(())
+    }
+
+    /// Deletes multiple queries by IDs.
+    ///
+    /// Corresponds to Go's `(svc *Service) DeleteQueries`.
+    pub async fn delete_queries(
+        &self,
+        viewer: &Viewer,
+        ids: &[u32],
+    ) -> ServiceResult<u32> {
+        authz::authorize(viewer, Subject::Query, Action::Write)?;
+
+        let count = self.ds.delete_queries(ids).await?;
+        info!(count = count, "queries deleted");
+        Ok(count)
+    }
+}
+
+/// Payload for creating a new query.
+#[derive(Debug, Clone, Default)]
+pub struct QueryPayload {
+    pub name: String,
+    pub description: Option<String>,
+    pub query: String,
+    pub observer_can_run: Option<bool>,
+    pub team_id: Option<u32>,
+    pub interval: Option<u32>,
+    pub platform: Option<String>,
+    pub min_osquery_version: Option<String>,
+    pub automations_enabled: Option<bool>,
+    pub logging: Option<String>,
+    pub discard_data: Option<bool>,
+}
+
+/// Payload for modifying an existing query.
+#[derive(Debug, Clone, Default)]
+pub struct ModifyQueryPayload {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub query: Option<String>,
+    pub observer_can_run: Option<bool>,
+    pub interval: Option<u32>,
+    pub platform: Option<String>,
+    pub min_osquery_version: Option<String>,
+    pub automations_enabled: Option<bool>,
+    pub logging: Option<String>,
+    pub discard_data: Option<bool>,
+}
+
+/// Helper to create a new Query with default values.
+fn default_query() -> fleet_types::Query {
+    let now = chrono::Utc::now();
+    fleet_types::Query {
+        id: 0,
+        team_id: None,
+        interval: 0,
+        platform: String::new(),
+        min_osquery_version: String::new(),
+        automations_enabled: false,
+        logging: "snapshot".to_string(),
+        name: String::new(),
+        description: String::new(),
+        query: String::new(),
+        saved: false,
+        observer_can_run: false,
+        author_id: None,
+        author_name: String::new(),
+        author_email: String::new(),
+        packs: Vec::new(),
+        aggregated_stats: Default::default(),
+        discard_data: false,
+        labels_include_any: Vec::new(),
+        created_at: now,
+        updated_at: now,
+    }
+}

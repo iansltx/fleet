@@ -1,0 +1,52 @@
+[package]
+name = "fleet-server"
+version = "0.1.0"
+edition = "2021"
+description = "Fleet server - osquery management and orchestration"
+
+[[bin]]
+name = "fleet-server"
+path = "src/main.rs"
+
+[dependencies]
+# Internal crates
+fleet-types = { path = "../fleet-types" }
+fleet-datastore = { path = "../fleet-datastore" }
+fleet-redis = { path = "../fleet-redis" }
+fleet-service = { path = "../fleet-service" }
+
+# Web framework
+axum = { workspace = true }
+axum-extra = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+hyper = { workspace = true }
+tokio = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+
+# Time and IDs
+chrono = { workspace = true }
+uuid = { workspace = true }
+
+# Logging / tracing
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# CLI and config
+clap = { workspace = true }
+config = { workspace = true }
+
+# Frontend embedding
+rust-embed = { workspace = true }
+mime_guess = { workspace = true }
+
+# Metrics
+prometheus = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
