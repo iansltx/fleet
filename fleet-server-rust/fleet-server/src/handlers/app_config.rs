@@ -338,8 +338,16 @@ pub async fn apply_certificate_template_specs(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &body);
-    // Stub: backing service not yet implemented
+    // Apply certificate template specs: create each template from spec
+    for spec in &body.specs {
+        let team_id = spec.get("team_id").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+        let ca_id = spec.get("certificate_authority_id").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+        let name = spec.get("name").and_then(|v| v.as_str()).unwrap_or("");
+        let subject_name = spec.get("subject_name").and_then(|v| v.as_str()).unwrap_or("");
+        if let Err(e) = state.service.create_certificate_template(&viewer, team_id, ca_id, name, subject_name).await {
+            return encode_service_error(&e);
+        }
+    }
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -352,9 +360,18 @@ pub async fn delete_certificate_template_specs(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    // Stub: backing service not yet implemented
-    fleet_ok("", serde_json::json!({}))
+    // Delete all certificate templates
+    match state.service.list_certificate_templates(&viewer).await {
+        Ok(templates) => {
+            for t in &templates {
+                if let Err(e) = state.service.delete_certificate_template(&viewer, t.id).await {
+                    return encode_service_error(&e);
+                }
+            }
+            fleet_ok("", serde_json::json!({}))
+        }
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/status/result_store

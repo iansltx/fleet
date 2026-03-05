@@ -101,4 +101,12 @@ impl FleetService {
         authz::authorize(viewer, Subject::AppConfig, Action::Write)?;
         self.ds.update_certificate_authority(id, name, url).await
     }
+
+    /// Gets a certificate template by ID (device-authenticated, no viewer).
+    pub async fn get_certificate_template_for_device(
+        &self,
+        id: u32,
+    ) -> ServiceResult<fleet_types::certificate::CertificateTemplate> {
+        self.ds.get_certificate_template(id).await
+    }
 }

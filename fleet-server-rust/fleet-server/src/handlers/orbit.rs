@@ -327,8 +327,10 @@ pub async fn get_device_certificate_template(
     State(state): State<AppState>,
     Path(id): Path<u64>,
 ) -> FleetResponse {
-    let _ = (&state, id);
-    fleet_ok("certificate_template", serde_json::json!({}))
+    match state.service.get_certificate_template_for_device(id as u32).await {
+        Ok(template) => fleet_ok("certificate_template", serde_json::to_value(&template).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// PUT /api/fleetd/certificates/{id}/status

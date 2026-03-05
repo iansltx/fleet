@@ -353,6 +353,14 @@ impl FleetService {
         self.ds.host(host_id).await?;
         self.ds.list_host_certificates(host_id).await
     }
+
+    /// Lists certificates for a host (device-authenticated, no viewer needed).
+    pub async fn list_host_certificates_by_device(
+        &self,
+        host_id: u32,
+    ) -> ServiceResult<Vec<fleet_types::certificate::HostCertificate>> {
+        self.ds.list_host_certificates(host_id).await
+    }
 }
 
 /// Converts a full Label to a LabelSummary.

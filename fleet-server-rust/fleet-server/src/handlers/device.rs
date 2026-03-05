@@ -227,7 +227,12 @@ pub async fn list_device_certificates(
     Path(token): Path<String>,
 ) -> FleetResponse {
     match state.service.authenticate_device(&token).await {
-        Ok(_host) => fleet_ok("certificates", serde_json::json!([])),
+        Ok(host) => {
+            match state.service.list_host_certificates_by_device(host.id).await {
+                Ok(certs) => fleet_ok("certificates", serde_json::to_value(&certs).unwrap_or_default()),
+                Err(e) => encode_service_error(&e),
+            }
+        }
         Err(e) => encode_service_error(&e),
     }
 }
