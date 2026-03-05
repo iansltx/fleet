@@ -70,4 +70,29 @@ impl FleetService {
         authz::authorize(viewer, Subject::Software, Action::Write)?;
         self.ds.delete_software_installer(title_id).await
     }
+
+    /// Lists vulnerabilities with host counts.
+    pub async fn list_vulnerabilities(
+        &self,
+        viewer: &Viewer,
+        team_id: Option<u32>,
+        query: Option<&str>,
+        exploit: Option<bool>,
+        limit: u32,
+        offset: u32,
+    ) -> ServiceResult<Vec<fleet_types::vulnerability::VulnerabilityWithMetadata>> {
+        authz::authorize(viewer, Subject::Software, Action::Read)?;
+        self.ds.list_vulnerabilities(team_id, query, exploit, limit, offset).await
+    }
+
+    /// Gets a single vulnerability by CVE.
+    pub async fn get_vulnerability(
+        &self,
+        viewer: &Viewer,
+        cve: &str,
+        team_id: Option<u32>,
+    ) -> ServiceResult<fleet_types::vulnerability::VulnerabilityWithMetadata> {
+        authz::authorize(viewer, Subject::Software, Action::Read)?;
+        self.ds.get_vulnerability(cve, team_id).await
+    }
 }

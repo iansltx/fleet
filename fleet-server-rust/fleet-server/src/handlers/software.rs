@@ -565,8 +565,15 @@ pub async fn list_vulnerabilities(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &params);
-    fleet_ok("vulnerabilities", serde_json::json!([]))
+    let team_id = params.team_id.map(|t| t as u32);
+    let per_page = params.per_page.unwrap_or(20) as u32;
+    let page = params.page.unwrap_or(0) as u32;
+    let offset = page * per_page;
+    let query_str = params.query.as_deref();
+    match state.service.list_vulnerabilities(&viewer, team_id, query_str, params.exploit, per_page, offset).await {
+        Ok(vulns) => fleet_ok("vulnerabilities", serde_json::json!(vulns)),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/vulnerabilities/{cve}
@@ -579,8 +586,10 @@ pub async fn get_vulnerability(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &cve);
-    fleet_ok("vulnerability", serde_json::json!({}))
+    match state.service.get_vulnerability(&viewer, &cve, None).await {
+        Ok(vuln) => fleet_ok("vulnerability", serde_json::json!(vuln)),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/software/titles/{title_id}/package/token/{token}

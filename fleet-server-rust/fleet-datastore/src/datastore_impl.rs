@@ -388,6 +388,24 @@ fn cert_authority_row_to_type(row: crate::certificates::CertificateAuthorityRow)
     }
 }
 
+fn vuln_row_to_type(row: crate::software::VulnerabilityRow) -> fleet_types::vulnerability::VulnerabilityWithMetadata {
+    fleet_types::vulnerability::VulnerabilityWithMetadata {
+        cve: fleet_types::vulnerability::CVE {
+            cve: row.cve.clone(),
+            details_link: format!("https://nvd.nist.gov/vuln/detail/{}", row.cve),
+            created_at: row.created_at,
+            cvss_score: Some(row.cvss_score),
+            epss_probability: Some(row.epss_probability),
+            cisa_known_exploit: Some(row.cisa_known_exploit),
+            cve_published: Some(row.cve_published),
+            description: Some(row.description),
+            resolved_in_version: None,
+        },
+        hosts_count: row.hosts_count,
+        hosts_count_updated_at: row.hosts_count_updated_at,
+    }
+}
+
 /// Enriches a slice of Software with CVE data from the software_cve table.
 async fn enrich_software_with_cves(ds: &MysqlDatastore, software: &mut [fleet_types::Software]) {
     let ids: Vec<u32> = software.iter().map(|s| s.id).collect();
@@ -2491,5 +2509,32 @@ impl Datastore for MysqlDatastore {
             .await
             .map_err(ServiceError::from)?;
         Ok(rows.into_iter().map(software_title_row_to_software).collect())
+    }
+
+    // ---- Vulnerabilities ----
+
+    async fn list_vulnerabilities(
+        &self,
+        team_id: Option<u32>,
+        query: Option<&str>,
+        exploit: Option<bool>,
+        limit: u32,
+        offset: u32,
+    ) -> ServiceResult<Vec<fleet_types::vulnerability::VulnerabilityWithMetadata>> {
+        let rows = MysqlDatastore::list_vulnerabilities(self, team_id, query, exploit, limit, offset)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(vuln_row_to_type).collect())
+    }
+
+    async fn get_vulnerability(
+        &self,
+        cve: &str,
+        team_id: Option<u32>,
+    ) -> ServiceResult<fleet_types::vulnerability::VulnerabilityWithMetadata> {
+        let row = MysqlDatastore::get_vulnerability(self, cve, team_id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(vuln_row_to_type(row))
     }
 }

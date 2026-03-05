@@ -234,6 +234,21 @@ pub trait Datastore: Send + Sync + 'static {
     async fn list_setup_experience_software_title_ids(&self, team_id: Option<u32>) -> ServiceResult<Vec<u32>>;
     async fn set_setup_experience_software(&self, team_id: Option<u32>, title_ids: &[u32]) -> ServiceResult<()>;
 
+    // ---- Vulnerabilities ----
+    async fn list_vulnerabilities(
+        &self,
+        team_id: Option<u32>,
+        query: Option<&str>,
+        exploit: Option<bool>,
+        limit: u32,
+        offset: u32,
+    ) -> ServiceResult<Vec<fleet_types::vulnerability::VulnerabilityWithMetadata>>;
+    async fn get_vulnerability(
+        &self,
+        cve: &str,
+        team_id: Option<u32>,
+    ) -> ServiceResult<fleet_types::vulnerability::VulnerabilityWithMetadata>;
+
     // ---- Utilities ----
     async fn list_packs_for_host(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::Pack>>;
     async fn list_software_titles(&self, team_id: Option<u32>, limit: u32, offset: u32) -> ServiceResult<Vec<fleet_types::Software>>;

@@ -248,6 +248,126 @@ impl MysqlDatastore {
         .fetch_all(self.pool())
         .await?)
     }
+
+    /// Lists vulnerabilities with host counts, joining cve_meta for scoring data.
+    /// Simplified version of Go's ListVulnerabilities.
+    pub async fn list_vulnerabilities(
+        &self,
+        team_id: Option<u32>,
+        query: Option<&str>,
+        exploit: Option<bool>,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<VulnerabilityRow>> {
+        let mut sql = r#"
+            SELECT
+                vhc.cve AS cve,
+                (SELECT MIN(created_at) FROM (
+                    SELECT created_at FROM software_cve WHERE cve = vhc.cve
+                    UNION ALL
+                    SELECT created_at FROM operating_system_vulnerabilities WHERE cve = vhc.cve
+                ) AS combined_dates) AS created_at,
+                cm.cvss_score,
+                cm.epss_probability,
+                cm.cisa_known_exploit,
+                cm.published AS cve_published,
+                cm.description,
+                vhc.host_count AS hosts_count,
+                vhc.updated_at AS hosts_count_updated_at
+            FROM vulnerability_host_counts vhc
+            LEFT JOIN cve_meta cm ON cm.cve = vhc.cve
+            WHERE vhc.host_count > 0
+            AND (
+                EXISTS (SELECT 1 FROM software_cve WHERE cve = vhc.cve)
+                OR EXISTS (SELECT 1 FROM operating_system_vulnerabilities WHERE cve = vhc.cve)
+            )
+        "#.to_string();
+
+        let mut bind_values: Vec<String> = Vec::new();
+
+        if let Some(tid) = team_id {
+            sql.push_str(" AND vhc.global_stats = 0 AND vhc.team_id = ?");
+            bind_values.push(tid.to_string());
+        } else {
+            sql.push_str(" AND vhc.global_stats = 1");
+        }
+
+        if exploit == Some(true) {
+            sql.push_str(" AND cm.cisa_known_exploit = 1");
+        }
+
+        if let Some(q) = query {
+            if !q.is_empty() {
+                sql.push_str(" AND vhc.cve LIKE ?");
+                bind_values.push(format!("%{}%", q));
+            }
+        }
+
+        sql.push_str(&format!(" ORDER BY vhc.cve ASC LIMIT {} OFFSET {}", limit, offset));
+
+        let mut db_query = sqlx::query_as::<_, VulnerabilityRow>(&sql);
+        for val in &bind_values {
+            db_query = db_query.bind(val);
+        }
+        Ok(db_query.fetch_all(self.pool()).await?)
+    }
+
+    /// Gets a single vulnerability by CVE, with host counts and metadata.
+    /// Simplified version of Go's Vulnerability.
+    pub async fn get_vulnerability(
+        &self,
+        cve: &str,
+        team_id: Option<u32>,
+    ) -> Result<VulnerabilityRow> {
+        let mut sql = r#"
+            SELECT DISTINCT
+                cm.cve,
+                LEAST(COALESCE(osv.created_at, NOW()), COALESCE(sc.created_at, NOW())) AS created_at,
+                cm.cvss_score,
+                cm.epss_probability,
+                cm.cisa_known_exploit,
+                cm.published AS cve_published,
+                cm.description,
+                COALESCE(vhc.host_count, 0) AS hosts_count,
+                COALESCE(vhc.updated_at, NOW()) AS hosts_count_updated_at
+            FROM cve_meta cm
+            JOIN (
+                SELECT cve FROM software_cve WHERE cve = ?
+                UNION
+                SELECT cve FROM operating_system_vulnerabilities WHERE cve = ?
+            ) AS cve_table ON cm.cve = cve_table.cve
+            LEFT JOIN operating_system_vulnerabilities osv ON osv.cve = cm.cve
+            LEFT JOIN software_cve sc ON sc.cve = cm.cve
+            LEFT JOIN vulnerability_host_counts vhc ON cm.cve = vhc.cve
+        "#.to_string();
+
+        if let Some(tid) = team_id {
+            sql.push_str(" AND vhc.team_id = ? AND vhc.global_stats = 0");
+            let row = sqlx::query_as::<_, VulnerabilityRow>(&sql)
+                .bind(cve)
+                .bind(cve)
+                .bind(tid)
+                .fetch_optional(self.pool())
+                .await?
+                .ok_or_else(|| DatastoreError::not_found_with_name("Vulnerability", cve))?;
+            if row.hosts_count == 0 {
+                return Err(DatastoreError::not_found_with_name("Vulnerability", cve));
+            }
+            Ok(row)
+        } else {
+            sql.push_str(" AND vhc.team_id = 0 AND vhc.global_stats = 1");
+            let row = sqlx::query_as::<_, VulnerabilityRow>(&sql)
+                .bind(cve)
+                .bind(cve)
+                .fetch_optional(self.pool())
+                .await?
+                .ok_or_else(|| DatastoreError::not_found_with_name("Vulnerability", cve))?;
+            if row.hosts_count == 0 {
+                return Err(DatastoreError::not_found_with_name("Vulnerability", cve));
+            }
+            Ok(row)
+        }
+    }
 }
 
 /// Row type for software_cve table.
@@ -258,6 +378,25 @@ pub struct SoftwareCveRow {
     pub created_at: DateTime<Utc>,
     #[sqlx(default)]
     pub resolved_in_version: Option<String>,
+}
+
+/// Row type for vulnerability listing queries (joins vulnerability_host_counts + cve_meta + earliest created_at).
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct VulnerabilityRow {
+    pub cve: String,
+    pub created_at: DateTime<Utc>,
+    pub hosts_count: u32,
+    pub hosts_count_updated_at: DateTime<Utc>,
+    #[sqlx(default)]
+    pub cvss_score: Option<f64>,
+    #[sqlx(default)]
+    pub epss_probability: Option<f64>,
+    #[sqlx(default)]
+    pub cisa_known_exploit: Option<bool>,
+    #[sqlx(default)]
+    pub cve_published: Option<DateTime<Utc>>,
+    #[sqlx(default)]
+    pub description: Option<String>,
 }
 
 /// Row type for host_software_installed_paths.
