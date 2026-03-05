@@ -35,12 +35,15 @@ impl FleetService {
     ) -> ServiceResult<fleet_types::HostDetail> {
         let host = self.authenticate_device(token).await?;
 
-        let policies = self.ds.list_policies_for_host(host.id).await.unwrap_or_default();
+        let host_id = host.id;
+        let policies = self.ds.list_policies_for_host(host_id).await.unwrap_or_default();
+        let software = self.ds.list_software_for_host(host_id).await.unwrap_or_default();
         Ok(fleet_types::HostDetail {
             host,
             labels: Vec::new(),
             packs: Vec::new(),
             policies,
+            software,
         })
     }
 

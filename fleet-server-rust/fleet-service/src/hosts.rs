@@ -43,12 +43,14 @@ impl FleetService {
             .collect();
         let packs = self.ds.list_packs_for_host(id).await.unwrap_or_default();
         let policies = self.ds.list_policies_for_host(id).await.unwrap_or_default();
+        let software = self.ds.list_software_for_host(id).await.unwrap_or_default();
 
         Ok(fleet_types::HostDetail {
             host,
             labels,
             packs,
             policies,
+            software,
         })
     }
 
@@ -74,12 +76,14 @@ impl FleetService {
             .collect();
         let packs = self.ds.list_packs_for_host(host_id).await.unwrap_or_default();
         let policies = self.ds.list_policies_for_host(host_id).await.unwrap_or_default();
+        let software = self.ds.list_software_for_host(host_id).await.unwrap_or_default();
 
         Ok(fleet_types::HostDetail {
             host,
             labels,
             packs,
             policies,
+            software,
         })
     }
 
