@@ -114,7 +114,7 @@ impl FleetService {
     /// decorators, and file paths.
     pub async fn get_client_config(
         &self,
-        _host: &fleet_types::Host,
+        host: &fleet_types::Host,
     ) -> ServiceResult<HashMap<String, serde_json::Value>> {
         let mut config = HashMap::new();
 
@@ -130,6 +130,35 @@ impl FleetService {
             }
         }
 
+        // Build packs section from host's packs and their scheduled queries.
+        let packs = self.ds.list_packs_for_host(host.id).await.unwrap_or_default();
+        if !packs.is_empty() {
+            let mut packs_map = serde_json::Map::new();
+            for pack in &packs {
+                if pack.disabled {
+                    continue;
+                }
+                let scheduled = self.ds.list_scheduled_queries_in_pack(pack.id).await.unwrap_or_default();
+                let mut queries_map = serde_json::Map::new();
+                for sq in &scheduled {
+                    if let Ok(q) = self.ds.query(sq.query_id).await {
+                        queries_map.insert(q.name.clone(), serde_json::json!({
+                            "query": q.query,
+                            "interval": sq.interval,
+                            "snapshot": sq.snapshot,
+                            "removed": sq.removed,
+                            "platform": sq.platform,
+                            "version": sq.version,
+                        }));
+                    }
+                }
+                packs_map.insert(pack.name.clone(), serde_json::json!({
+                    "queries": queries_map,
+                }));
+            }
+            config.insert("packs".to_string(), serde_json::Value::Object(packs_map));
+        }
+
         Ok(config)
     }
 
@@ -140,18 +169,38 @@ impl FleetService {
     /// and an accelerate interval (0 = no acceleration).
     pub async fn get_distributed_queries(
         &self,
-        _host: &fleet_types::Host,
+        host: &fleet_types::Host,
     ) -> ServiceResult<DistributedQueryResult> {
-        let queries = HashMap::new();
-        let discovery = HashMap::new();
+        let mut queries = HashMap::new();
+        let mut discovery = HashMap::new();
 
-        // In a full implementation, this would:
-        // 1. Add detail queries based on update intervals
-        // 2. Add label queries based on update intervals
-        // 3. Add policy queries
-        // 4. Add live (campaign) queries
-        //
-        // For now, return empty maps as a placeholder.
+        // 1. Add label queries for dynamic labels
+        let labels = self.ds.list_labels(fleet_types::ListOptions::default()).await.unwrap_or_default();
+        for label in &labels {
+            if label.label_membership_type == fleet_types::label::LabelMembershipType::Dynamic
+                && !label.query.is_empty()
+            {
+                let key = format!("fleet_label_query_{}", label.id);
+                queries.insert(key.clone(), label.query.clone());
+                discovery.insert(key, String::new());
+            }
+        }
+
+        // 2. Add global policy queries
+        let policies = self.ds.list_global_policies(fleet_types::ListOptions::default()).await.unwrap_or_default();
+        for policy in &policies {
+            let key = format!("fleet_policy_query_{}", policy.policy_data.id);
+            queries.insert(key, policy.policy_data.query.clone());
+        }
+
+        // 3. Add team policy queries if host belongs to a team
+        if let Some(team_id) = host.team_id {
+            let team_policies = self.ds.list_team_policies(team_id, fleet_types::ListOptions::default()).await.unwrap_or_default();
+            for policy in &team_policies {
+                let key = format!("fleet_policy_query_{}", policy.policy_data.id);
+                queries.insert(key, policy.policy_data.query.clone());
+            }
+        }
 
         Ok(DistributedQueryResult {
             queries,
