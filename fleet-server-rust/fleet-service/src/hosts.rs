@@ -237,6 +237,29 @@ impl FleetService {
         Ok(())
     }
 
+    /// Transfers hosts matching filter options to a team.
+    pub async fn add_hosts_to_team_by_filter(
+        &self,
+        viewer: &Viewer,
+        opts: fleet_types::HostListOptions,
+        team_id: Option<u32>,
+    ) -> ServiceResult<u64> {
+        authz::authorize(viewer, Subject::Host, Action::Write)?;
+
+        if let Some(tid) = team_id {
+            self.ds.team(tid).await?;
+        }
+
+        let hosts = self.ds.list_hosts(opts).await?;
+        let host_ids: Vec<u32> = hosts.iter().map(|h| h.id).collect();
+        if !host_ids.is_empty() {
+            self.ds.transfer_hosts_to_team(&host_ids, team_id).await?;
+        }
+        let count = host_ids.len() as u64;
+        info!(count, team_id = ?team_id, "hosts transferred to team by filter");
+        Ok(count)
+    }
+
     /// Lists OS version stats aggregated across all hosts.
     pub async fn list_os_versions(
         &self,
@@ -291,6 +314,17 @@ impl FleetService {
         self.ds.device_mapping_for_host(host_id).await
     }
 
+    /// Deletes IDP-sourced device mapping for a host.
+    pub async fn delete_host_idp_device_mapping(
+        &self,
+        viewer: &Viewer,
+        host_id: u32,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Host, Action::Write)?;
+        self.ds.host(host_id).await?;
+        self.ds.delete_host_idp_device_mapping(host_id).await
+    }
+
     /// Gets health information for a host.
     pub async fn get_host_health(
         &self,
@@ -308,6 +342,16 @@ impl FleetService {
             failing_policies_count: failing,
             failing_critical_policies_count: None,
         })
+    }
+    /// Lists certificates installed on a host.
+    pub async fn list_host_certificates(
+        &self,
+        viewer: &Viewer,
+        host_id: u32,
+    ) -> ServiceResult<Vec<fleet_types::certificate::HostCertificate>> {
+        authz::authorize(viewer, Subject::Host, Action::Read)?;
+        self.ds.host(host_id).await?;
+        self.ds.list_host_certificates(host_id).await
     }
 }
 

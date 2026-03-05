@@ -21,6 +21,7 @@ pub mod policies;
 pub mod queries;
 pub mod scripts;
 pub mod sessions;
+pub mod setup_experience;
 pub mod software;
 pub mod teams;
 pub mod users;

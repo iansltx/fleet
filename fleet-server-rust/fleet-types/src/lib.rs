@@ -7,6 +7,7 @@
 pub mod activity;
 pub mod campaign;
 pub mod carve;
+pub mod certificate;
 pub mod config;
 pub mod datastore;
 pub mod enroll;

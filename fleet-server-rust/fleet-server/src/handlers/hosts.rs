@@ -375,9 +375,33 @@ pub async fn add_hosts_to_team_by_filter(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &body);
-    // Host transfer by filter requires bulk team_id update (deferred)
-    fleet_ok("", serde_json::json!({}))
+    // Parse filter fields to build HostListOptions
+    let team_id = body.filters.get("team_id").and_then(|v| v.as_u64()).map(|v| v as u32);
+    let label_id = body.filters.get("label_id").and_then(|v| v.as_u64()).map(|v| v as u32);
+    let status = body.filters.get("status").and_then(|v| v.as_str()).and_then(|s| match s {
+        "online" => Some(fleet_types::HostStatus::Online),
+        "offline" => Some(fleet_types::HostStatus::Offline),
+        "mia" | "missing" => Some(fleet_types::HostStatus::MIA),
+        "new" => Some(fleet_types::HostStatus::New),
+        _ => None,
+    });
+    let query = body.filters.get("query").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+    let opts = fleet_types::HostListOptions {
+        list_options: fleet_types::ListOptions {
+            per_page: 0,
+            match_query: query,
+            ..Default::default()
+        },
+        team_filter: team_id,
+        label_id_filter: label_id,
+        status_filter: status,
+        ..Default::default()
+    };
+    let target_team_id = body.team_id.map(|t| t as u32);
+    match state.service.add_hosts_to_team_by_filter(&viewer, opts, target_team_id).await {
+        Ok(count) => fleet_ok("", serde_json::json!({"hosts_transferred": count})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/hosts/{id}/refetch
@@ -440,9 +464,10 @@ pub async fn delete_host_idp(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id);
-    // Stub: backing service not yet implemented
-    fleet_ok("", serde_json::json!({}))
+    match state.service.delete_host_idp_device_mapping(&viewer, id as u32).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/hosts/report
@@ -589,9 +614,10 @@ pub async fn list_host_certificates(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id);
-    // Stub: backing service not yet implemented
-    fleet_ok("certificates", serde_json::json!([]))
+    match state.service.list_host_certificates(&viewer, id as u32).await {
+        Ok(certs) => fleet_ok("certificates", serde_json::to_value(&certs).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/hosts/summary/mdm

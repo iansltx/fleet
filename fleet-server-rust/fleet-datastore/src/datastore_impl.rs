@@ -2211,6 +2211,15 @@ impl Datastore for MysqlDatastore {
         Ok(())
     }
 
+    async fn delete_host_idp_device_mapping(&self, host_id: u32) -> ServiceResult<()> {
+        sqlx::query("DELETE FROM host_emails WHERE host_id = ? AND source = 'idp'")
+            .bind(host_id)
+            .execute(self.pool())
+            .await
+            .map_err(ds_error)?;
+        Ok(())
+    }
+
     async fn mark_host_refetch_requested(&self, host_id: u32) -> ServiceResult<()> {
         sqlx::query("UPDATE hosts SET refetch_requested = 1 WHERE id = ?")
             .bind(host_id)
@@ -2316,6 +2325,66 @@ impl Datastore for MysqlDatastore {
         MysqlDatastore::get_script_contents(self, script_id)
             .await
             .map_err(ServiceError::from)
+    }
+
+    // ---- Certificates ----
+
+    async fn list_host_certificates(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::certificate::HostCertificate>> {
+        let rows = MysqlDatastore::list_host_certificates(self, host_id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(|row| fleet_types::certificate::HostCertificate {
+            id: row.id,
+            host_id: row.host_id,
+            not_valid_after: row.not_valid_after,
+            not_valid_before: row.not_valid_before,
+            certificate_authority: row.certificate_authority,
+            common_name: row.common_name,
+            key_algorithm: row.key_algorithm,
+            key_strength: row.key_strength,
+            key_usage: row.key_usage,
+            serial: row.serial,
+            signing_algorithm: row.signing_algorithm,
+            subject_country: row.subject_country,
+            subject_org: row.subject_org,
+            subject_org_unit: row.subject_org_unit,
+            subject_common_name: row.subject_common_name,
+        }).collect())
+    }
+
+    // ---- Setup Experience ----
+
+    async fn get_setup_experience_script(&self, team_id: Option<u32>) -> ServiceResult<fleet_types::certificate::SetupExperienceScript> {
+        let row = MysqlDatastore::get_setup_experience_script(self, team_id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(fleet_types::certificate::SetupExperienceScript {
+            id: row.id,
+            team_id: row.team_id,
+            name: row.name,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+        })
+    }
+
+    async fn delete_setup_experience_script(&self, team_id: Option<u32>) -> ServiceResult<()> {
+        MysqlDatastore::delete_setup_experience_script(self, team_id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(())
+    }
+
+    async fn list_setup_experience_software_title_ids(&self, team_id: Option<u32>) -> ServiceResult<Vec<u32>> {
+        Ok(MysqlDatastore::list_setup_experience_software_title_ids(self, team_id)
+            .await
+            .map_err(ServiceError::from)?)
+    }
+
+    async fn set_setup_experience_software(&self, team_id: Option<u32>, title_ids: &[u32]) -> ServiceResult<()> {
+        MysqlDatastore::set_setup_experience_software(self, team_id, title_ids)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(())
     }
 
     // ---- Utilities ----

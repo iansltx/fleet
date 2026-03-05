@@ -91,9 +91,16 @@ pub async fn put_setup_experience_software(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &body);
-    // Stub: setup experience software deferred
-    fleet_ok("", serde_json::json!({}))
+    let team_id = body.team_id.map(|t| t as u32);
+    let title_ids: Vec<u32> = body.software_title_ids
+        .unwrap_or_default()
+        .into_iter()
+        .map(|id| id as u32)
+        .collect();
+    match state.service.set_setup_experience_software(&viewer, team_id, &title_ids).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/setup_experience/software
@@ -106,9 +113,11 @@ pub async fn get_setup_experience_software(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &params);
-    // Stub: setup experience software listing deferred
-    fleet_ok("software_titles", serde_json::json!([]))
+    let team_id = params.team_id.map(|t| t as u32);
+    match state.service.list_setup_experience_software(&viewer, team_id).await {
+        Ok(title_ids) => fleet_ok("software_title_ids", serde_json::to_value(&title_ids).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/setup_experience/script
@@ -121,9 +130,11 @@ pub async fn get_setup_experience_script(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &params);
-    // Stub: setup experience script deferred
-    fleet_ok("script", serde_json::json!({}))
+    let team_id = params.team_id.map(|t| t as u32);
+    match state.service.get_setup_experience_script(&viewer, team_id).await {
+        Ok(script) => fleet_ok("script", serde_json::to_value(&script).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/setup_experience/script
@@ -150,7 +161,9 @@ pub async fn delete_setup_experience_script(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &params);
-    // Stub: setup experience script deletion deferred
-    fleet_ok("", serde_json::json!({}))
+    let team_id = params.team_id.map(|t| t as u32);
+    match state.service.delete_setup_experience_script(&viewer, team_id).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }

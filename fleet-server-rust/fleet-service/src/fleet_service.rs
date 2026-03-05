@@ -197,6 +197,7 @@ pub trait Datastore: Send + Sync + 'static {
     async fn list_software_for_host(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::Software>>;
     async fn device_mapping_for_host(&self, host_id: u32) -> ServiceResult<serde_json::Value>;
     async fn set_custom_host_device_mapping(&self, host_id: u32, email: &str) -> ServiceResult<()>;
+    async fn delete_host_idp_device_mapping(&self, host_id: u32) -> ServiceResult<()>;
     async fn mark_host_refetch_requested(&self, host_id: u32) -> ServiceResult<()>;
 
     // ---- Carves ----
@@ -214,6 +215,15 @@ pub trait Datastore: Send + Sync + 'static {
     async fn list_scripts(&self, team_id: Option<u32>) -> ServiceResult<Vec<fleet_types::script::Script>>;
     async fn delete_script(&self, id: u32) -> ServiceResult<()>;
     async fn get_script_contents(&self, script_id: u32) -> ServiceResult<String>;
+
+    // ---- Certificates ----
+    async fn list_host_certificates(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::certificate::HostCertificate>>;
+
+    // ---- Setup Experience ----
+    async fn get_setup_experience_script(&self, team_id: Option<u32>) -> ServiceResult<fleet_types::certificate::SetupExperienceScript>;
+    async fn delete_setup_experience_script(&self, team_id: Option<u32>) -> ServiceResult<()>;
+    async fn list_setup_experience_software_title_ids(&self, team_id: Option<u32>) -> ServiceResult<Vec<u32>>;
+    async fn set_setup_experience_software(&self, team_id: Option<u32>, title_ids: &[u32]) -> ServiceResult<()>;
 
     // ---- Utilities ----
     async fn list_packs_for_host(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::Pack>>;
