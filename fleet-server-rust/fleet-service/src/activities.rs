@@ -30,4 +30,25 @@ impl FleetService {
         authz::authorize(viewer, Subject::Host, Action::Read)?;
         self.ds.count_host_upcoming_activities(host_id).await
     }
+
+    /// Lists upcoming activities for a host.
+    pub async fn list_host_upcoming_activities(
+        &self,
+        viewer: &Viewer,
+        host_id: u32,
+    ) -> ServiceResult<Vec<fleet_types::UpcomingActivity>> {
+        authz::authorize(viewer, Subject::Host, Action::Read)?;
+        self.ds.list_host_upcoming_activities(host_id).await
+    }
+
+    /// Cancels (deletes) a specific upcoming activity for a host.
+    pub async fn cancel_host_upcoming_activity(
+        &self,
+        viewer: &Viewer,
+        host_id: u32,
+        activity_id: u32,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Host, Action::Write)?;
+        self.ds.delete_host_upcoming_activity(host_id, activity_id).await
+    }
 }

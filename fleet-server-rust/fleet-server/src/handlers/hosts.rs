@@ -640,11 +640,15 @@ pub async fn list_host_upcoming_activities(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    match state.service.count_host_upcoming_activities(&viewer, id as u32).await {
-        Ok(count) => fleet_ok("activities", serde_json::json!({
-            "count": count,
-            "host_id": id,
-        })),
+    match state.service.list_host_upcoming_activities(&viewer, id as u32).await {
+        Ok(activities) => {
+            let count = activities.len();
+            fleet_ok("", serde_json::json!({
+                "count": count,
+                "host_id": id,
+                "activities": serde_json::to_value(&activities).unwrap_or_default(),
+            }))
+        }
         Err(e) => encode_service_error(&e),
     }
 }
@@ -659,9 +663,10 @@ pub async fn cancel_host_upcoming_activity(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id, activity_id);
-    // Stub: backing service not yet implemented
-    fleet_ok("", serde_json::json!({}))
+    match state.service.cancel_host_upcoming_activity(&viewer, id as u32, activity_id as u32).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/hosts/{id}/lock

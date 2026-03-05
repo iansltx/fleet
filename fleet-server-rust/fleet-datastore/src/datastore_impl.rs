@@ -851,11 +851,11 @@ impl Datastore for MysqlDatastore {
             .map_err(ServiceError::from)?;
         Ok(fleet_types::HostSummary {
             totals_hosts_count: row.totals_count as u32,
-            online_count: Some(0),
-            offline_count: Some(0),
-            mia_count: Some(0),
-            missing_30_days_count: None,
-            new_count: Some(0),
+            online_count: Some(row.online_count as u32),
+            offline_count: Some(row.offline_count as u32),
+            mia_count: Some(row.mia_count as u32),
+            missing_30_days_count: Some(row.mia_count as u32),
+            new_count: Some(row.new_count as u32),
             platforms: vec![
                 fleet_types::host::HostSummaryPlatform { platform: "linux".to_string(), hosts_count: row.linux_count as u32 },
                 fleet_types::host::HostSummaryPlatform { platform: "darwin".to_string(), hosts_count: row.macos_count as u32 },
@@ -1761,12 +1761,13 @@ impl Datastore for MysqlDatastore {
 
     async fn list_software(
         &self,
-        _opts: fleet_types::ListOptions,
-        _team_id: Option<u32>,
+        opts: fleet_types::ListOptions,
+        team_id: Option<u32>,
     ) -> ServiceResult<Vec<fleet_types::Software>> {
-        // The datastore has list_software_titles but no generic list_software yet.
-        // Return empty list for now.
-        Ok(Vec::new())
+        let rows = MysqlDatastore::list_software(self, team_id, opts.per_page, opts.page)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(software_row_to_software).collect())
     }
 
     async fn software_by_id(&self, id: u32) -> ServiceResult<fleet_types::Software> {
@@ -1774,6 +1775,18 @@ impl Datastore for MysqlDatastore {
             .await
             .map_err(ServiceError::from)?;
         Ok(software_row_to_software(row))
+    }
+
+    async fn update_software_title_name(&self, id: u32, name: &str) -> ServiceResult<()> {
+        MysqlDatastore::update_software_title_name(self, id, name)
+            .await
+            .map_err(ServiceError::from)
+    }
+
+    async fn delete_software_installer(&self, title_id: u32) -> ServiceResult<()> {
+        MysqlDatastore::delete_software_installer(self, title_id)
+            .await
+            .map_err(ServiceError::from)
     }
 
     // ---- Email Changes ----
@@ -1983,6 +1996,29 @@ impl Datastore for MysqlDatastore {
 
     async fn count_host_upcoming_activities(&self, host_id: u32) -> ServiceResult<u32> {
         MysqlDatastore::count_host_upcoming_activities(self, host_id)
+            .await
+            .map_err(ServiceError::from)
+    }
+
+    async fn list_host_upcoming_activities(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::UpcomingActivity>> {
+        let rows = MysqlDatastore::list_host_upcoming_activities(self, host_id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(|r| fleet_types::UpcomingActivity {
+            id: r.id,
+            host_id: r.host_id,
+            user_id: r.user_id,
+            activity_type: r.activity_type,
+            execution_id: r.execution_id,
+            created_at: r.created_at,
+            activated_at: r.activated_at,
+            fleet_initiated: r.fleet_initiated,
+            priority: r.priority,
+        }).collect())
+    }
+
+    async fn delete_host_upcoming_activity(&self, host_id: u32, activity_id: u32) -> ServiceResult<()> {
+        MysqlDatastore::delete_host_upcoming_activity(self, host_id, activity_id)
             .await
             .map_err(ServiceError::from)
     }

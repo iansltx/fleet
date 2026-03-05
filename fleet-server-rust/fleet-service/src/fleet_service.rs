@@ -159,6 +159,8 @@ pub trait Datastore: Send + Sync + 'static {
     // ---- Software ----
     async fn list_software(&self, opts: fleet_types::ListOptions, team_id: Option<u32>) -> ServiceResult<Vec<fleet_types::Software>>;
     async fn software_by_id(&self, id: u32) -> ServiceResult<fleet_types::Software>;
+    async fn update_software_title_name(&self, id: u32, name: &str) -> ServiceResult<()>;
+    async fn delete_software_installer(&self, title_id: u32) -> ServiceResult<()>;
 
     // ---- Email Changes ----
     async fn confirm_pending_email_change(&self, user_id: u32, token: &str) -> ServiceResult<String>;
@@ -185,6 +187,8 @@ pub trait Datastore: Send + Sync + 'static {
     async fn new_activity(&self, user_id: Option<u32>, activity_type: &str, details: &JsonValue) -> ServiceResult<()>;
     async fn list_activities(&self, limit: u32, offset: u32) -> ServiceResult<Vec<fleet_types::Activity>>;
     async fn count_host_upcoming_activities(&self, host_id: u32) -> ServiceResult<u32>;
+    async fn list_host_upcoming_activities(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::UpcomingActivity>>;
+    async fn delete_host_upcoming_activity(&self, host_id: u32, activity_id: u32) -> ServiceResult<()>;
 
     // ---- Device ----
     async fn load_host_by_device_auth_token(&self, token: &str) -> ServiceResult<fleet_types::Host>;

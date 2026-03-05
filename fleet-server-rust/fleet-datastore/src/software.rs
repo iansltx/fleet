@@ -47,6 +47,53 @@ pub struct SoftwareTitleRow {
 }
 
 impl MysqlDatastore {
+    /// Lists software with optional team filter and pagination.
+    ///
+    /// Simplified version of Go's `ListSoftware`.
+    pub async fn list_software(
+        &self,
+        team_id: Option<u32>,
+        per_page: u32,
+        page: u32,
+    ) -> Result<Vec<SoftwareRow>> {
+        let limit = if per_page == 0 { 20 } else { per_page };
+        let offset = page * limit;
+
+        if let Some(tid) = team_id {
+            Ok(sqlx::query_as::<_, SoftwareRow>(
+                r#"
+                SELECT DISTINCT s.id, s.name, s.version, s.source, s.bundle_identifier,
+                    s.`release`, s.vendor, s.arch, s.title_id, s.checksum
+                FROM software s
+                JOIN host_software hs ON s.id = hs.software_id
+                JOIN hosts h ON hs.host_id = h.id
+                WHERE h.team_id = ?
+                ORDER BY s.name, s.version
+                LIMIT ? OFFSET ?
+                "#,
+            )
+            .bind(tid)
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(self.pool())
+            .await?)
+        } else {
+            Ok(sqlx::query_as::<_, SoftwareRow>(
+                r#"
+                SELECT s.id, s.name, s.version, s.source, s.bundle_identifier,
+                    s.`release`, s.vendor, s.arch, s.title_id, s.checksum
+                FROM software s
+                ORDER BY s.name, s.version
+                LIMIT ? OFFSET ?
+                "#,
+            )
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(self.pool())
+            .await?)
+        }
+    }
+
     /// Lists software for a host. Matches Go's host software queries.
     ///
     /// SELECT s.* FROM software s
@@ -117,6 +164,35 @@ impl MysqlDatastore {
             .bind(effective_team_id)
             .fetch_all(self.pool())
             .await?)
+    }
+
+    /// Updates a software title name. Matches Go's `UpdateSoftwareTitleName`.
+    ///
+    /// UPDATE software_titles SET name = ? WHERE id = ?
+    pub async fn update_software_title_name(&self, id: u32, name: &str) -> Result<()> {
+        let result = sqlx::query("UPDATE software_titles SET name = ? WHERE id = ?")
+            .bind(name)
+            .bind(id)
+            .execute(self.pool())
+            .await?;
+        if result.rows_affected() == 0 {
+            return Err(DatastoreError::not_found_with_id("SoftwareTitle", id as u64));
+        }
+        Ok(())
+    }
+
+    /// Deletes a software installer for a title.
+    ///
+    /// DELETE FROM software_installers WHERE title_id = ?
+    pub async fn delete_software_installer(&self, title_id: u32) -> Result<()> {
+        let result = sqlx::query("DELETE FROM software_installers WHERE title_id = ?")
+            .bind(title_id)
+            .execute(self.pool())
+            .await?;
+        if result.rows_affected() == 0 {
+            return Err(DatastoreError::not_found_with_id("SoftwareInstaller", title_id as u64));
+        }
+        Ok(())
     }
 
     /// Gets installed paths for a host's software.

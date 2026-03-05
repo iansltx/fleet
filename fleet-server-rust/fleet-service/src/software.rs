@@ -49,4 +49,25 @@ impl FleetService {
         authz::authorize(viewer, Subject::Software, Action::Read)?;
         self.ds.software_by_id(id).await
     }
+
+    /// Updates a software title name.
+    pub async fn update_software_title_name(
+        &self,
+        viewer: &Viewer,
+        id: u32,
+        name: &str,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Software, Action::Write)?;
+        self.ds.update_software_title_name(id, name).await
+    }
+
+    /// Deletes a software installer for a title.
+    pub async fn delete_software_installer(
+        &self,
+        viewer: &Viewer,
+        title_id: u32,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Software, Action::Write)?;
+        self.ds.delete_software_installer(title_id).await
+    }
 }

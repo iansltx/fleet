@@ -84,6 +84,10 @@ pub struct HostSummaryRow {
     pub macos_count: i64,
     pub windows_count: i64,
     pub chrome_count: i64,
+    pub online_count: i64,
+    pub offline_count: i64,
+    pub mia_count: i64,
+    pub new_count: i64,
 }
 
 impl MysqlDatastore {
@@ -335,7 +339,11 @@ impl MysqlDatastore {
                 COALESCE(SUM(CASE WHEN platform = 'linux' OR platform_like LIKE '%linux%' THEN 1 ELSE 0 END), 0) as linux_count,
                 COALESCE(SUM(CASE WHEN platform = 'darwin' THEN 1 ELSE 0 END), 0) as macos_count,
                 COALESCE(SUM(CASE WHEN platform = 'windows' THEN 1 ELSE 0 END), 0) as windows_count,
-                COALESCE(SUM(CASE WHEN platform = 'chrome' THEN 1 ELSE 0 END), 0) as chrome_count
+                COALESCE(SUM(CASE WHEN platform = 'chrome' THEN 1 ELSE 0 END), 0) as chrome_count,
+                COALESCE(SUM(CASE WHEN seen_time >= DATE_SUB(NOW(), INTERVAL 30 MINUTE) THEN 1 ELSE 0 END), 0) as online_count,
+                COALESCE(SUM(CASE WHEN seen_time >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND seen_time < DATE_SUB(NOW(), INTERVAL 30 MINUTE) THEN 1 ELSE 0 END), 0) as offline_count,
+                COALESCE(SUM(CASE WHEN seen_time < DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END), 0) as mia_count,
+                COALESCE(SUM(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 ELSE 0 END), 0) as new_count
             FROM hosts
             "#,
         )

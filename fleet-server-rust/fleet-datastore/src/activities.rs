@@ -107,6 +107,41 @@ impl MysqlDatastore {
         Ok(count)
     }
 
+    /// Lists upcoming activities for a host.
+    ///
+    /// SELECT * FROM upcoming_activities WHERE host_id = ? ORDER BY priority DESC, created_at ASC
+    pub async fn list_host_upcoming_activities(&self, host_id: u32) -> Result<Vec<UpcomingActivityRow>> {
+        Ok(sqlx::query_as::<_, UpcomingActivityRow>(
+            r#"
+            SELECT id, host_id, user_id, activity_type, execution_id,
+                created_at, activated_at, fleet_initiated, priority
+            FROM upcoming_activities
+            WHERE host_id = ?
+            ORDER BY priority DESC, created_at ASC
+            "#,
+        )
+        .bind(host_id)
+        .fetch_all(self.pool())
+        .await?)
+    }
+
+    /// Deletes an upcoming activity by ID and host ID.
+    ///
+    /// DELETE FROM upcoming_activities WHERE id = ? AND host_id = ?
+    pub async fn delete_host_upcoming_activity(&self, host_id: u32, activity_id: u32) -> Result<()> {
+        let result = sqlx::query(
+            "DELETE FROM upcoming_activities WHERE id = ? AND host_id = ?",
+        )
+        .bind(activity_id)
+        .bind(host_id)
+        .execute(self.pool())
+        .await?;
+        if result.rows_affected() == 0 {
+            return Err(crate::error::DatastoreError::not_found_with_id("UpcomingActivity", activity_id as u64));
+        }
+        Ok(())
+    }
+
     /// Marks activities as streamed. Used for activity streaming/webhooks.
     ///
     /// UPDATE activities SET streamed = TRUE WHERE id IN (...)

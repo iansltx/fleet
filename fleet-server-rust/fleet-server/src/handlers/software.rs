@@ -319,9 +319,10 @@ pub async fn update_software_name(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id, &body);
-    // Stub: software name update deferred
-    fleet_ok("", serde_json::json!({}))
+    match state.service.update_software_title_name(&viewer, id as u32, &body.name).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// PATCH /api/_version_/fleet/software/titles/{id}/package
@@ -349,9 +350,10 @@ pub async fn delete_software_installer(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, title_id);
-    // Stub: delete installer deferred
-    fleet_ok("", serde_json::json!({}))
+    match state.service.delete_software_installer(&viewer, title_id as u32).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/software/install/{install_uuid}/results

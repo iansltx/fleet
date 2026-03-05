@@ -14,3 +14,17 @@ pub struct Activity {
     pub activity_type: String,
     pub details: serde_json::Value,
 }
+
+/// UpcomingActivity represents a pending/scheduled activity for a host.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpcomingActivity {
+    pub id: u32,
+    pub host_id: u32,
+    pub user_id: Option<u32>,
+    pub activity_type: String,
+    pub execution_id: String,
+    pub created_at: DateTime<Utc>,
+    pub activated_at: Option<DateTime<Utc>>,
+    pub fleet_initiated: bool,
+    pub priority: i32,
+}

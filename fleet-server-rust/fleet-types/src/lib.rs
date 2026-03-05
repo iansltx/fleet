@@ -28,7 +28,7 @@ pub mod user;
 pub mod vulnerability;
 
 // Re-export commonly used types at the crate root.
-pub use activity::Activity;
+pub use activity::{Activity, UpcomingActivity};
 pub use campaign::*;
 pub use carve::*;
 pub use config::*;
