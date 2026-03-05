@@ -257,8 +257,8 @@ pub async fn get_orbit_software_install_details(
     State(state): State<AppState>,
     Json(body): Json<OrbitGetSoftwareInstallBody>,
 ) -> FleetResponse {
-    match state.service.authenticate_orbit(&body.orbit_node_key).await {
-        Ok(_host) => fleet_error(StatusCode::NOT_IMPLEMENTED, "install details tracking not yet implemented"),
+    match state.service.get_orbit_software_install_details(&body.orbit_node_key, &body.install_uuid).await {
+        Ok(details) => fleet_ok("details", serde_json::to_value(&details).unwrap_or_default()),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -268,8 +268,8 @@ pub async fn orbit_setup_experience_init(
     State(state): State<AppState>,
     Json(body): Json<OrbitSetupExperienceInitBody>,
 ) -> FleetResponse {
-    match state.service.authenticate_orbit(&body.orbit_node_key).await {
-        Ok(_host) => fleet_ok("", serde_json::json!({})),
+    match state.service.orbit_setup_experience_init(&body.orbit_node_key).await {
+        Ok(result) => fleet_ok("result", result),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -279,8 +279,8 @@ pub async fn get_orbit_setup_experience_status(
     State(state): State<AppState>,
     Json(body): Json<GetOrbitSetupExperienceStatusBody>,
 ) -> FleetResponse {
-    match state.service.authenticate_orbit(&body.orbit_node_key).await {
-        Ok(_host) => fleet_ok("status", serde_json::json!({"status": "pending", "software": [], "profiles": []})),
+    match state.service.get_orbit_setup_experience_status(&body.orbit_node_key).await {
+        Ok(results) => fleet_ok("results", results),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -345,11 +345,12 @@ pub async fn get_device_certificate_template(
 
 /// PUT /api/fleetd/certificates/{id}/status
 pub async fn update_certificate_status(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     Path(id): Path<u64>,
     Json(body): Json<UpdateCertificateStatusBody>,
 ) -> FleetResponse {
-    let _ = &body;
-    tracing::info!(certificate_id = id, "certificate status update received");
-    fleet_ok("", serde_json::json!({}))
+    match state.service.update_certificate_status(id, &body.status, &body.rest).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }

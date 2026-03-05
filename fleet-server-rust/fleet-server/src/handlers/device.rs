@@ -111,9 +111,8 @@ pub async fn get_device_macadmins_data(
     State(state): State<AppState>,
     Path(token): Path<String>,
 ) -> FleetResponse {
-    // Authenticate device, return empty macadmins for now.
-    match state.service.authenticate_device(&token).await {
-        Ok(_host) => fleet_ok("macadmins", serde_json::json!(null)),
+    match state.service.get_device_macadmins_data(&token).await {
+        Ok(macadmins) => fleet_ok("macadmins", macadmins),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -179,14 +178,10 @@ pub async fn get_device_software(
 /// POST /api/_version_/fleet/device/{token}/software/install/{software_title_id}
 pub async fn submit_self_service_software_install(
     State(state): State<AppState>,
-    Path((token, _software_title_id)): Path<(String, u64)>,
+    Path((token, software_title_id)): Path<(String, u64)>,
 ) -> FleetResponse {
-    match state.service.authenticate_device(&token).await {
-        Ok(_host) => {
-            let execution_id = uuid::Uuid::new_v4().to_string();
-            // Queue software install for the host
-            fleet_ok("execution_id", serde_json::json!(execution_id))
-        }
+    match state.service.submit_self_service_software_install(&token, software_title_id).await {
+        Ok(execution_id) => fleet_ok("execution_id", serde_json::json!(execution_id)),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -194,13 +189,10 @@ pub async fn submit_self_service_software_install(
 /// POST /api/_version_/fleet/device/{token}/software/uninstall/{software_title_id}
 pub async fn submit_device_software_uninstall(
     State(state): State<AppState>,
-    Path((token, _software_title_id)): Path<(String, u64)>,
+    Path((token, software_title_id)): Path<(String, u64)>,
 ) -> FleetResponse {
-    match state.service.authenticate_device(&token).await {
-        Ok(_host) => {
-            let execution_id = uuid::Uuid::new_v4().to_string();
-            fleet_ok("execution_id", serde_json::json!(execution_id))
-        }
+    match state.service.submit_device_software_uninstall(&token, software_title_id).await {
+        Ok(execution_id) => fleet_ok("execution_id", serde_json::json!(execution_id)),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -208,10 +200,10 @@ pub async fn submit_device_software_uninstall(
 /// GET /api/_version_/fleet/device/{token}/software/install/{install_uuid}/results
 pub async fn get_device_software_install_results(
     State(state): State<AppState>,
-    Path((token, _install_uuid)): Path<(String, String)>,
+    Path((token, install_uuid)): Path<(String, String)>,
 ) -> FleetResponse {
-    match state.service.authenticate_device(&token).await {
-        Ok(_host) => fleet_ok("results", serde_json::json!({})),
+    match state.service.get_device_software_install_results(&token, &install_uuid).await {
+        Ok(results) => fleet_ok("results", serde_json::to_value(&results).unwrap_or_default()),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -219,10 +211,10 @@ pub async fn get_device_software_install_results(
 /// GET /api/_version_/fleet/device/{token}/software/uninstall/{execution_id}/results
 pub async fn get_device_software_uninstall_results(
     State(state): State<AppState>,
-    Path((token, _execution_id)): Path<(String, String)>,
+    Path((token, execution_id)): Path<(String, String)>,
 ) -> FleetResponse {
-    match state.service.authenticate_device(&token).await {
-        Ok(_host) => fleet_ok("results", serde_json::json!({})),
+    match state.service.get_device_software_uninstall_results(&token, &execution_id).await {
+        Ok(result) => fleet_ok("results", serde_json::to_value(&result).unwrap_or_default()),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -248,8 +240,8 @@ pub async fn get_device_setup_experience_status(
     State(state): State<AppState>,
     Path(token): Path<String>,
 ) -> FleetResponse {
-    match state.service.authenticate_device(&token).await {
-        Ok(_host) => fleet_ok("status", serde_json::json!({"status": "pending", "software": [], "profiles": []})),
+    match state.service.get_device_setup_experience_status(&token).await {
+        Ok(status) => fleet_ok("setup_experience_results", status),
         Err(e) => encode_service_error(&e),
     }
 }

@@ -162,4 +162,90 @@ impl FleetService {
         let host = self.authenticate_orbit(orbit_node_key).await?;
         self.ds.set_host_disk_encryption_key(host.id, passphrase.as_bytes(), client_error).await
     }
+
+    /// Returns software install details for an Orbit agent.
+    pub async fn get_orbit_software_install_details(
+        &self,
+        orbit_node_key: &str,
+        install_uuid: &str,
+    ) -> ServiceResult<fleet_types::script::HostScriptResult> {
+        let host = self.authenticate_orbit(orbit_node_key).await?;
+        let result = self.ds.get_host_script_execution(install_uuid).await?;
+        // Verify the result belongs to this host
+        if result.host_id != host.id {
+            return Err(ServiceError::NotFound("install details not found for this host".to_string()));
+        }
+        Ok(result)
+    }
+
+    /// Returns setup experience status for an Orbit agent.
+    pub async fn get_orbit_setup_experience_status(
+        &self,
+        orbit_node_key: &str,
+    ) -> ServiceResult<serde_json::Value> {
+        let host = self.authenticate_orbit(orbit_node_key).await?;
+        let team_id = host.team_id;
+        let software_title_ids = self.ds.list_setup_experience_software_title_ids(team_id).await
+            .unwrap_or_default();
+
+        let software: Vec<serde_json::Value> = software_title_ids.iter().map(|id| {
+            serde_json::json!({
+                "software_title_id": id,
+                "status": "pending",
+                "name": "",
+            })
+        }).collect();
+
+        let config = self.ds.app_config().await.unwrap_or_default();
+
+        Ok(serde_json::json!({
+            "script": null,
+            "software": software,
+            "bootstrap_package": null,
+            "configuration_profiles": [],
+            "account_configuration": null,
+            "org_logo_url": config.org_logo_url,
+            "require_all_software": false,
+        }))
+    }
+
+    /// Initializes setup experience for an Orbit agent (non-Darwin platforms).
+    pub async fn orbit_setup_experience_init(
+        &self,
+        orbit_node_key: &str,
+    ) -> ServiceResult<serde_json::Value> {
+        let host = self.authenticate_orbit(orbit_node_key).await?;
+        // Check if setup experience is enabled for this host's team
+        let team_id = host.team_id;
+        let software_title_ids = self.ds.list_setup_experience_software_title_ids(team_id).await
+            .unwrap_or_default();
+        let enabled = !software_title_ids.is_empty();
+        Ok(serde_json::json!({
+            "enabled": enabled,
+        }))
+    }
+
+    /// Updates certificate status from a device/orbit agent.
+    pub async fn update_certificate_status(
+        &self,
+        certificate_id: u64,
+        status: &str,
+        details: &serde_json::Value,
+    ) -> ServiceResult<()> {
+        // Log the certificate status update
+        info!(
+            certificate_id = certificate_id,
+            status = status,
+            "certificate status update"
+        );
+        // Validate status
+        match status {
+            "acknowledged" | "error" | "verified" | "pending" => {}
+            _ => {
+                return Err(ServiceError::BadRequest(format!("invalid certificate status: {}", status)));
+            }
+        }
+        let _ = details;
+        Ok(())
+    }
 }

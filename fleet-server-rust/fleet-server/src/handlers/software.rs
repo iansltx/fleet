@@ -385,12 +385,21 @@ pub async fn upload_software_installer(
         }
     }
 
-    let _ = (&viewer, team_id, self_service, install_script, pre_install_query, post_install_script, uninstall_script);
+    let _ = &viewer;
 
     // TODO: Store the installer binary (S3/filesystem) and create DB records.
     // For now, we've successfully parsed the multipart upload.
     // The actual storage requires S3 integration which is a separate infrastructure piece.
-    fleet_ok("software_package", serde_json::json!({"message": "software installer parsed successfully"}))
+    fleet_ok("software_package", serde_json::json!({
+        "message": "software installer parsed successfully",
+        "team_id": team_id,
+        "self_service": self_service,
+        "install_script": install_script.is_some(),
+        "pre_install_query": pre_install_query.is_some(),
+        "post_install_script": post_install_script.is_some(),
+        "uninstall_script": uninstall_script.is_some(),
+        "file_name": _file_name,
+    }))
 }
 
 /// PATCH /api/_version_/fleet/software/titles/{id}/name
@@ -461,10 +470,19 @@ pub async fn update_software_installer(
         }
     }
 
-    let _ = (&viewer, id, self_service, install_script, pre_install_query, post_install_script, uninstall_script);
+    let _ = &viewer;
 
     // TODO: Update the installer binary in S3 and update DB records.
-    fleet_ok("software_package", serde_json::json!({"message": "software installer updated"}))
+    fleet_ok("software_package", serde_json::json!({
+        "message": "software installer update parsed",
+        "title_id": id,
+        "self_service": self_service,
+        "install_script": install_script.is_some(),
+        "pre_install_query": pre_install_query.is_some(),
+        "post_install_script": post_install_script.is_some(),
+        "uninstall_script": uninstall_script.is_some(),
+        "file_name": _file_name,
+    }))
 }
 
 /// DELETE /api/_version_/fleet/software/titles/{title_id}/available_for_install
@@ -570,6 +588,9 @@ pub async fn put_software_title_icon(
     let _ = (&viewer, title_id);
 
     // TODO: Store icon in S3/filesystem and create DB record
+    if _icon_data.is_none() {
+        return fleet_error(StatusCode::BAD_REQUEST, "icon field is required");
+    }
     fleet_ok("", serde_json::json!({}))
 }
 
