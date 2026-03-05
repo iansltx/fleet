@@ -509,8 +509,14 @@ pub async fn list_fleet_maintained_apps(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &params);
-    fleet_ok("fleet_maintained_apps", serde_json::json!([]))
+    let per_page = params.per_page.unwrap_or(20) as u32;
+    let page = params.page.unwrap_or(0) as u32;
+    let offset = page * per_page;
+    let query_str = params.query.as_deref();
+    match state.service.list_fleet_maintained_apps(&viewer, query_str, per_page, offset).await {
+        Ok(apps) => fleet_ok("fleet_maintained_apps", serde_json::to_value(&apps).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/software/fleet_maintained_apps/{app_id}
@@ -523,8 +529,10 @@ pub async fn get_fleet_maintained_app(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, app_id);
-    fleet_ok("fleet_maintained_app", serde_json::json!({}))
+    match state.service.get_fleet_maintained_app(&viewer, app_id as u32).await {
+        Ok(app) => fleet_ok("fleet_maintained_app", serde_json::to_value(&app).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/software/app_store_apps/batch

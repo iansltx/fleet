@@ -249,6 +249,15 @@ pub trait Datastore: Send + Sync + 'static {
         team_id: Option<u32>,
     ) -> ServiceResult<fleet_types::vulnerability::VulnerabilityWithMetadata>;
 
+    // ---- Fleet Maintained Apps ----
+    async fn list_fleet_maintained_apps(
+        &self,
+        query: Option<&str>,
+        limit: u32,
+        offset: u32,
+    ) -> ServiceResult<Vec<fleet_types::software::FleetMaintainedApp>>;
+    async fn get_fleet_maintained_app(&self, id: u32) -> ServiceResult<fleet_types::software::FleetMaintainedApp>;
+
     // ---- Utilities ----
     async fn list_packs_for_host(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::Pack>>;
     async fn list_software_titles(&self, team_id: Option<u32>, limit: u32, offset: u32) -> ServiceResult<Vec<fleet_types::Software>>;

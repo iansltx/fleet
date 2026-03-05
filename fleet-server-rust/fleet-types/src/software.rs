@@ -85,6 +85,18 @@ pub enum SoftwareInstallerStatus {
     Failed,
 }
 
+/// FleetMaintainedApp represents a Fleet-maintained app in the library.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FleetMaintainedApp {
+    pub id: u32,
+    pub name: String,
+    pub slug: String,
+    pub platform: String,
+    pub unique_identifier: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 // Software field length constants
 pub const SOFTWARE_NAME_MAX_LENGTH: usize = 255;
 pub const SOFTWARE_VERSION_MAX_LENGTH: usize = 255;

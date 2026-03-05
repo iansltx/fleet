@@ -95,4 +95,26 @@ impl FleetService {
         authz::authorize(viewer, Subject::Software, Action::Read)?;
         self.ds.get_vulnerability(cve, team_id).await
     }
+
+    /// Lists fleet maintained apps.
+    pub async fn list_fleet_maintained_apps(
+        &self,
+        viewer: &Viewer,
+        query: Option<&str>,
+        limit: u32,
+        offset: u32,
+    ) -> ServiceResult<Vec<fleet_types::software::FleetMaintainedApp>> {
+        authz::authorize(viewer, Subject::Software, Action::Read)?;
+        self.ds.list_fleet_maintained_apps(query, limit, offset).await
+    }
+
+    /// Gets a fleet maintained app by ID.
+    pub async fn get_fleet_maintained_app(
+        &self,
+        viewer: &Viewer,
+        id: u32,
+    ) -> ServiceResult<fleet_types::software::FleetMaintainedApp> {
+        authz::authorize(viewer, Subject::Software, Action::Read)?;
+        self.ds.get_fleet_maintained_app(id).await
+    }
 }

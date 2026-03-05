@@ -388,6 +388,18 @@ fn cert_authority_row_to_type(row: crate::certificates::CertificateAuthorityRow)
     }
 }
 
+fn fma_row_to_type(row: crate::software::FleetMaintainedAppRow) -> fleet_types::software::FleetMaintainedApp {
+    fleet_types::software::FleetMaintainedApp {
+        id: row.id,
+        name: row.name,
+        slug: row.slug,
+        platform: row.platform,
+        unique_identifier: row.unique_identifier,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+    }
+}
+
 fn vuln_row_to_type(row: crate::software::VulnerabilityRow) -> fleet_types::vulnerability::VulnerabilityWithMetadata {
     fleet_types::vulnerability::VulnerabilityWithMetadata {
         cve: fleet_types::vulnerability::CVE {
@@ -2536,5 +2548,26 @@ impl Datastore for MysqlDatastore {
             .await
             .map_err(ServiceError::from)?;
         Ok(vuln_row_to_type(row))
+    }
+
+    // ---- Fleet Maintained Apps ----
+
+    async fn list_fleet_maintained_apps(
+        &self,
+        query: Option<&str>,
+        limit: u32,
+        offset: u32,
+    ) -> ServiceResult<Vec<fleet_types::software::FleetMaintainedApp>> {
+        let rows = MysqlDatastore::list_fleet_maintained_apps(self, query, limit, offset)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(fma_row_to_type).collect())
+    }
+
+    async fn get_fleet_maintained_app(&self, id: u32) -> ServiceResult<fleet_types::software::FleetMaintainedApp> {
+        let row = MysqlDatastore::get_fleet_maintained_app(self, id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(fma_row_to_type(row))
     }
 }

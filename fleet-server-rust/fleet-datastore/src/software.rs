@@ -368,6 +368,53 @@ impl MysqlDatastore {
             Ok(row)
         }
     }
+
+    /// Lists fleet maintained apps with optional pagination.
+    pub async fn list_fleet_maintained_apps(
+        &self,
+        query: Option<&str>,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<FleetMaintainedAppRow>> {
+        if let Some(q) = query {
+            if !q.is_empty() {
+                let pattern = format!("%{}%", q);
+                return Ok(sqlx::query_as::<_, FleetMaintainedAppRow>(
+                    r#"SELECT id, name, slug, platform, unique_identifier, created_at, updated_at
+                    FROM fleet_maintained_apps
+                    WHERE name LIKE ?
+                    ORDER BY name ASC
+                    LIMIT ? OFFSET ?"#
+                )
+                .bind(pattern)
+                .bind(limit)
+                .bind(offset)
+                .fetch_all(self.pool())
+                .await?);
+            }
+        }
+        Ok(sqlx::query_as::<_, FleetMaintainedAppRow>(
+            r#"SELECT id, name, slug, platform, unique_identifier, created_at, updated_at
+            FROM fleet_maintained_apps
+            ORDER BY name ASC
+            LIMIT ? OFFSET ?"#
+        )
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(self.pool())
+        .await?)
+    }
+
+    /// Gets a fleet maintained app by ID.
+    pub async fn get_fleet_maintained_app(&self, id: u32) -> Result<FleetMaintainedAppRow> {
+        sqlx::query_as::<_, FleetMaintainedAppRow>(
+            "SELECT id, name, slug, platform, unique_identifier, created_at, updated_at FROM fleet_maintained_apps WHERE id = ?"
+        )
+        .bind(id)
+        .fetch_optional(self.pool())
+        .await?
+        .ok_or_else(|| DatastoreError::not_found_with_id("FleetMaintainedApp", id as u64))
+    }
 }
 
 /// Row type for software_cve table.
@@ -397,6 +444,18 @@ pub struct VulnerabilityRow {
     pub cve_published: Option<DateTime<Utc>>,
     #[sqlx(default)]
     pub description: Option<String>,
+}
+
+/// Row type for fleet_maintained_apps table.
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct FleetMaintainedAppRow {
+    pub id: u32,
+    pub name: String,
+    pub slug: String,
+    pub platform: String,
+    pub unique_identifier: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 /// Row type for host_software_installed_paths.
