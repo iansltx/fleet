@@ -149,6 +149,22 @@ impl FleetService {
         Ok(())
     }
 
+    /// Deletes hosts matching filter options.
+    pub async fn delete_hosts_by_filter(
+        &self,
+        viewer: &Viewer,
+        opts: fleet_types::HostListOptions,
+    ) -> ServiceResult<u64> {
+        authz::authorize(viewer, Subject::Host, Action::Write)?;
+        let hosts = self.ds.list_hosts(opts).await?;
+        let count = hosts.len() as u64;
+        for host in &hosts {
+            self.ds.delete_host(host.id).await?;
+        }
+        info!(count, "hosts deleted by filter");
+        Ok(count)
+    }
+
     /// Counts hosts matching filter options.
     ///
     /// Corresponds to Go's `countHostsEndpoint`.

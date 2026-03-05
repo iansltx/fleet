@@ -179,8 +179,34 @@ pub async fn delete_hosts(
             Ok(()) => fleet_ok("", serde_json::json!({})),
             Err(e) => encode_service_error(&e),
         }
+    } else if let Some(filters) = body.filters {
+        // Parse filter fields to build HostListOptions
+        let team_id = filters.get("team_id").and_then(|v| v.as_u64()).map(|v| v as u32);
+        let label_id = filters.get("label_id").and_then(|v| v.as_u64()).map(|v| v as u32);
+        let status = filters.get("status").and_then(|v| v.as_str()).and_then(|s| match s {
+            "online" => Some(fleet_types::HostStatus::Online),
+            "offline" => Some(fleet_types::HostStatus::Offline),
+            "mia" | "missing" => Some(fleet_types::HostStatus::MIA),
+            "new" => Some(fleet_types::HostStatus::New),
+            _ => None,
+        });
+        let query = filters.get("query").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+        let opts = fleet_types::HostListOptions {
+            list_options: fleet_types::ListOptions {
+                per_page: 0, // unlimited
+                match_query: query,
+                ..Default::default()
+            },
+            team_filter: team_id,
+            label_id_filter: label_id,
+            status_filter: status,
+            ..Default::default()
+        };
+        match state.service.delete_hosts_by_filter(&viewer, opts).await {
+            Ok(count) => fleet_ok("", serde_json::json!({"hosts_deleted": count})),
+            Err(e) => encode_service_error(&e),
+        }
     } else {
-        // Filter-based deletion not yet implemented
         fleet_ok("", serde_json::json!({}))
     }
 }
@@ -211,12 +237,21 @@ pub async fn count_hosts(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
+    let status_filter = params.status.as_deref().and_then(|s| match s {
+        "online" => Some(fleet_types::HostStatus::Online),
+        "offline" => Some(fleet_types::HostStatus::Offline),
+        "mia" | "missing" => Some(fleet_types::HostStatus::MIA),
+        "new" => Some(fleet_types::HostStatus::New),
+        _ => None,
+    });
     let opts = fleet_types::HostListOptions {
         list_options: fleet_types::ListOptions {
             match_query: params.query.unwrap_or_default(),
             ..Default::default()
         },
+        status_filter,
         team_filter: params.team_id.map(|v| v as u32),
+        label_id_filter: params.label_id.map(|v| v as u32),
         ..Default::default()
     };
     match state.service.count_hosts(&viewer, opts).await {
