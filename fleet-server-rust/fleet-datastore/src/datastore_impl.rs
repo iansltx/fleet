@@ -1436,6 +1436,39 @@ impl Datastore for MysqlDatastore {
             .map_err(ServiceError::from)
     }
 
+    async fn add_users_to_team(&self, team_id: u32, users: &[(u32, String)]) -> ServiceResult<()> {
+        for (user_id, role) in users {
+            sqlx::query(
+                "INSERT INTO user_teams (user_id, team_id, role) VALUES (?, ?, ?) \
+                 ON DUPLICATE KEY UPDATE role = VALUES(role)"
+            )
+            .bind(user_id)
+            .bind(team_id)
+            .bind(role)
+            .execute(self.pool())
+            .await
+            .map_err(ds_error)?;
+        }
+        Ok(())
+    }
+
+    async fn remove_users_from_team(&self, team_id: u32, user_ids: &[u32]) -> ServiceResult<()> {
+        if user_ids.is_empty() {
+            return Ok(());
+        }
+        let placeholders: Vec<&str> = user_ids.iter().map(|_| "?").collect();
+        let sql = format!(
+            "DELETE FROM user_teams WHERE team_id = ? AND user_id IN ({})",
+            placeholders.join(",")
+        );
+        let mut query = sqlx::query(&sql).bind(team_id);
+        for &id in user_ids {
+            query = query.bind(id);
+        }
+        query.execute(self.pool()).await.map_err(ds_error)?;
+        Ok(())
+    }
+
     // ---- AppConfig ----
 
     async fn app_config(&self) -> ServiceResult<AppConfigData> {

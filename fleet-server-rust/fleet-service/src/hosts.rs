@@ -111,8 +111,7 @@ impl FleetService {
         // Verify the host exists.
         let _host = self.ds.host(id.into()).await?;
 
-        // In the Go implementation this sets `refetch_requested = true`.
-        // The datastore will handle this in a real implementation.
+        self.ds.mark_host_refetch_requested(id).await?;
         info!(host_id = id, "host refetch requested");
         Ok(())
     }

@@ -257,10 +257,12 @@ pub async fn add_team_users(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &body;
-    // Adding/removing team users requires enterprise user_teams table manipulation.
-    // Verify auth and team exists, return team.
-    match state.service.get_team(&viewer, id as u32).await {
+    let users: Vec<(u32, String)> = body.users.iter().filter_map(|v| {
+        let id = v.get("id")?.as_u64()? as u32;
+        let role = v.get("role").and_then(|r| r.as_str()).unwrap_or("observer").to_string();
+        Some((id, role))
+    }).collect();
+    match state.service.add_team_users(&viewer, id as u32, &users).await {
         Ok(team) => fleet_ok("team", serde_json::to_value(&team).unwrap_or_default()),
         Err(e) => encode_service_error(&e),
     }
@@ -277,8 +279,10 @@ pub async fn delete_team_users(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &body;
-    match state.service.get_team(&viewer, id as u32).await {
+    let user_ids: Vec<u32> = body.users.iter().filter_map(|v| {
+        v.get("id")?.as_u64().map(|id| id as u32)
+    }).collect();
+    match state.service.remove_team_users(&viewer, id as u32, &user_ids).await {
         Ok(team) => fleet_ok("team", serde_json::to_value(&team).unwrap_or_default()),
         Err(e) => encode_service_error(&e),
     }

@@ -122,6 +122,8 @@ pub trait Datastore: Send + Sync + 'static {
     async fn list_team_users(&self, team_id: u32) -> ServiceResult<Vec<fleet_types::team::TeamUser>>;
     async fn team_enroll_secrets(&self, team_id: u32) -> ServiceResult<Vec<fleet_types::enroll::EnrollSecret>>;
     async fn apply_team_enroll_secrets(&self, team_id: u32, secrets: &[String]) -> ServiceResult<()>;
+    async fn add_users_to_team(&self, team_id: u32, users: &[(u32, String)]) -> ServiceResult<()>;
+    async fn remove_users_from_team(&self, team_id: u32, user_ids: &[u32]) -> ServiceResult<()>;
 
     // ---- AppConfig ----
     async fn app_config(&self) -> ServiceResult<AppConfigData>;

@@ -183,6 +183,34 @@ impl FleetService {
         self.ds.team_enroll_secrets(team_id).await
     }
 
+    /// Adds or updates users on a team.
+    pub async fn add_team_users(
+        &self,
+        viewer: &Viewer,
+        team_id: u32,
+        users: &[(u32, String)],
+    ) -> ServiceResult<fleet_types::Team> {
+        authz::authorize(viewer, Subject::Team, Action::Write)?;
+        self.ds.team(team_id).await?;
+        self.ds.add_users_to_team(team_id, users).await?;
+        info!(team_id = team_id, count = users.len(), "users added to team");
+        self.ds.team(team_id).await
+    }
+
+    /// Removes users from a team.
+    pub async fn remove_team_users(
+        &self,
+        viewer: &Viewer,
+        team_id: u32,
+        user_ids: &[u32],
+    ) -> ServiceResult<fleet_types::Team> {
+        authz::authorize(viewer, Subject::Team, Action::Write)?;
+        self.ds.team(team_id).await?;
+        self.ds.remove_users_from_team(team_id, user_ids).await?;
+        info!(team_id = team_id, count = user_ids.len(), "users removed from team");
+        self.ds.team(team_id).await
+    }
+
     /// Modifies enroll secrets for a team.
     ///
     /// Corresponds to Go's `(svc *Service) ModifyTeamEnrollSecrets`.
