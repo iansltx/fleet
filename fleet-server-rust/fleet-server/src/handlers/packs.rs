@@ -227,14 +227,21 @@ pub async fn delete_pack_by_id(
 pub async fn apply_pack_specs(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<ApplyPackSpecsBody>,
+    Json(body): Json<ApplyPackSpecsBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement apply_pack_specs logic
-    fleet_ok("", serde_json::json!({}))
+    let specs: Vec<fleet_service::packs::PackSpec> = body
+        .specs
+        .into_iter()
+        .filter_map(|v| serde_json::from_value(v).ok())
+        .collect();
+    match state.service.apply_pack_specs(&viewer, specs).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/spec/packs
@@ -242,26 +249,30 @@ pub async fn get_pack_specs(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement get_pack_specs logic
-    fleet_ok("specs", serde_json::json!([]))
+    match state.service.get_pack_specs(&viewer).await {
+        Ok(specs) => fleet_ok("specs", serde_json::to_value(&specs).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/spec/packs/{name}
 pub async fn get_pack_spec(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_name): Path<String>,
+    Path(name): Path<String>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement get_pack_spec logic
-    fleet_ok("spec", serde_json::json!({}))
+    match state.service.get_pack_spec(&viewer, &name).await {
+        Ok(spec) => fleet_ok("spec", serde_json::to_value(&spec).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 // ---------------------------------------------------------------------------

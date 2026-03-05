@@ -174,6 +174,105 @@ impl FleetService {
         info!(pack_id = id, name = %pack.name, "pack deleted by id");
         Ok(())
     }
+
+    /// Gets all pack specs (user-created packs only).
+    ///
+    /// Corresponds to Go's `(svc *Service) GetPackSpecs`.
+    pub async fn get_pack_specs(
+        &self,
+        viewer: &Viewer,
+    ) -> ServiceResult<Vec<PackSpec>> {
+        authz::authorize(viewer, Subject::Pack, Action::Read)?;
+        let packs = self.ds.list_packs(fleet_types::ListOptions::default()).await?;
+        Ok(packs.into_iter().filter(|p| p.editable_pack_type()).map(pack_to_spec).collect())
+    }
+
+    /// Gets a single pack spec by name.
+    ///
+    /// Corresponds to Go's `(svc *Service) GetPackSpec`.
+    pub async fn get_pack_spec(
+        &self,
+        viewer: &Viewer,
+        name: &str,
+    ) -> ServiceResult<PackSpec> {
+        authz::authorize(viewer, Subject::Pack, Action::Read)?;
+        let pack = self.ds.pack_by_name(name).await?
+            .ok_or_else(|| ServiceError::not_found(format!("pack {}", name)))?;
+        Ok(pack_to_spec(pack))
+    }
+
+    /// Applies pack specs (upsert by name).
+    ///
+    /// Corresponds to Go's `(svc *Service) ApplyPackSpecs`.
+    pub async fn apply_pack_specs(
+        &self,
+        viewer: &Viewer,
+        specs: Vec<PackSpec>,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Pack, Action::Write)?;
+        for spec in &specs {
+            if spec.name.is_empty() {
+                return Err(ServiceError::invalid_argument("name", "missing required argument"));
+            }
+            match self.ds.pack_by_name(&spec.name).await? {
+                Some(mut pack) => {
+                    if let Some(ref desc) = spec.description {
+                        pack.description = desc.clone();
+                    }
+                    if let Some(ref platform) = spec.platform {
+                        pack.platform = platform.clone();
+                    }
+                    if let Some(disabled) = spec.disabled {
+                        pack.disabled = disabled;
+                    }
+                    self.ds.save_pack(&pack).await?;
+                    info!(name = %spec.name, "pack spec updated");
+                }
+                None => {
+                    let pack = fleet_types::Pack {
+                        id: 0,
+                        name: spec.name.clone(),
+                        description: spec.description.clone().unwrap_or_default(),
+                        platform: spec.platform.clone().unwrap_or_default(),
+                        disabled: spec.disabled.unwrap_or(false),
+                        pack_type: None,
+                        host_ids: Vec::new(),
+                        label_ids: Vec::new(),
+                        team_ids: Vec::new(),
+                        labels: Vec::new(),
+                        hosts: Vec::new(),
+                        teams: Vec::new(),
+                        created_at: chrono::Utc::now(),
+                        updated_at: chrono::Utc::now(),
+                    };
+                    self.ds.new_pack(&pack).await?;
+                    info!(name = %spec.name, "pack spec created");
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Spec representation of a pack for declarative management.
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct PackSpec {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub platform: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disabled: Option<bool>,
+}
+
+fn pack_to_spec(p: fleet_types::Pack) -> PackSpec {
+    PackSpec {
+        name: p.name,
+        description: Some(p.description),
+        platform: Some(p.platform),
+        disabled: Some(p.disabled),
+    }
 }
 
 /// Payload for creating a new pack.

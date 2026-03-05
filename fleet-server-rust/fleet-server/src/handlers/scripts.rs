@@ -69,11 +69,11 @@ pub struct BatchScriptExecutionHostResultsParams {
 
 /// POST /api/_version_/fleet/scripts/run
 pub async fn run_script(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Json(_body): Json<RunScriptBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&_state).await {
+    let _viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
@@ -83,11 +83,11 @@ pub async fn run_script(
 
 /// POST /api/_version_/fleet/scripts/run/sync
 pub async fn run_script_sync(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Json(_body): Json<RunScriptSyncBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&_state).await {
+    let _viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
@@ -97,11 +97,11 @@ pub async fn run_script_sync(
 
 /// POST /api/_version_/fleet/scripts/run/batch
 pub async fn batch_script_run(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Json(_body): Json<BatchScriptRunBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&_state).await {
+    let _viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
@@ -110,11 +110,11 @@ pub async fn batch_script_run(
 
 /// GET /api/_version_/fleet/scripts/results/{execution_id}
 pub async fn get_script_result(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_execution_id): Path<String>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&_state).await {
+    let _viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
@@ -124,10 +124,10 @@ pub async fn get_script_result(
 
 /// POST /api/_version_/fleet/scripts
 pub async fn create_script(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&_state).await {
+    let _viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
@@ -170,11 +170,11 @@ pub async fn get_script(
 
 /// PATCH /api/_version_/fleet/scripts/{script_id}
 pub async fn update_script(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_script_id): Path<u64>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&_state).await {
+    let _viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
@@ -200,11 +200,11 @@ pub async fn delete_script(
 
 /// POST /api/_version_/fleet/scripts/batch
 pub async fn batch_set_scripts(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Json(_body): Json<BatchSetScriptsBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&_state).await {
+    let _viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
@@ -213,11 +213,11 @@ pub async fn batch_set_scripts(
 
 /// POST /api/_version_/fleet/scripts/batch/{batch_execution_id}/cancel
 pub async fn batch_script_cancel(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_batch_execution_id): Path<String>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&_state).await {
+    let _viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
@@ -226,11 +226,11 @@ pub async fn batch_script_cancel(
 
 /// GET /api/_version_/fleet/scripts/batch/summary/{batch_execution_id}
 pub async fn batch_script_execution_summary(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_batch_execution_id): Path<String>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&_state).await {
+    let _viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
@@ -239,12 +239,12 @@ pub async fn batch_script_execution_summary(
 
 /// GET /api/_version_/fleet/scripts/batch/{batch_execution_id}/host-results
 pub async fn batch_script_execution_host_results(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_batch_execution_id): Path<String>,
     Query(_params): Query<BatchScriptExecutionHostResultsParams>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&_state).await {
+    let _viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
@@ -253,11 +253,11 @@ pub async fn batch_script_execution_host_results(
 
 /// GET /api/_version_/fleet/scripts/batch/{batch_execution_id}
 pub async fn batch_script_execution_status(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_batch_execution_id): Path<String>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&_state).await {
+    let _viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
