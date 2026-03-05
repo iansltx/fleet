@@ -457,9 +457,14 @@ pub async fn get_host_query_report(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id, report_id);
-    // Stub: backing service not yet implemented
-    fleet_ok("report", serde_json::json!({}))
+    // Verify host exists
+    if let Err(e) = state.service.get_host_lite(&viewer, id as u32).await {
+        return encode_service_error(&e);
+    }
+    match state.service.get_query_report(&viewer, report_id as u32).await {
+        Ok(report) => fleet_ok("report", serde_json::to_value(&report).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/health
@@ -613,9 +618,16 @@ pub async fn get_host_script_details(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id);
-    // Stub: backing service not yet implemented
-    fleet_ok("scripts", serde_json::json!([]))
+    // Get the host to find its team, then list scripts for that team
+    match state.service.get_host_lite(&viewer, id as u32).await {
+        Ok(host) => {
+            match state.service.list_scripts(&viewer, host.team_id).await {
+                Ok(scripts) => fleet_ok("scripts", serde_json::to_value(&scripts).unwrap_or_default()),
+                Err(e) => encode_service_error(&e),
+            }
+        }
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/activities/upcoming

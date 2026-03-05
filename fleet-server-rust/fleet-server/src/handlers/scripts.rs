@@ -121,9 +121,10 @@ pub async fn get_script_result(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &execution_id);
-    // Script execution result retrieval requires async job infrastructure
-    fleet_ok("", serde_json::json!({}))
+    match state.service.get_script_result(&viewer, &execution_id).await {
+        Ok(result) => fleet_ok("", serde_json::to_value(&result).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/scripts
