@@ -23,6 +23,7 @@ chrono = { workspace = true }
 
 # UUID
 uuid = { workspace = true }
+rand = { workspace = true }
 
 # Logging
 tracing = { workspace = true }

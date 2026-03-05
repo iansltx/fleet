@@ -3,12 +3,14 @@
 //! Handles global and team policy CRUD, specs, and automations.
 
 use axum::{
-    extract::{Json, Path, Query},
+    extract::{Json, Path, Query, State},
     http::StatusCode,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::response::{fleet_error, fleet_ok, FleetResponse};
+use crate::middleware::auth::AuthenticatedUser;
+use crate::response::{encode_service_error, fleet_error, fleet_ok, FleetResponse};
+use crate::AppState;
 
 // ---------------------------------------------------------------------------
 // Request / response types
@@ -113,20 +115,66 @@ pub struct AutofillPoliciesBody {
 
 /// POST /api/_version_/fleet/global/policies  (v1)
 /// POST /api/_version_/fleet/policies  (2022-04)
-pub async fn create_global_policy(Json(_body): Json<GlobalPolicyBody>) -> FleetResponse {
-    fleet_ok("policy", serde_json::json!({}))
+pub async fn create_global_policy(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Json(body): Json<GlobalPolicyBody>,
+) -> FleetResponse {
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let payload = fleet_types::policy::PolicyPayload {
+        name: body.name.unwrap_or_default(),
+        query: body.query.unwrap_or_default(),
+        description: body.description.unwrap_or_default(),
+        resolution: body.resolution.unwrap_or_default(),
+        platform: body.platform.unwrap_or_default(),
+        critical: body.critical.unwrap_or(false),
+        calendar_events_enabled: body.calendar_events_enabled.unwrap_or(false),
+        query_id: None,
+        software_installer_id: None,
+        vpp_apps_teams_id: None,
+        script_id: None,
+        labels_include_any: Vec::new(),
+        labels_exclude_any: Vec::new(),
+        conditional_access_enabled: false,
+        conditional_access_bypass_enabled: None,
+    };
+    match state.service.new_global_policy(&viewer, payload).await {
+        Ok(policy) => fleet_ok("policy", serde_json::to_value(&policy).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/global/policies  (v1)
 /// GET /api/_version_/fleet/policies  (2022-04)
 pub async fn list_global_policies(
-    Query(_params): Query<ListGlobalPoliciesParams>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Query(params): Query<ListGlobalPoliciesParams>,
 ) -> FleetResponse {
-    fleet_ok("policies", serde_json::json!([]))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let opts = fleet_types::ListOptions {
+        page: params.page.unwrap_or(0) as u32,
+        per_page: params.per_page.unwrap_or(0) as u32,
+        order_key: params.order_key.unwrap_or_default(),
+        match_query: params.query.unwrap_or_default(),
+        ..Default::default()
+    };
+    match state.service.list_global_policies(&viewer, opts).await {
+        Ok(policies) => fleet_ok("policies", serde_json::to_value(&policies).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/policies/count
 pub async fn count_global_policies(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
     Query(_params): Query<CountGlobalPoliciesParams>,
 ) -> FleetResponse {
     fleet_ok("count", serde_json::json!(0))
@@ -134,48 +182,143 @@ pub async fn count_global_policies(
 
 /// GET /api/_version_/fleet/global/policies/{policy_id}  (v1)
 /// GET /api/_version_/fleet/policies/{policy_id}  (2022-04)
-pub async fn get_policy(Path(_policy_id): Path<u64>) -> FleetResponse {
-    fleet_ok("policy", serde_json::json!({}))
+pub async fn get_policy(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(policy_id): Path<u64>,
+) -> FleetResponse {
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.get_policy(&viewer, policy_id as u32).await {
+        Ok(policy) => fleet_ok("policy", serde_json::to_value(&policy).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/global/policies/delete  (v1)
 /// POST /api/_version_/fleet/policies/delete  (2022-04)
-pub async fn delete_global_policies(Json(_body): Json<DeleteGlobalPoliciesBody>) -> FleetResponse {
-    fleet_ok("ids", serde_json::json!([]))
+pub async fn delete_global_policies(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Json(body): Json<DeleteGlobalPoliciesBody>,
+) -> FleetResponse {
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let ids: Vec<u32> = body.ids.iter().map(|&id| id as u32).collect();
+    match state.service.delete_global_policies(&viewer, &ids).await {
+        Ok(deleted) => fleet_ok("ids", serde_json::to_value(&deleted).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// PATCH /api/_version_/fleet/global/policies/{policy_id}  (v1)
 /// PATCH /api/_version_/fleet/policies/{policy_id}  (2022-04)
 pub async fn modify_global_policy(
-    Path(_policy_id): Path<u64>,
-    Json(_body): Json<ModifyGlobalPolicyBody>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(policy_id): Path<u64>,
+    Json(body): Json<ModifyGlobalPolicyBody>,
 ) -> FleetResponse {
-    fleet_ok("policy", serde_json::json!({}))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let payload = fleet_types::policy::ModifyPolicyPayload {
+        name: body.name,
+        query: body.query,
+        description: body.description,
+        resolution: body.resolution,
+        platform: body.platform,
+        critical: body.critical,
+        calendar_events_enabled: body.calendar_events_enabled,
+        software_title_id: None,
+        script_id: None,
+        labels_include_any: Vec::new(),
+        labels_exclude_any: Vec::new(),
+        conditional_access_enabled: None,
+        conditional_access_bypass_enabled: None,
+    };
+    match state.service.modify_policy(&viewer, policy_id as u32, payload).await {
+        Ok(policy) => fleet_ok("policy", serde_json::to_value(&policy).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/automations/reset
-pub async fn reset_automation(Json(_body): Json<ResetAutomationBody>) -> FleetResponse {
+pub async fn reset_automation(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Json(_body): Json<ResetAutomationBody>,
+) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/fleets/{fleet_id}/policies
 pub async fn create_team_policy(
-    Path(_fleet_id): Path<u64>,
-    Json(_body): Json<TeamPolicyBody>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(fleet_id): Path<u64>,
+    Json(body): Json<TeamPolicyBody>,
 ) -> FleetResponse {
-    fleet_ok("policy", serde_json::json!({}))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let payload = fleet_types::policy::PolicyPayload {
+        name: body.name.unwrap_or_default(),
+        query: body.query.unwrap_or_default(),
+        description: body.description.unwrap_or_default(),
+        resolution: body.resolution.unwrap_or_default(),
+        platform: body.platform.unwrap_or_default(),
+        critical: body.critical.unwrap_or(false),
+        calendar_events_enabled: body.calendar_events_enabled.unwrap_or(false),
+        query_id: None,
+        software_installer_id: None,
+        vpp_apps_teams_id: None,
+        script_id: None,
+        labels_include_any: Vec::new(),
+        labels_exclude_any: Vec::new(),
+        conditional_access_enabled: false,
+        conditional_access_bypass_enabled: None,
+    };
+    match state.service.new_team_policy(&viewer, fleet_id as u32, payload).await {
+        Ok(policy) => fleet_ok("policy", serde_json::to_value(&policy).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/fleets/{fleet_id}/policies
 pub async fn list_team_policies(
-    Path(_fleet_id): Path<u64>,
-    Query(_params): Query<ListTeamPoliciesParams>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(fleet_id): Path<u64>,
+    Query(params): Query<ListTeamPoliciesParams>,
 ) -> FleetResponse {
-    fleet_ok("policies", serde_json::json!([]))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let opts = fleet_types::ListOptions {
+        page: params.page.unwrap_or(0) as u32,
+        per_page: params.per_page.unwrap_or(0) as u32,
+        order_key: params.order_key.unwrap_or_default(),
+        match_query: params.query.unwrap_or_default(),
+        ..Default::default()
+    };
+    match state.service.list_team_policies(&viewer, fleet_id as u32, opts).await {
+        Ok(policies) => fleet_ok("policies", serde_json::to_value(&policies).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/fleets/{fleet_id}/policies/count
 pub async fn count_team_policies(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_fleet_id): Path<u64>,
     Query(_params): Query<CountTeamPoliciesParams>,
 ) -> FleetResponse {
@@ -184,33 +327,84 @@ pub async fn count_team_policies(
 
 /// GET /api/_version_/fleet/fleets/{fleet_id}/policies/{policy_id}
 pub async fn get_team_policy(
-    Path((_fleet_id, _policy_id)): Path<(u64, u64)>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path((_fleet_id, policy_id)): Path<(u64, u64)>,
 ) -> FleetResponse {
-    fleet_ok("policy", serde_json::json!({}))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.get_policy(&viewer, policy_id as u32).await {
+        Ok(policy) => fleet_ok("policy", serde_json::to_value(&policy).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/fleets/{fleet_id}/policies/delete
 pub async fn delete_team_policies(
-    Path(_fleet_id): Path<u64>,
-    Json(_body): Json<DeleteTeamPoliciesBody>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(fleet_id): Path<u64>,
+    Json(body): Json<DeleteTeamPoliciesBody>,
 ) -> FleetResponse {
-    fleet_ok("ids", serde_json::json!([]))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let ids: Vec<u32> = body.ids.iter().map(|&id| id as u32).collect();
+    match state.service.delete_team_policies(&viewer, fleet_id as u32, &ids).await {
+        Ok(deleted) => fleet_ok("ids", serde_json::to_value(&deleted).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// PATCH /api/_version_/fleet/fleets/{fleet_id}/policies/{policy_id}
 pub async fn modify_team_policy(
-    Path((_fleet_id, _policy_id)): Path<(u64, u64)>,
-    Json(_body): Json<ModifyGlobalPolicyBody>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path((_fleet_id, policy_id)): Path<(u64, u64)>,
+    Json(body): Json<ModifyGlobalPolicyBody>,
 ) -> FleetResponse {
-    fleet_ok("policy", serde_json::json!({}))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let payload = fleet_types::policy::ModifyPolicyPayload {
+        name: body.name,
+        query: body.query,
+        description: body.description,
+        resolution: body.resolution,
+        platform: body.platform,
+        critical: body.critical,
+        calendar_events_enabled: body.calendar_events_enabled,
+        software_title_id: None,
+        script_id: None,
+        labels_include_any: Vec::new(),
+        labels_exclude_any: Vec::new(),
+        conditional_access_enabled: None,
+        conditional_access_bypass_enabled: None,
+    };
+    match state.service.modify_policy(&viewer, policy_id as u32, payload).await {
+        Ok(policy) => fleet_ok("policy", serde_json::to_value(&policy).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/spec/policies
-pub async fn apply_policy_specs(Json(_body): Json<ApplyPolicySpecsBody>) -> FleetResponse {
+pub async fn apply_policy_specs(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Json(_body): Json<ApplyPolicySpecsBody>,
+) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/autofill/policy
-pub async fn autofill_policies(Json(_body): Json<AutofillPoliciesBody>) -> FleetResponse {
+pub async fn autofill_policies(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Json(_body): Json<AutofillPoliciesBody>,
+) -> FleetResponse {
     fleet_ok("policy", serde_json::json!({}))
 }

@@ -3,14 +3,11 @@
 //! Implements the osquery TLS API: enroll, config, distributed read/write,
 //! log submission, and YARA rule retrieval.
 
-use axum::{
-    extract::{Json, Path, State},
-    http::StatusCode,
-};
-use serde::{Deserialize, Serialize};
+use axum::extract::{Json, Path, State};
+use serde::Deserialize;
 use std::collections::HashMap;
 
-use crate::response::{encode_service_error, fleet_error, fleet_ok, FleetResponse};
+use crate::response::{encode_service_error, fleet_ok, FleetResponse};
 use crate::AppState;
 
 // ---------------------------------------------------------------------------
@@ -108,7 +105,7 @@ pub async fn get_client_config(
     };
     match state.service.get_client_config(&host).await {
         Ok(config) => (
-            StatusCode::OK,
+            axum::http::StatusCode::OK,
             Json(serde_json::to_value(&config).unwrap_or_default()),
         ),
         Err(e) => encode_service_error(&e),

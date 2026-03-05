@@ -4,6 +4,7 @@
 //! all database operations using the same table/column names and query
 //! patterns as the Go implementation.
 
+pub mod datastore_impl;
 pub mod activities;
 pub mod app_config;
 pub mod enroll;

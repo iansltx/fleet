@@ -3,12 +3,14 @@
 //! Handles team CRUD, specs, agent options, team users, and enroll secrets.
 
 use axum::{
-    extract::{Json, Path, Query},
+    extract::{Json, Path, Query, State},
     http::StatusCode,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::response::{fleet_error, fleet_ok, FleetResponse};
+use crate::middleware::auth::AuthenticatedUser;
+use crate::response::{encode_service_error, fleet_error, fleet_ok, FleetResponse};
+use crate::AppState;
 
 // ---------------------------------------------------------------------------
 // Request / response types
@@ -73,12 +75,18 @@ pub struct ListTeamUsersParams {
 // ---------------------------------------------------------------------------
 
 /// POST /api/_version_/fleet/spec/fleets
-pub async fn apply_team_specs(Json(_body): Json<ApplyTeamSpecsBody>) -> FleetResponse {
+pub async fn apply_team_specs(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Json(_body): Json<ApplyTeamSpecsBody>,
+) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }
 
 /// PATCH /api/_version_/fleet/fleets/{fleet_id}/secrets
 pub async fn modify_team_enroll_secrets(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_fleet_id): Path<u64>,
     Json(_body): Json<ModifyTeamEnrollSecretsBody>,
 ) -> FleetResponse {
@@ -86,35 +94,107 @@ pub async fn modify_team_enroll_secrets(
 }
 
 /// POST /api/_version_/fleet/fleets
-pub async fn create_team(Json(_body): Json<CreateTeamBody>) -> FleetResponse {
-    fleet_ok("team", serde_json::json!({}))
+pub async fn create_team(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Json(body): Json<CreateTeamBody>,
+) -> FleetResponse {
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let payload = fleet_types::team::TeamPayload {
+        name: Some(body.name),
+        description: body.description,
+        ..Default::default()
+    };
+    match state.service.new_team(&viewer, payload).await {
+        Ok(team) => fleet_ok("team", serde_json::to_value(&team).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/fleets
-pub async fn list_teams(Query(_params): Query<ListTeamsParams>) -> FleetResponse {
-    fleet_ok("teams", serde_json::json!([]))
+pub async fn list_teams(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Query(params): Query<ListTeamsParams>,
+) -> FleetResponse {
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let opts = fleet_types::ListOptions {
+        page: params.page.unwrap_or(0) as u32,
+        per_page: params.per_page.unwrap_or(0) as u32,
+        order_key: params.order_key.unwrap_or_default(),
+        match_query: params.query.unwrap_or_default(),
+        ..Default::default()
+    };
+    match state.service.list_teams(&viewer, opts).await {
+        Ok(teams) => fleet_ok("teams", serde_json::to_value(&teams).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/fleets/{id}
-pub async fn get_team(Path(_id): Path<u64>) -> FleetResponse {
-    fleet_ok("team", serde_json::json!({}))
+pub async fn get_team(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(id): Path<u64>,
+) -> FleetResponse {
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.get_team(&viewer, id as u32).await {
+        Ok(team) => fleet_ok("team", serde_json::to_value(&team).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// PATCH /api/_version_/fleet/fleets/{id}
 pub async fn modify_team(
-    Path(_id): Path<u64>,
-    Json(_body): Json<ModifyTeamBody>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(id): Path<u64>,
+    Json(body): Json<ModifyTeamBody>,
 ) -> FleetResponse {
-    fleet_ok("team", serde_json::json!({}))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let payload = fleet_types::team::TeamPayload {
+        name: body.name,
+        description: body.description,
+        ..Default::default()
+    };
+    match state.service.modify_team(&viewer, id as u32, payload).await {
+        Ok(team) => fleet_ok("team", serde_json::to_value(&team).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// DELETE /api/_version_/fleet/fleets/{id}
-pub async fn delete_team(Path(_id): Path<u64>) -> FleetResponse {
-    fleet_ok("", serde_json::json!({}))
+pub async fn delete_team(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(id): Path<u64>,
+) -> FleetResponse {
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.delete_team(&viewer, id as u32).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/fleets/{id}/agent_options
 pub async fn modify_team_agent_options(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_id): Path<u64>,
     Json(_body): Json<ModifyTeamAgentOptionsBody>,
 ) -> FleetResponse {
@@ -123,6 +203,8 @@ pub async fn modify_team_agent_options(
 
 /// GET /api/_version_/fleet/fleets/{id}/users
 pub async fn list_team_users(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_id): Path<u64>,
     Query(_params): Query<ListTeamUsersParams>,
 ) -> FleetResponse {
@@ -131,6 +213,8 @@ pub async fn list_team_users(
 
 /// PATCH /api/_version_/fleet/fleets/{id}/users
 pub async fn add_team_users(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_id): Path<u64>,
     Json(_body): Json<ModifyTeamUsersBody>,
 ) -> FleetResponse {
@@ -139,6 +223,8 @@ pub async fn add_team_users(
 
 /// DELETE /api/_version_/fleet/fleets/{id}/users
 pub async fn delete_team_users(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_id): Path<u64>,
     Json(_body): Json<ModifyTeamUsersBody>,
 ) -> FleetResponse {
@@ -146,6 +232,10 @@ pub async fn delete_team_users(
 }
 
 /// GET /api/_version_/fleet/fleets/{id}/secrets
-pub async fn team_enroll_secrets(Path(_id): Path<u64>) -> FleetResponse {
+pub async fn team_enroll_secrets(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("secrets", serde_json::json!([]))
 }

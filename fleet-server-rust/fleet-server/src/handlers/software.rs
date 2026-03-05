@@ -4,12 +4,13 @@
 //! Fleet-maintained apps, VPP associations, vulnerabilities, and icons.
 
 use axum::{
-    extract::{Json, Path, Query},
+    extract::{Json, Path, Query, State},
     http::StatusCode,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::response::{fleet_error, fleet_ok, FleetResponse};
+use crate::AppState;
 
 // ---------------------------------------------------------------------------
 // Request / response types
@@ -118,40 +119,57 @@ pub struct CreateAndroidWebAppBody {
 // ---------------------------------------------------------------------------
 
 /// GET /api/_version_/fleet/software/versions
-pub async fn list_software_versions(Query(_params): Query<ListSoftwareParams>) -> FleetResponse {
+pub async fn list_software_versions(
+    State(_state): State<AppState>,
+    Query(_params): Query<ListSoftwareParams>,
+) -> FleetResponse {
     fleet_ok("software", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/software/versions/{id}
 /// GET /api/_version_/fleet/software/{id}
-pub async fn get_software(Path(_id): Path<u64>) -> FleetResponse {
+pub async fn get_software(
+    State(_state): State<AppState>,
+    Path(_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("software", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/software (deprecated)
-pub async fn list_software(Query(_params): Query<ListSoftwareParams>) -> FleetResponse {
+pub async fn list_software(
+    State(_state): State<AppState>,
+    Query(_params): Query<ListSoftwareParams>,
+) -> FleetResponse {
     fleet_ok("software", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/software/count (deprecated)
-pub async fn count_software(Query(_params): Query<ListSoftwareParams>) -> FleetResponse {
+pub async fn count_software(
+    State(_state): State<AppState>,
+    Query(_params): Query<ListSoftwareParams>,
+) -> FleetResponse {
     fleet_ok("count", serde_json::json!(0))
 }
 
 /// GET /api/_version_/fleet/software/titles
 pub async fn list_software_titles(
+    State(_state): State<AppState>,
     Query(_params): Query<ListSoftwareTitlesParams>,
 ) -> FleetResponse {
     fleet_ok("software_titles", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/software/titles/{id}
-pub async fn get_software_title(Path(_id): Path<u64>) -> FleetResponse {
+pub async fn get_software_title(
+    State(_state): State<AppState>,
+    Path(_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("software_title", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/hosts/{host_id}/software/{software_title_id}/install
 pub async fn install_software_title(
+    State(_state): State<AppState>,
     Path((_host_id, _software_title_id)): Path<(u64, u64)>,
 ) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
@@ -159,30 +177,40 @@ pub async fn install_software_title(
 
 /// POST /api/_version_/fleet/hosts/{host_id}/software/{software_title_id}/uninstall
 pub async fn uninstall_software_title(
+    State(_state): State<AppState>,
     Path((_host_id, _software_title_id)): Path<(u64, u64)>,
 ) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/software/titles/{title_id}/package
-pub async fn get_software_installer(Path(_title_id): Path<u64>) -> FleetResponse {
+pub async fn get_software_installer(
+    State(_state): State<AppState>,
+    Path(_title_id): Path<u64>,
+) -> FleetResponse {
     // TODO: return binary installer content
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/software/titles/{title_id}/package/token
-pub async fn get_software_installer_token(Path(_title_id): Path<u64>) -> FleetResponse {
+pub async fn get_software_installer_token(
+    State(_state): State<AppState>,
+    Path(_title_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("token", serde_json::json!(""))
 }
 
 /// POST /api/_version_/fleet/software/package
-pub async fn upload_software_installer() -> FleetResponse {
+pub async fn upload_software_installer(
+    State(_state): State<AppState>,
+) -> FleetResponse {
     // TODO: handle multipart upload
     fleet_ok("", serde_json::json!({}))
 }
 
 /// PATCH /api/_version_/fleet/software/titles/{id}/name
 pub async fn update_software_name(
+    State(_state): State<AppState>,
     Path(_id): Path<u64>,
     Json(_body): Json<UpdateSoftwareNameBody>,
 ) -> FleetResponse {
@@ -190,23 +218,33 @@ pub async fn update_software_name(
 }
 
 /// PATCH /api/_version_/fleet/software/titles/{id}/package
-pub async fn update_software_installer(Path(_id): Path<u64>) -> FleetResponse {
+pub async fn update_software_installer(
+    State(_state): State<AppState>,
+    Path(_id): Path<u64>,
+) -> FleetResponse {
     // TODO: handle multipart upload
     fleet_ok("", serde_json::json!({}))
 }
 
 /// DELETE /api/_version_/fleet/software/titles/{title_id}/available_for_install
-pub async fn delete_software_installer(Path(_title_id): Path<u64>) -> FleetResponse {
+pub async fn delete_software_installer(
+    State(_state): State<AppState>,
+    Path(_title_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/software/install/{install_uuid}/results
-pub async fn get_software_install_results(Path(_install_uuid): Path<String>) -> FleetResponse {
+pub async fn get_software_install_results(
+    State(_state): State<AppState>,
+    Path(_install_uuid): Path<String>,
+) -> FleetResponse {
     fleet_ok("results", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/software/batch
 pub async fn batch_set_software_installers(
+    State(_state): State<AppState>,
     Json(_body): Json<BatchSetSoftwareInstallersBody>,
 ) -> FleetResponse {
     fleet_ok("request_uuid", serde_json::json!(""))
@@ -214,40 +252,57 @@ pub async fn batch_set_software_installers(
 
 /// GET /api/_version_/fleet/software/batch/{request_uuid}
 pub async fn batch_set_software_installers_result(
+    State(_state): State<AppState>,
     Path(_request_uuid): Path<String>,
 ) -> FleetResponse {
     fleet_ok("status", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/software/titles/{title_id}/icon
-pub async fn get_software_title_icon(Path(_title_id): Path<u64>) -> FleetResponse {
+pub async fn get_software_title_icon(
+    State(_state): State<AppState>,
+    Path(_title_id): Path<u64>,
+) -> FleetResponse {
     // TODO: return icon binary
     fleet_ok("", serde_json::json!({}))
 }
 
 /// PUT /api/_version_/fleet/software/titles/{title_id}/icon
-pub async fn put_software_title_icon(Path(_title_id): Path<u64>) -> FleetResponse {
+pub async fn put_software_title_icon(
+    State(_state): State<AppState>,
+    Path(_title_id): Path<u64>,
+) -> FleetResponse {
     // TODO: handle multipart upload
     fleet_ok("", serde_json::json!({}))
 }
 
 /// DELETE /api/_version_/fleet/software/titles/{title_id}/icon
-pub async fn delete_software_title_icon(Path(_title_id): Path<u64>) -> FleetResponse {
+pub async fn delete_software_title_icon(
+    State(_state): State<AppState>,
+    Path(_title_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/software/app_store_apps
-pub async fn get_app_store_apps(Query(_params): Query<GetAppStoreAppsParams>) -> FleetResponse {
+pub async fn get_app_store_apps(
+    State(_state): State<AppState>,
+    Query(_params): Query<GetAppStoreAppsParams>,
+) -> FleetResponse {
     fleet_ok("app_store_apps", serde_json::json!([]))
 }
 
 /// POST /api/_version_/fleet/software/app_store_apps
-pub async fn add_app_store_app(Json(_body): Json<AddAppStoreAppBody>) -> FleetResponse {
+pub async fn add_app_store_app(
+    State(_state): State<AppState>,
+    Json(_body): Json<AddAppStoreAppBody>,
+) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }
 
 /// PATCH /api/_version_/fleet/software/titles/{title_id}/app_store_app
 pub async fn update_app_store_app(
+    State(_state): State<AppState>,
     Path(_title_id): Path<u64>,
     Json(_body): Json<UpdateAppStoreAppBody>,
 ) -> FleetResponse {
@@ -256,6 +311,7 @@ pub async fn update_app_store_app(
 
 /// POST /api/_version_/fleet/software/fleet_maintained_apps
 pub async fn add_fleet_maintained_app(
+    State(_state): State<AppState>,
     Json(_body): Json<AddFleetMaintainedAppBody>,
 ) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
@@ -263,18 +319,23 @@ pub async fn add_fleet_maintained_app(
 
 /// GET /api/_version_/fleet/software/fleet_maintained_apps
 pub async fn list_fleet_maintained_apps(
+    State(_state): State<AppState>,
     Query(_params): Query<ListFleetMaintainedAppsParams>,
 ) -> FleetResponse {
     fleet_ok("fleet_maintained_apps", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/software/fleet_maintained_apps/{app_id}
-pub async fn get_fleet_maintained_app(Path(_app_id): Path<u64>) -> FleetResponse {
+pub async fn get_fleet_maintained_app(
+    State(_state): State<AppState>,
+    Path(_app_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("fleet_maintained_app", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/software/app_store_apps/batch
 pub async fn batch_associate_app_store_apps(
+    State(_state): State<AppState>,
     Json(_body): Json<BatchAssociateAppStoreAppsBody>,
 ) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
@@ -282,6 +343,7 @@ pub async fn batch_associate_app_store_apps(
 
 /// POST /api/_version_/fleet/software/web_apps
 pub async fn create_android_web_app(
+    State(_state): State<AppState>,
     Json(_body): Json<CreateAndroidWebAppBody>,
 ) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
@@ -289,18 +351,23 @@ pub async fn create_android_web_app(
 
 /// GET /api/_version_/fleet/vulnerabilities
 pub async fn list_vulnerabilities(
+    State(_state): State<AppState>,
     Query(_params): Query<ListVulnerabilitiesParams>,
 ) -> FleetResponse {
     fleet_ok("vulnerabilities", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/vulnerabilities/{cve}
-pub async fn get_vulnerability(Path(_cve): Path<String>) -> FleetResponse {
+pub async fn get_vulnerability(
+    State(_state): State<AppState>,
+    Path(_cve): Path<String>,
+) -> FleetResponse {
     fleet_ok("vulnerability", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/software/titles/{title_id}/package/token/{token}
 pub async fn download_software_installer(
+    State(_state): State<AppState>,
     Path((_title_id, _token)): Path<(u64, String)>,
 ) -> FleetResponse {
     // TODO: validate token, return binary installer
@@ -308,11 +375,17 @@ pub async fn download_software_installer(
 }
 
 /// GET /api/_version_/fleet/software/titles/{title_id}/in_house_app
-pub async fn get_in_house_app_package(Path(_title_id): Path<u64>) -> FleetResponse {
+pub async fn get_in_house_app_package(
+    State(_state): State<AppState>,
+    Path(_title_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/software/titles/{title_id}/in_house_app/manifest
-pub async fn get_in_house_app_manifest(Path(_title_id): Path<u64>) -> FleetResponse {
+pub async fn get_in_house_app_manifest(
+    State(_state): State<AppState>,
+    Path(_title_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }

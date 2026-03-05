@@ -4,12 +4,14 @@
 //! OS versions, macadmins data, scripts, activities, and host actions.
 
 use axum::{
-    extract::{Json, Path, Query},
+    extract::{Json, Path, Query, State},
     http::StatusCode,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::response::{fleet_error, fleet_ok, FleetResponse};
+use crate::middleware::auth::AuthenticatedUser;
+use crate::response::{encode_service_error, fleet_error, fleet_ok, FleetResponse};
+use crate::AppState;
 
 // ---------------------------------------------------------------------------
 // Request / response types
@@ -102,42 +104,122 @@ pub struct RunLiveQueryOnHostBody {
 // ---------------------------------------------------------------------------
 
 /// GET /api/_version_/fleet/host_summary
-pub async fn get_host_summary() -> FleetResponse {
-    fleet_ok("host_summary", serde_json::json!({}))
+pub async fn get_host_summary(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+) -> FleetResponse {
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.host_summary(&viewer).await {
+        Ok(summary) => fleet_ok("host_summary", serde_json::to_value(&summary).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/hosts
-pub async fn list_hosts(Query(_params): Query<ListHostsParams>) -> FleetResponse {
-    fleet_ok("hosts", serde_json::json!([]))
+pub async fn list_hosts(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Query(params): Query<ListHostsParams>,
+) -> FleetResponse {
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let opts = fleet_types::HostListOptions {
+        list_options: fleet_types::ListOptions {
+            page: params.page.unwrap_or(0) as u32,
+            per_page: params.per_page.unwrap_or(0) as u32,
+            order_key: params.order_key.unwrap_or_default(),
+            match_query: params.query.unwrap_or_default(),
+            ..Default::default()
+        },
+        team_filter: params.team_id.map(|v| v as u32),
+        policy_id_filter: params.policy_id.map(|v| v as u32),
+        software_id_filter: params.software_id.map(|v| v as u32),
+        software_version_id_filter: params.software_version_id.map(|v| v as u32),
+        software_title_id_filter: params.software_title_id.map(|v| v as u32),
+        os_id_filter: params.os_id.map(|v| v as u32),
+        os_name_filter: params.os_name,
+        os_version_filter: params.os_version,
+        vulnerability_filter: params.vulnerability,
+        mdm_id_filter: params.mdm_id.map(|v| v as u32),
+        mdm_name_filter: params.mdm_name,
+        munki_issue_id_filter: params.munkis_issue_id.map(|v| v as u32),
+        low_disk_space_filter: params.low_disk_space.map(|v| v as i32),
+        ..Default::default()
+    };
+    match state.service.list_hosts(&viewer, opts).await {
+        Ok(hosts) => fleet_ok("hosts", serde_json::to_value(&hosts).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/hosts/delete
-pub async fn delete_hosts(Json(_body): Json<DeleteHostsBody>) -> FleetResponse {
+pub async fn delete_hosts(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Json(_body): Json<DeleteHostsBody>,
+) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/hosts/{id}
-pub async fn get_host(Path(_id): Path<u64>) -> FleetResponse {
-    fleet_ok("host", serde_json::json!({}))
+pub async fn get_host(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(id): Path<u64>,
+) -> FleetResponse {
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.get_host(&viewer, id as u32).await {
+        Ok(host_detail) => fleet_ok("host", serde_json::to_value(&host_detail).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/hosts/count
-pub async fn count_hosts(Query(_params): Query<ListHostsParams>) -> FleetResponse {
+pub async fn count_hosts(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Query(_params): Query<ListHostsParams>,
+) -> FleetResponse {
     fleet_ok("count", serde_json::json!(0))
 }
 
 /// POST /api/_version_/fleet/hosts/search
-pub async fn search_hosts(Json(_body): Json<SearchHostsBody>) -> FleetResponse {
+pub async fn search_hosts(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Json(_body): Json<SearchHostsBody>,
+) -> FleetResponse {
     fleet_ok("hosts", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/hosts/identifier/{identifier}
-pub async fn host_by_identifier(Path(_identifier): Path<String>) -> FleetResponse {
-    fleet_ok("host", serde_json::json!({}))
+pub async fn host_by_identifier(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(identifier): Path<String>,
+) -> FleetResponse {
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.get_host_by_identifier(&viewer, &identifier).await {
+        Ok(host_detail) => fleet_ok("host", serde_json::to_value(&host_detail).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/hosts/identifier/{identifier}/query
 pub async fn run_live_query_on_host(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_identifier): Path<String>,
     Json(_body): Json<RunLiveQueryOnHostBody>,
 ) -> FleetResponse {
@@ -146,6 +228,8 @@ pub async fn run_live_query_on_host(
 
 /// POST /api/_version_/fleet/hosts/{id}/query
 pub async fn run_live_query_on_host_by_id(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_id): Path<u64>,
     Json(_body): Json<RunLiveQueryOnHostBody>,
 ) -> FleetResponse {
@@ -153,34 +237,68 @@ pub async fn run_live_query_on_host_by_id(
 }
 
 /// DELETE /api/_version_/fleet/hosts/{id}
-pub async fn delete_host(Path(_id): Path<u64>) -> FleetResponse {
-    fleet_ok("", serde_json::json!({}))
+pub async fn delete_host(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(id): Path<u64>,
+) -> FleetResponse {
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.delete_host(&viewer, id as u32).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/hosts/transfer
-pub async fn add_hosts_to_team(Json(_body): Json<TransferHostsBody>) -> FleetResponse {
+pub async fn add_hosts_to_team(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Json(_body): Json<TransferHostsBody>,
+) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/hosts/transfer/filter
 pub async fn add_hosts_to_team_by_filter(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
     Json(_body): Json<TransferHostsByFilterBody>,
 ) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/hosts/{id}/refetch
-pub async fn refetch_host(Path(_id): Path<u64>) -> FleetResponse {
-    fleet_ok("", serde_json::json!({}))
+pub async fn refetch_host(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(id): Path<u64>,
+) -> FleetResponse {
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.refetch_host(&viewer, id as u32).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/device_mapping
-pub async fn list_host_device_mapping(Path(_id): Path<u64>) -> FleetResponse {
+pub async fn list_host_device_mapping(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("device_mapping", serde_json::json!([]))
 }
 
 /// PUT /api/_version_/fleet/hosts/{id}/device_mapping
 pub async fn put_host_device_mapping(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_id): Path<u64>,
     Json(_body): Json<PutHostDeviceMappingBody>,
 ) -> FleetResponse {
@@ -188,37 +306,61 @@ pub async fn put_host_device_mapping(
 }
 
 /// DELETE /api/_version_/fleet/hosts/{id}/device_mapping/idp
-pub async fn delete_host_idp(Path(_id): Path<u64>) -> FleetResponse {
+pub async fn delete_host_idp(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/hosts/report
-pub async fn hosts_report() -> FleetResponse {
+pub async fn hosts_report(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+) -> FleetResponse {
     fleet_ok("hosts", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/os_versions
-pub async fn os_versions() -> FleetResponse {
+pub async fn os_versions(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+) -> FleetResponse {
     fleet_ok("os_versions", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/os_versions/{id}
-pub async fn get_os_version(Path(_id): Path<u64>) -> FleetResponse {
+pub async fn get_os_version(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("os_version", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/reports/{report_id}
-pub async fn get_host_query_report(Path((_id, _report_id)): Path<(u64, u64)>) -> FleetResponse {
+pub async fn get_host_query_report(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path((_id, _report_id)): Path<(u64, u64)>,
+) -> FleetResponse {
     fleet_ok("report", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/health
-pub async fn get_host_health(Path(_id): Path<u64>) -> FleetResponse {
+pub async fn get_host_health(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("host_health", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/hosts/{id}/labels
 pub async fn add_labels_to_host(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_id): Path<u64>,
     Json(_body): Json<AddLabelsToHostBody>,
 ) -> FleetResponse {
@@ -226,78 +368,134 @@ pub async fn add_labels_to_host(
 }
 
 /// DELETE /api/_version_/fleet/hosts/{id}/labels
-pub async fn remove_labels_from_host(Path(_id): Path<u64>) -> FleetResponse {
+pub async fn remove_labels_from_host(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/software
-pub async fn get_host_software(Path(_id): Path<u64>) -> FleetResponse {
+pub async fn get_host_software(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("software", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/certificates
-pub async fn list_host_certificates(Path(_id): Path<u64>) -> FleetResponse {
+pub async fn list_host_certificates(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("certificates", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/hosts/summary/mdm
-pub async fn get_host_mdm_summary() -> FleetResponse {
+pub async fn get_host_mdm_summary(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+) -> FleetResponse {
     fleet_ok("mdm_summary", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/mdm
-pub async fn get_host_mdm(Path(_id): Path<u64>) -> FleetResponse {
+pub async fn get_host_mdm(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("host_mdm", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/macadmins
-pub async fn get_macadmins_data(Path(_id): Path<u64>) -> FleetResponse {
+pub async fn get_macadmins_data(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("macadmins", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/macadmins
-pub async fn get_aggregated_macadmins_data() -> FleetResponse {
+pub async fn get_aggregated_macadmins_data(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+) -> FleetResponse {
     fleet_ok("macadmins", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/scripts
-pub async fn get_host_script_details(Path(_id): Path<u64>) -> FleetResponse {
+pub async fn get_host_script_details(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("scripts", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/activities/upcoming
-pub async fn list_host_upcoming_activities(Path(_id): Path<u64>) -> FleetResponse {
+pub async fn list_host_upcoming_activities(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("activities", serde_json::json!([]))
 }
 
 /// DELETE /api/_version_/fleet/hosts/{id}/activities/upcoming/{activity_id}
 pub async fn cancel_host_upcoming_activity(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
     Path((_id, _activity_id)): Path<(u64, u64)>,
 ) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/hosts/{id}/lock
-pub async fn lock_host(Path(_id): Path<u64>) -> FleetResponse {
+pub async fn lock_host(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/hosts/{id}/unlock
-pub async fn unlock_host(Path(_id): Path<u64>) -> FleetResponse {
+pub async fn unlock_host(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/hosts/{id}/wipe
-pub async fn wipe_host(Path(_id): Path<u64>) -> FleetResponse {
+pub async fn wipe_host(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/targets
-pub async fn search_targets(Json(_body): Json<SearchTargetsBody>) -> FleetResponse {
+pub async fn search_targets(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Json(_body): Json<SearchTargetsBody>,
+) -> FleetResponse {
     fleet_ok("targets", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/targets/count
-pub async fn count_targets(Json(_body): Json<CountTargetsBody>) -> FleetResponse {
+pub async fn count_targets(
+    State(_state): State<AppState>,
+    auth: AuthenticatedUser,
+    Json(_body): Json<CountTargetsBody>,
+) -> FleetResponse {
     fleet_ok("targets_count", serde_json::json!(0))
 }

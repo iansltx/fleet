@@ -2,13 +2,10 @@
 //!
 //! Handles initial Fleet setup and macOS setup experience configuration.
 
-use axum::{
-    extract::{Json, State},
-    http::StatusCode,
-};
-use serde::{Deserialize, Serialize};
+use axum::extract::{Json, State};
+use serde::Deserialize;
 
-use crate::response::{encode_service_error, fleet_error, fleet_ok, FleetResponse};
+use crate::response::{encode_service_error, fleet_ok, FleetResponse};
 use crate::AppState;
 
 // ---------------------------------------------------------------------------
