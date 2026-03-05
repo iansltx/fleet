@@ -58,6 +58,12 @@ pub struct RequirePasswordResetBody {
     pub require: bool,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct SaveUserSettingsBody {
+    #[serde(flatten)]
+    pub settings: serde_json::Value,
+}
+
 // ---------------------------------------------------------------------------
 // Handlers
 // ---------------------------------------------------------------------------
@@ -303,6 +309,39 @@ pub async fn create_user_from_invite(
     };
     match state.service.create_user_from_invite(payload).await {
         Ok(user) => fleet_ok("user", serde_json::to_value(&user).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
+}
+
+/// GET /api/_version_/fleet/users/{id}/settings
+pub async fn get_user_settings(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(id): Path<u64>,
+) -> FleetResponse {
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.get_user_settings(&viewer, id as u32).await {
+        Ok(settings) => fleet_ok("settings", settings.unwrap_or(serde_json::json!({}))),
+        Err(e) => encode_service_error(&e),
+    }
+}
+
+/// POST /api/_version_/fleet/users/{id}/settings
+pub async fn save_user_settings(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(id): Path<u64>,
+    Json(body): Json<SaveUserSettingsBody>,
+) -> FleetResponse {
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.save_user_settings(&viewer, id as u32, &body.settings).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
         Err(e) => encode_service_error(&e),
     }
 }

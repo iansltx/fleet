@@ -306,6 +306,21 @@ pub struct HostHealth {
     pub failing_critical_policies_count: Option<i32>,
 }
 
+/// OSVersionStats holds aggregate stats for a given OS version.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct OSVersionStats {
+    pub id: u32,
+    pub name: String,
+    pub name_only: String,
+    pub version: String,
+    pub platform: String,
+    pub hosts_count: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub generated_cpes: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vulnerabilities: Option<Vec<String>>,
+}
+
 /// HostOrbitInfo maps to the host_orbit_info table.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HostOrbitInfo {

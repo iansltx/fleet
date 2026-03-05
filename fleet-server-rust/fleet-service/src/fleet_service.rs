@@ -58,6 +58,9 @@ pub trait Datastore: Send + Sync + 'static {
     ) -> ServiceResult<fleet_types::Host>;
     async fn host_summary(&self) -> ServiceResult<fleet_types::HostSummary>;
     async fn transfer_hosts_to_team(&self, host_ids: &[u32], team_id: Option<u32>) -> ServiceResult<()>;
+    async fn list_os_versions(&self) -> ServiceResult<Vec<fleet_types::OSVersionStats>>;
+    async fn os_version(&self, id: u32) -> ServiceResult<fleet_types::OSVersionStats>;
+    async fn search_hosts(&self, query: &str, omit_ids: &[u32], limit: u32) -> ServiceResult<Vec<fleet_types::Host>>;
 
     // ---- Queries ----
     async fn query(&self, id: u32) -> ServiceResult<fleet_types::Query>;

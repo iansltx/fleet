@@ -34,7 +34,7 @@ pub use carve::*;
 pub use config::*;
 pub use enroll::*;
 pub use error::*;
-pub use host::{Host, HostDetail, HostListOptions, HostStatus, HostSummary, HostUser};
+pub use host::{Host, HostDetail, HostListOptions, HostStatus, HostSummary, HostUser, OSVersionStats};
 pub use invite::*;
 pub use label::{Label, LabelMembershipType, LabelSpec, LabelSummary, LabelType};
 pub use osquery::*;

@@ -423,9 +423,10 @@ pub async fn os_versions(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    // Stub: backing service not yet implemented
-    fleet_ok("os_versions", serde_json::json!([]))
+    match state.service.list_os_versions(&viewer).await {
+        Ok(versions) => fleet_ok("os_versions", serde_json::to_value(&versions).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/os_versions/{id}
@@ -438,9 +439,10 @@ pub async fn get_os_version(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id);
-    // Stub: backing service not yet implemented
-    fleet_ok("os_version", serde_json::json!({}))
+    match state.service.get_os_version(&viewer, id as u32).await {
+        Ok(version) => fleet_ok("os_version", serde_json::to_value(&version).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/reports/{report_id}
@@ -702,9 +704,13 @@ pub async fn search_targets(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &body);
-    // Stub: backing service not yet implemented
-    fleet_ok("targets", serde_json::json!({}))
+    let query_str = body.query.as_deref().unwrap_or("");
+    match state.service.search_targets(&viewer, query_str, &[]).await {
+        Ok(hosts) => fleet_ok("targets", serde_json::json!({
+            "hosts": serde_json::to_value(&hosts).unwrap_or_default(),
+        })),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/targets/count
@@ -717,7 +723,9 @@ pub async fn count_targets(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &body);
-    // Stub: backing service not yet implemented
-    fleet_ok("targets_count", serde_json::json!(0))
+    let _ = &body;
+    match state.service.search_targets(&viewer, "", &[]).await {
+        Ok(hosts) => fleet_ok("targets_count", serde_json::json!(hosts.len())),
+        Err(e) => encode_service_error(&e),
+    }
 }

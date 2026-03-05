@@ -851,6 +851,79 @@ impl Datastore for MysqlDatastore {
         Ok(())
     }
 
+    async fn list_os_versions(&self) -> ServiceResult<Vec<fleet_types::OSVersionStats>> {
+        #[derive(sqlx::FromRow)]
+        struct OsRow {
+            os_version: String,
+            platform: String,
+            cnt: i64,
+        }
+        let rows: Vec<OsRow> = sqlx::query_as(
+            "SELECT os_version, platform, COUNT(*) as cnt FROM hosts WHERE os_version != '' GROUP BY os_version, platform ORDER BY cnt DESC"
+        )
+        .fetch_all(self.pool())
+        .await
+        .map_err(ds_error)?;
+
+        let mut result = Vec::with_capacity(rows.len());
+        for (i, row) in rows.into_iter().enumerate() {
+            let name_only = row.os_version.split_whitespace().next().unwrap_or("").to_string();
+            let version = row.os_version.split_whitespace().skip(1).collect::<Vec<_>>().join(" ");
+            result.push(fleet_types::OSVersionStats {
+                id: (i + 1) as u32,
+                name: row.os_version.clone(),
+                name_only,
+                version,
+                platform: row.platform,
+                hosts_count: row.cnt as u32,
+                ..Default::default()
+            });
+        }
+        Ok(result)
+    }
+
+    async fn os_version(&self, id: u32) -> ServiceResult<fleet_types::OSVersionStats> {
+        let all = self.list_os_versions().await?;
+        all.into_iter()
+            .find(|v| v.id == id)
+            .ok_or_else(|| ServiceError::not_found("os version"))
+    }
+
+    async fn search_hosts(&self, query: &str, omit_ids: &[u32], limit: u32) -> ServiceResult<Vec<fleet_types::Host>> {
+        let search = format!("%{}%", query);
+        let limit = limit.min(100);
+        let base_sql = "SELECT * FROM hosts WHERE (hostname LIKE ? OR computer_name LIKE ? OR hardware_serial LIKE ?)";
+
+        if omit_ids.is_empty() {
+            let sql = format!("{} ORDER BY hostname LIMIT ?", base_sql);
+            let rows: Vec<crate::hosts::HostRow> = sqlx::query_as(&sql)
+                .bind(&search)
+                .bind(&search)
+                .bind(&search)
+                .bind(limit)
+                .fetch_all(self.pool())
+                .await
+                .map_err(ds_error)?;
+            Ok(rows.into_iter().map(host_row_to_host).collect())
+        } else {
+            let placeholders: Vec<&str> = omit_ids.iter().map(|_| "?").collect();
+            let sql = format!(
+                "{} AND id NOT IN ({}) ORDER BY hostname LIMIT ?",
+                base_sql,
+                placeholders.join(",")
+            );
+            let mut q = sqlx::query_as::<_, crate::hosts::HostRow>(&sql)
+                .bind(&search)
+                .bind(&search)
+                .bind(&search);
+            for &id in omit_ids {
+                q = q.bind(id);
+            }
+            let rows: Vec<crate::hosts::HostRow> = q.bind(limit).fetch_all(self.pool()).await.map_err(ds_error)?;
+            Ok(rows.into_iter().map(host_row_to_host).collect())
+        }
+    }
+
     // ---- Queries ----
 
     async fn query(&self, id: u32) -> ServiceResult<fleet_types::Query> {

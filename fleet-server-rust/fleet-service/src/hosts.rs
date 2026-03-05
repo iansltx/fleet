@@ -212,6 +212,47 @@ impl FleetService {
         info!(count = host_ids.len(), team_id = ?team_id, "hosts transferred to team");
         Ok(())
     }
+
+    /// Lists OS version stats aggregated across all hosts.
+    pub async fn list_os_versions(
+        &self,
+        viewer: &Viewer,
+    ) -> ServiceResult<Vec<fleet_types::OSVersionStats>> {
+        authz::authorize(viewer, Subject::Host, Action::Read)?;
+        self.ds.list_os_versions().await
+    }
+
+    /// Gets a single OS version by ID.
+    pub async fn get_os_version(
+        &self,
+        viewer: &Viewer,
+        id: u32,
+    ) -> ServiceResult<fleet_types::OSVersionStats> {
+        authz::authorize(viewer, Subject::Host, Action::Read)?;
+        self.ds.os_version(id).await
+    }
+
+    /// Lists policies for a specific host.
+    pub async fn list_host_policies(
+        &self,
+        viewer: &Viewer,
+        host_id: u32,
+    ) -> ServiceResult<Vec<fleet_types::policy::HostPolicy>> {
+        authz::authorize(viewer, Subject::Host, Action::Read)?;
+        self.ds.host(host_id).await?;
+        self.ds.list_policies_for_host(host_id).await
+    }
+
+    /// Searches for hosts matching a query, used for live query target selection.
+    pub async fn search_targets(
+        &self,
+        viewer: &Viewer,
+        query: &str,
+        omit_ids: &[u32],
+    ) -> ServiceResult<Vec<fleet_types::Host>> {
+        authz::authorize(viewer, Subject::Host, Action::Read)?;
+        self.ds.search_hosts(query, omit_ids, 100).await
+    }
 }
 
 /// Converts a full Label to a LabelSummary.
