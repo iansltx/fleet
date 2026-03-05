@@ -264,6 +264,9 @@ pub struct HostDetail {
 
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub packs: Vec<crate::pack::Pack>,
+
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub policies: Vec<crate::policy::HostPolicy>,
 }
 
 /// HostSummary contains the counts for the dashboard host summary.

@@ -183,6 +183,7 @@ pub trait Datastore: Send + Sync + 'static {
     async fn list_policies_for_host(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::policy::HostPolicy>>;
     async fn list_software_for_host(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::Software>>;
     async fn device_mapping_for_host(&self, host_id: u32) -> ServiceResult<serde_json::Value>;
+    async fn set_custom_host_device_mapping(&self, host_id: u32, email: &str) -> ServiceResult<()>;
     async fn mark_host_refetch_requested(&self, host_id: u32) -> ServiceResult<()>;
 
     // ---- Carves ----

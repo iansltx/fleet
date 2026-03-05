@@ -379,9 +379,11 @@ pub async fn put_host_device_mapping(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id, &body);
-    // Stub: backing service not yet implemented
-    fleet_ok("device_mapping", serde_json::json!([]))
+    let email = body.custom_email.as_deref().unwrap_or("");
+    match state.service.put_host_device_mapping(&viewer, id as u32, email).await {
+        Ok(mapping) => fleet_ok("device_mapping", mapping),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// DELETE /api/_version_/fleet/hosts/{id}/device_mapping/idp
@@ -470,9 +472,10 @@ pub async fn get_host_health(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id);
-    // Stub: backing service not yet implemented
-    fleet_ok("host_health", serde_json::json!({}))
+    match state.service.get_host_health(&viewer, id as u32).await {
+        Ok(health) => fleet_ok("host_health", serde_json::to_value(&health).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/hosts/{id}/labels

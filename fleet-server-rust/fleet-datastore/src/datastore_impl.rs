@@ -1985,6 +1985,19 @@ impl Datastore for MysqlDatastore {
         Ok(serde_json::Value::Array(mappings))
     }
 
+    async fn set_custom_host_device_mapping(&self, host_id: u32, email: &str) -> ServiceResult<()> {
+        sqlx::query(
+            "INSERT INTO host_emails (host_id, email, source) VALUES (?, ?, 'custom') \
+             ON DUPLICATE KEY UPDATE email = VALUES(email)"
+        )
+        .bind(host_id)
+        .bind(email)
+        .execute(self.pool())
+        .await
+        .map_err(ds_error)?;
+        Ok(())
+    }
+
     async fn mark_host_refetch_requested(&self, host_id: u32) -> ServiceResult<()> {
         sqlx::query("UPDATE hosts SET refetch_requested = 1 WHERE id = ?")
             .bind(host_id)

@@ -42,11 +42,13 @@ impl FleetService {
             .map(label_to_summary)
             .collect();
         let packs = self.ds.list_packs_for_host(id).await.unwrap_or_default();
+        let policies = self.ds.list_policies_for_host(id).await.unwrap_or_default();
 
         Ok(fleet_types::HostDetail {
             host,
             labels,
             packs,
+            policies,
         })
     }
 
@@ -61,20 +63,23 @@ impl FleetService {
         authz::authorize(viewer, Subject::Host, Action::Read)?;
 
         let host = self.ds.host_by_identifier(identifier).await?;
+        let host_id = host.id;
         let labels: Vec<fleet_types::label::LabelSummary> = self
             .ds
-            .list_labels_for_host(host.id)
+            .list_labels_for_host(host_id)
             .await
             .unwrap_or_default()
             .into_iter()
             .map(label_to_summary)
             .collect();
-        let packs = self.ds.list_packs_for_host(host.id).await.unwrap_or_default();
+        let packs = self.ds.list_packs_for_host(host_id).await.unwrap_or_default();
+        let policies = self.ds.list_policies_for_host(host_id).await.unwrap_or_default();
 
         Ok(fleet_types::HostDetail {
             host,
             labels,
             packs,
+            policies,
         })
     }
 
@@ -251,6 +256,38 @@ impl FleetService {
     ) -> ServiceResult<Vec<fleet_types::Host>> {
         authz::authorize(viewer, Subject::Host, Action::Read)?;
         self.ds.search_hosts(query, omit_ids, 100).await
+    }
+
+    /// Sets a custom device mapping email on a host.
+    pub async fn put_host_device_mapping(
+        &self,
+        viewer: &Viewer,
+        host_id: u32,
+        email: &str,
+    ) -> ServiceResult<serde_json::Value> {
+        authz::authorize(viewer, Subject::Host, Action::Write)?;
+        self.ds.host(host_id).await?;
+        self.ds.set_custom_host_device_mapping(host_id, email).await?;
+        self.ds.device_mapping_for_host(host_id).await
+    }
+
+    /// Gets health information for a host.
+    pub async fn get_host_health(
+        &self,
+        viewer: &Viewer,
+        host_id: u32,
+    ) -> ServiceResult<fleet_types::host::HostHealth> {
+        authz::authorize(viewer, Subject::Host, Action::Read)?;
+        let host = self.ds.host(host_id).await?;
+        let policies = self.ds.list_policies_for_host(host_id).await.unwrap_or_default();
+        let failing = policies.iter().filter(|p| p.response == "fail").count() as i32;
+        Ok(fleet_types::host::HostHealth {
+            updated_at: Some(host.updated_at),
+            os_version: Some(host.os_version),
+            disk_encryption_enabled: None,
+            failing_policies_count: failing,
+            failing_critical_policies_count: None,
+        })
     }
 }
 
