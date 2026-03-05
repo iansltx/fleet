@@ -14,6 +14,16 @@ use crate::authz::{self, Action, Subject};
 use crate::fleet_service::{FleetService, TeamSummaryInfo};
 use crate::{ServiceError, ServiceResult, Viewer};
 
+/// Spec representation of a team for declarative (GitOps) management.
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct TeamSpec {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub agent_options: Option<serde_json::Value>,
+}
+
 impl FleetService {
     /// Lists all teams.
     ///
@@ -206,5 +216,61 @@ impl FleetService {
 
         info!(team_id = saved.id, name = %saved.name, "team agent options modified");
         Ok(saved)
+    }
+
+    /// Applies team specs (upsert teams by name).
+    ///
+    /// Corresponds to Go's `(svc *Service) ApplyTeamSpecs`.
+    pub async fn apply_team_specs(
+        &self,
+        viewer: &Viewer,
+        specs: Vec<TeamSpec>,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Team, Action::Write)?;
+
+        for spec in &specs {
+            if spec.name.is_empty() {
+                return Err(ServiceError::invalid_argument("name", "missing required argument"));
+            }
+            if fleet_types::team::is_reserved_team_name(&spec.name) {
+                return Err(ServiceError::invalid_argument(
+                    "name",
+                    format!("'{}' is a reserved team name", spec.name),
+                ));
+            }
+            match self.ds.team_by_name(&spec.name).await {
+                Ok(mut team) => {
+                    // Update existing team from spec.
+                    if let Some(ref desc) = spec.description {
+                        team.description = desc.clone();
+                    }
+                    if let Some(ref agent_options) = spec.agent_options {
+                        team.config.agent_options = Some(agent_options.clone());
+                    }
+                    self.ds.save_team(&team).await?;
+                    info!(name = %spec.name, "team spec updated");
+                }
+                Err(ServiceError::NotFound(_)) => {
+                    // Create new team from spec.
+                    let team = fleet_types::Team {
+                        id: 0,
+                        gitops_filename: None,
+                        name: spec.name.clone(),
+                        description: spec.description.clone().unwrap_or_default(),
+                        config: Default::default(),
+                        user_count: 0,
+                        users: Vec::new(),
+                        host_count: 0,
+                        hosts: Vec::new(),
+                        secrets: None,
+                        created_at: chrono::Utc::now(),
+                    };
+                    self.ds.new_team(&team).await?;
+                    info!(name = %spec.name, "team spec created");
+                }
+                Err(e) => return Err(e),
+            }
+        }
+        Ok(())
     }
 }

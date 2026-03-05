@@ -175,4 +175,73 @@ impl FleetService {
         info!(team_id = team_id, count = deleted.len(), "team policies deleted");
         Ok(deleted)
     }
+
+    /// Applies policy specs (upsert global policies by name).
+    ///
+    /// Corresponds to Go's `(svc *Service) ApplyPolicySpecs`.
+    pub async fn apply_policy_specs(
+        &self,
+        viewer: &Viewer,
+        specs: Vec<PolicySpec>,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Policy, Action::Write)?;
+
+        // Load all global policies for name lookup.
+        let existing = self
+            .ds
+            .list_global_policies(fleet_types::ListOptions::default())
+            .await?;
+
+        for spec in &specs {
+            if spec.name.is_empty() {
+                return Err(ServiceError::invalid_argument("name", "missing required argument"));
+            }
+            if spec.query.is_empty() {
+                return Err(ServiceError::invalid_argument("query", "missing required argument"));
+            }
+
+            if let Some(mut policy) = existing.iter().find(|p| p.policy_data.name == spec.name).cloned() {
+                // Update existing policy.
+                policy.policy_data.query = spec.query.clone();
+                policy.policy_data.description = spec.description.clone().unwrap_or_default();
+                if let Some(ref resolution) = spec.resolution {
+                    policy.policy_data.resolution = Some(resolution.clone());
+                }
+                if let Some(ref platform) = spec.platform {
+                    policy.policy_data.platform = platform.clone();
+                }
+                if let Some(critical) = spec.critical {
+                    policy.policy_data.critical = critical;
+                }
+                self.ds.save_policy(&policy).await?;
+                info!(name = %spec.name, "policy spec updated");
+            } else {
+                // Create new global policy.
+                self.ds
+                    .new_global_policy(
+                        &spec.query,
+                        &spec.name,
+                        &spec.description.clone().unwrap_or_default(),
+                    )
+                    .await?;
+                info!(name = %spec.name, "policy spec created");
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Spec representation of a policy for declarative management.
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct PolicySpec {
+    pub name: String,
+    pub query: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolution: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub platform: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub critical: Option<bool>,
 }

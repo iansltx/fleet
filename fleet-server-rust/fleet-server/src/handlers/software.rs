@@ -205,150 +205,240 @@ pub async fn count_software(
 
 /// GET /api/_version_/fleet/software/titles
 pub async fn list_software_titles(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Query(_params): Query<ListSoftwareTitlesParams>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
     fleet_ok("software_titles", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/software/titles/{id}
 pub async fn get_software_title(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
     fleet_ok("software_title", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/hosts/{host_id}/software/{software_title_id}/install
 pub async fn install_software_title(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Path((_host_id, _software_title_id)): Path<(u64, u64)>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/hosts/{host_id}/software/{software_title_id}/uninstall
 pub async fn uninstall_software_title(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Path((_host_id, _software_title_id)): Path<(u64, u64)>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
     fleet_ok("", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/software/titles/{title_id}/package
 pub async fn get_software_installer(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_title_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
     // TODO: return binary installer content
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/software/titles/{title_id}/package/token
 pub async fn get_software_installer_token(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_title_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
     fleet_ok("token", serde_json::json!(""))
 }
 
 /// POST /api/_version_/fleet/software/package
 pub async fn upload_software_installer(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
     // TODO: handle multipart upload
     fleet_ok("", serde_json::json!({}))
 }
 
 /// PATCH /api/_version_/fleet/software/titles/{id}/name
 pub async fn update_software_name(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_id): Path<u64>,
     Json(_body): Json<UpdateSoftwareNameBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
     fleet_ok("", serde_json::json!({}))
 }
 
 /// PATCH /api/_version_/fleet/software/titles/{id}/package
 pub async fn update_software_installer(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
     // TODO: handle multipart upload
     fleet_ok("", serde_json::json!({}))
 }
 
 /// DELETE /api/_version_/fleet/software/titles/{title_id}/available_for_install
 pub async fn delete_software_installer(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_title_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
     fleet_ok("", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/software/install/{install_uuid}/results
 pub async fn get_software_install_results(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_install_uuid): Path<String>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
     fleet_ok("results", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/software/batch
 pub async fn batch_set_software_installers(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Json(_body): Json<BatchSetSoftwareInstallersBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
     fleet_ok("request_uuid", serde_json::json!(""))
 }
 
 /// GET /api/_version_/fleet/software/batch/{request_uuid}
 pub async fn batch_set_software_installers_result(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_request_uuid): Path<String>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
     fleet_ok("status", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/software/titles/{title_id}/icon
 pub async fn get_software_title_icon(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_title_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
     // TODO: return icon binary
     fleet_ok("", serde_json::json!({}))
 }
 
 /// PUT /api/_version_/fleet/software/titles/{title_id}/icon
 pub async fn put_software_title_icon(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_title_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
     // TODO: handle multipart upload
     fleet_ok("", serde_json::json!({}))
 }
 
 /// DELETE /api/_version_/fleet/software/titles/{title_id}/icon
 pub async fn delete_software_title_icon(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_title_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
     fleet_ok("", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/software/app_store_apps
 pub async fn get_app_store_apps(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Query(_params): Query<GetAppStoreAppsParams>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
     fleet_ok("app_store_apps", serde_json::json!([]))
 }
 
 /// POST /api/_version_/fleet/software/app_store_apps
 pub async fn add_app_store_app(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Json(_body): Json<AddAppStoreAppBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
     fleet_ok("", serde_json::json!({}))
 }
 

@@ -78,14 +78,21 @@ pub struct ListTeamUsersParams {
 pub async fn apply_team_specs(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<ApplyTeamSpecsBody>,
+    Json(body): Json<ApplyTeamSpecsBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement apply_team_specs logic
-    fleet_ok("", serde_json::json!({}))
+    let specs: Vec<fleet_service::teams::TeamSpec> = body
+        .specs
+        .into_iter()
+        .filter_map(|v| serde_json::from_value(v).ok())
+        .collect();
+    match state.service.apply_team_specs(&viewer, specs).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// PATCH /api/_version_/fleet/fleets/{fleet_id}/secrets
