@@ -362,6 +362,42 @@ fn software_title_row_to_software(row: crate::software::SoftwareTitleRow) -> fle
     }
 }
 
+/// Enriches a slice of Software with CVE data from the software_cve table.
+async fn enrich_software_with_cves(ds: &MysqlDatastore, software: &mut [fleet_types::Software]) {
+    let ids: Vec<u32> = software.iter().map(|s| s.id).collect();
+    if ids.is_empty() {
+        return;
+    }
+    let cve_rows = match MysqlDatastore::list_cves_for_software_ids(ds, &ids).await {
+        Ok(rows) => rows,
+        Err(_) => return, // Silently skip CVE enrichment on error
+    };
+    // Group CVEs by software_id
+    let mut cve_map: std::collections::HashMap<u32, Vec<fleet_types::vulnerability::CVE>> =
+        std::collections::HashMap::new();
+    for row in cve_rows {
+        cve_map
+            .entry(row.software_id)
+            .or_default()
+            .push(fleet_types::vulnerability::CVE {
+                cve: row.cve.clone(),
+                details_link: format!("https://nvd.nist.gov/vuln/detail/{}", row.cve),
+                created_at: row.created_at,
+                cvss_score: None,
+                epss_probability: None,
+                cisa_known_exploit: None,
+                cve_published: None,
+                description: None,
+                resolved_in_version: row.resolved_in_version.map(Some),
+            });
+    }
+    for sw in software.iter_mut() {
+        if let Some(cves) = cve_map.remove(&sw.id) {
+            sw.vulnerabilities = cves;
+        }
+    }
+}
+
 fn carve_row_to_carve(row: crate::carves::CarveRow) -> fleet_types::CarveMetadata {
     fleet_types::CarveMetadata {
         id: row.id,
@@ -1767,14 +1803,18 @@ impl Datastore for MysqlDatastore {
         let rows = MysqlDatastore::list_software(self, team_id, opts.per_page, opts.page)
             .await
             .map_err(ServiceError::from)?;
-        Ok(rows.into_iter().map(software_row_to_software).collect())
+        let mut software: Vec<fleet_types::Software> = rows.into_iter().map(software_row_to_software).collect();
+        enrich_software_with_cves(self, &mut software).await;
+        Ok(software)
     }
 
     async fn software_by_id(&self, id: u32) -> ServiceResult<fleet_types::Software> {
         let row = MysqlDatastore::software_by_id(self, id)
             .await
             .map_err(ServiceError::from)?;
-        Ok(software_row_to_software(row))
+        let mut sw = software_row_to_software(row);
+        enrich_software_with_cves(self, std::slice::from_mut(&mut sw)).await;
+        Ok(sw)
     }
 
     async fn update_software_title_name(&self, id: u32, name: &str) -> ServiceResult<()> {
@@ -2110,7 +2150,9 @@ impl Datastore for MysqlDatastore {
             .await
             .map_err(ds_error)?;
 
-        Ok(rows.into_iter().map(software_for_host_row_to_software).collect())
+        let mut software: Vec<fleet_types::Software> = rows.into_iter().map(software_for_host_row_to_software).collect();
+        enrich_software_with_cves(self, &mut software).await;
+        Ok(software)
     }
 
     async fn device_mapping_for_host(&self, host_id: u32) -> ServiceResult<serde_json::Value> {

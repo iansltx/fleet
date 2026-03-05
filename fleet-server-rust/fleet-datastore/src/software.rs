@@ -195,6 +195,41 @@ impl MysqlDatastore {
         Ok(())
     }
 
+    /// Lists CVEs for a software ID.
+    ///
+    /// SELECT sc.cve, sc.created_at, sc.resolved_in_version
+    /// FROM software_cve sc WHERE sc.software_id = ?
+    pub async fn list_cves_for_software(&self, software_id: u32) -> Result<Vec<SoftwareCveRow>> {
+        Ok(sqlx::query_as::<_, SoftwareCveRow>(
+            r#"
+            SELECT sc.cve, sc.software_id, sc.created_at,
+                sc.resolved_in_version
+            FROM software_cve sc
+            WHERE sc.software_id = ?
+            "#,
+        )
+        .bind(software_id)
+        .fetch_all(self.pool())
+        .await?)
+    }
+
+    /// Lists CVEs for multiple software IDs.
+    pub async fn list_cves_for_software_ids(&self, software_ids: &[u32]) -> Result<Vec<SoftwareCveRow>> {
+        if software_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let placeholders: Vec<&str> = software_ids.iter().map(|_| "?").collect();
+        let sql = format!(
+            "SELECT cve, software_id, created_at, resolved_in_version FROM software_cve WHERE software_id IN ({})",
+            placeholders.join(",")
+        );
+        let mut query = sqlx::query_as::<_, SoftwareCveRow>(&sql);
+        for id in software_ids {
+            query = query.bind(id);
+        }
+        Ok(query.fetch_all(self.pool()).await?)
+    }
+
     /// Gets installed paths for a host's software.
     ///
     /// SELECT * FROM host_software_installed_paths WHERE host_id = ?
@@ -213,6 +248,16 @@ impl MysqlDatastore {
         .fetch_all(self.pool())
         .await?)
     }
+}
+
+/// Row type for software_cve table.
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct SoftwareCveRow {
+    pub cve: String,
+    pub software_id: u32,
+    pub created_at: DateTime<Utc>,
+    #[sqlx(default)]
+    pub resolved_in_version: Option<String>,
 }
 
 /// Row type for host_software_installed_paths.
