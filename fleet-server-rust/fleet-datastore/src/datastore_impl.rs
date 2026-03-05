@@ -641,6 +641,32 @@ impl Datastore for MysqlDatastore {
         MysqlDatastore::has_users(self).await.map_err(ServiceError::from)
     }
 
+    async fn count_global_admins(&self) -> ServiceResult<i64> {
+        MysqlDatastore::count_global_admins(self).await.map_err(ServiceError::from)
+    }
+
+    async fn user_settings(&self, user_id: u32) -> ServiceResult<Option<serde_json::Value>> {
+        let raw = MysqlDatastore::user_settings(self, user_id).await.map_err(ServiceError::from)?;
+        match raw {
+            Some(bytes) => {
+                let val = serde_json::from_slice(&bytes).unwrap_or(serde_json::json!({}));
+                Ok(Some(val))
+            }
+            None => Ok(None),
+        }
+    }
+
+    async fn save_user_settings(&self, user_id: u32, settings: &serde_json::Value) -> ServiceResult<()> {
+        let bytes = serde_json::to_vec(settings).map_err(|e| ServiceError::internal(e.to_string()))?;
+        sqlx::query("UPDATE users SET settings = ? WHERE id = ?")
+            .bind(&bytes)
+            .bind(user_id)
+            .execute(self.pool())
+            .await
+            .map_err(|e| ServiceError::internal(e.to_string()))?;
+        Ok(())
+    }
+
     // ---- Sessions ----
 
     async fn new_session(

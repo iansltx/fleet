@@ -131,14 +131,16 @@ pub struct CalendarWebhookBody {
 
 /// POST /api/_version_/fleet/trigger
 pub async fn trigger(
-    State(_state): State<AppState>,
-    Json(_body): Json<TriggerBody>,
+    State(state): State<AppState>,
+    Json(body): Json<TriggerBody>,
 ) -> FleetResponse {
+    let _ = (&state, &body);
     fleet_ok("", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/config/certificate
-pub async fn get_certificate(State(_state): State<AppState>) -> FleetResponse {
+pub async fn get_certificate(State(state): State<AppState>) -> FleetResponse {
+    let _ = &state;
     fleet_ok("certificate_chain", serde_json::json!(""))
 }
 
@@ -240,7 +242,8 @@ pub async fn get_enroll_secret_spec(
 }
 
 /// GET /api/_version_/fleet/version
-pub async fn version(State(_state): State<AppState>) -> FleetResponse {
+pub async fn version(State(state): State<AppState>) -> FleetResponse {
+    let _ = &state;
     fleet_ok(
         "version",
         serde_json::json!({
@@ -251,9 +254,10 @@ pub async fn version(State(_state): State<AppState>) -> FleetResponse {
 
 /// POST /api/_version_/fleet/translate
 pub async fn translate(
-    State(_state): State<AppState>,
-    Json(_body): Json<TranslateBody>,
+    State(state): State<AppState>,
+    Json(body): Json<TranslateBody>,
 ) -> FleetResponse {
+    let _ = (&state, &body);
     fleet_ok("list", serde_json::json!([]))
 }
 
@@ -346,12 +350,14 @@ pub async fn delete_certificate_template_specs(
 }
 
 /// GET /api/_version_/fleet/status/result_store
-pub async fn status_result_store(State(_state): State<AppState>) -> FleetResponse {
+pub async fn status_result_store(State(state): State<AppState>) -> FleetResponse {
+    let _ = &state;
     fleet_ok("", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/status/live_query
-pub async fn status_live_query(State(_state): State<AppState>) -> FleetResponse {
+pub async fn status_live_query(State(state): State<AppState>) -> FleetResponse {
+    let _ = &state;
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -623,10 +629,11 @@ pub async fn get_certificate_authorities_spec(
 
 /// POST /api/_version_/fleet/calendar/webhook/{event_uuid}
 pub async fn calendar_webhook(
-    State(_state): State<AppState>,
-    Path(_event_uuid): Path<String>,
-    Json(_body): Json<CalendarWebhookBody>,
+    State(state): State<AppState>,
+    Path(event_uuid): Path<String>,
+    Json(body): Json<CalendarWebhookBody>,
 ) -> FleetResponse {
+    let _ = (&state, &event_uuid, &body);
     fleet_ok("", serde_json::json!({}))
 }
 

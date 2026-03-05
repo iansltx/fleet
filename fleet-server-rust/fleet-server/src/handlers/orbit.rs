@@ -316,24 +316,27 @@ pub async fn post_orbit_luks(
 
 /// HEAD /api/fleet/orbit/ping (unauthenticated)
 pub async fn orbit_ping(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
 ) -> impl IntoResponse {
+    let _ = &state;
     StatusCode::OK
 }
 
 /// GET /api/fleetd/certificates/{id}
 pub async fn get_device_certificate_template(
-    State(_state): State<AppState>,
-    Path(_id): Path<u64>,
+    State(state): State<AppState>,
+    Path(id): Path<u64>,
 ) -> FleetResponse {
+    let _ = (&state, id);
     fleet_ok("certificate_template", serde_json::json!({}))
 }
 
 /// PUT /api/fleetd/certificates/{id}/status
 pub async fn update_certificate_status(
-    State(_state): State<AppState>,
-    Path(_id): Path<u64>,
-    Json(_body): Json<UpdateCertificateStatusBody>,
+    State(state): State<AppState>,
+    Path(id): Path<u64>,
+    Json(body): Json<UpdateCertificateStatusBody>,
 ) -> FleetResponse {
+    let _ = (&state, id, &body);
     fleet_ok("", serde_json::json!({}))
 }

@@ -27,6 +27,9 @@ pub trait Datastore: Send + Sync + 'static {
     async fn new_user(&self, user: &fleet_types::User) -> ServiceResult<fleet_types::User>;
     async fn delete_user(&self, id: u32) -> ServiceResult<()>;
     async fn has_users(&self) -> ServiceResult<bool>;
+    async fn count_global_admins(&self) -> ServiceResult<i64>;
+    async fn user_settings(&self, user_id: u32) -> ServiceResult<Option<serde_json::Value>>;
+    async fn save_user_settings(&self, user_id: u32, settings: &serde_json::Value) -> ServiceResult<()>;
 
     // ---- Sessions ----
     async fn new_session(&self, user_id: u32, key_size: usize) -> ServiceResult<fleet_types::Session>;

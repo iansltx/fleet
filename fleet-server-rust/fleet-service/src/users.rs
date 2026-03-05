@@ -360,6 +360,27 @@ impl FleetService {
         Ok(created)
     }
 
+    /// Gets user settings.
+    pub async fn get_user_settings(
+        &self,
+        viewer: &Viewer,
+        user_id: u32,
+    ) -> ServiceResult<Option<serde_json::Value>> {
+        authz::authorize(viewer, Subject::User, Action::Read)?;
+        self.ds.user_settings(user_id).await
+    }
+
+    /// Saves user settings.
+    pub async fn save_user_settings(
+        &self,
+        viewer: &Viewer,
+        user_id: u32,
+        settings: &serde_json::Value,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::User, Action::Write)?;
+        self.ds.save_user_settings(user_id, settings).await
+    }
+
     /// Confirms a pending email change using a token.
     ///
     /// Corresponds to Go's `(svc *Service) ChangeUserEmail`.

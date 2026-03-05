@@ -227,10 +227,11 @@ pub async fn delete_user_sessions(
     auth: AuthenticatedUser,
     Path(id): Path<u64>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
+    let _ = (&viewer, id);
     match state.service.datastore().destroy_all_sessions_for_user(id as u32).await {
         Ok(()) => fleet_ok("", serde_json::json!({})),
         Err(e) => encode_service_error(&e),

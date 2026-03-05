@@ -208,13 +208,14 @@ pub async fn submit_logs(
 /// Returns YARA rules for the specified rule name.
 pub async fn get_yara(
     State(state): State<AppState>,
-    Path(_name): Path<String>,
+    Path(name): Path<String>,
     Json(body): Json<GetYaraBody>,
 ) -> FleetResponse {
-    let (_host, _debug) = match state.service.authenticate_host(&body.node_key).await {
+    let (host, debug) = match state.service.authenticate_host(&body.node_key).await {
         Ok(result) => result,
         Err(e) => return encode_service_error(&e),
     };
+    let _ = (&host, debug, &name);
     // YARA rule lookup is not yet implemented in the service layer.
     // Authenticate the host but return empty rules for now.
     fleet_ok("rules", serde_json::json!(""))

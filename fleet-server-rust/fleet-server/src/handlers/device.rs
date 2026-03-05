@@ -150,8 +150,9 @@ pub async fn transparency_url(
 pub async fn fleetd_error(
     State(state): State<AppState>,
     Path(token): Path<String>,
-    Json(_body): Json<FleetdErrorBody>,
+    Json(body): Json<FleetdErrorBody>,
 ) -> FleetResponse {
+    let _ = &body;
     // Authenticate and log the error (fire-and-forget for now).
     match state.service.authenticate_device(&token).await {
         Ok(host) => {
@@ -257,8 +258,9 @@ pub async fn get_device_software_icon(
 pub async fn trigger_linux_disk_encryption_escrow(
     State(state): State<AppState>,
     Path(token): Path<String>,
-    Json(_body): Json<TriggerLinuxDiskEncryptionEscrowBody>,
+    Json(body): Json<TriggerLinuxDiskEncryptionEscrowBody>,
 ) -> FleetResponse {
+    let _ = &body;
     // MDM operations deferred -- authenticate only.
     match state.service.authenticate_device(&token).await {
         Ok(_host) => fleet_ok("", serde_json::json!({})),
@@ -270,8 +272,9 @@ pub async fn trigger_linux_disk_encryption_escrow(
 pub async fn bypass_conditional_access(
     State(state): State<AppState>,
     Path(token): Path<String>,
-    Json(_body): Json<BypassConditionalAccessBody>,
+    Json(body): Json<BypassConditionalAccessBody>,
 ) -> FleetResponse {
+    let _ = &body;
     match state.service.authenticate_device(&token).await {
         Ok(_host) => fleet_ok("", serde_json::json!({})),
         Err(e) => encode_service_error(&e),
@@ -316,8 +319,9 @@ pub async fn resend_device_configuration_profile(
 pub async fn migrate_mdm_device(
     State(state): State<AppState>,
     Path(token): Path<String>,
-    Json(_body): Json<DeviceMigrateMDMBody>,
+    Json(body): Json<DeviceMigrateMDMBody>,
 ) -> FleetResponse {
+    let _ = &body;
     // MDM operations deferred -- authenticate only.
     match state.service.authenticate_device(&token).await {
         Ok(_host) => fleet_ok("", serde_json::json!({})),
@@ -327,7 +331,8 @@ pub async fn migrate_mdm_device(
 
 /// HEAD /api/fleet/device/ping (unauthenticated)
 pub async fn device_ping_unauth(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
 ) -> impl IntoResponse {
+    let _ = &state;
     StatusCode::OK
 }

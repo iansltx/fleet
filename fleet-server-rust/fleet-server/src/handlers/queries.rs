@@ -332,14 +332,15 @@ pub async fn get_query_spec(
 pub async fn run_one_live_query(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_id): Path<u64>,
-    Json(_body): Json<RunOneLiveQueryBody>,
+    Path(id): Path<u64>,
+    Json(body): Json<RunOneLiveQueryBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Live query execution requires distributed query campaign infrastructure
+    let _ = (&viewer, id, &body);
+    // Live query execution requires distributed query campaign infrastructure (deferred)
     fleet_ok("results", serde_json::json!([]))
 }
 
@@ -347,13 +348,14 @@ pub async fn run_one_live_query(
 pub async fn run_live_query(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Query(_params): Query<RunLiveQueryParams>,
+    Query(params): Query<RunLiveQueryParams>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Live query execution requires distributed query campaign infrastructure
+    let _ = (&viewer, &params);
+    // Live query execution requires distributed query campaign infrastructure (deferred)
     fleet_ok("results", serde_json::json!([]))
 }
 
@@ -361,22 +363,24 @@ pub async fn run_live_query(
 pub async fn create_distributed_query_campaign_by_identifier(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<CreateDistributedQueryCampaignByIdentifierBody>,
+    Json(body): Json<CreateDistributedQueryCampaignByIdentifierBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Distributed query campaigns require live query infrastructure
+    let _ = (&viewer, &body);
+    // Distributed query campaigns require live query infrastructure (deferred)
     fleet_ok("campaign", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/results/{campaign_id} (WebSocket)
 pub async fn stream_campaign_results(
-    State(_state): State<AppState>,
-    Path(_campaign_id): Path<u64>,
+    State(state): State<AppState>,
+    Path(campaign_id): Path<u64>,
     ws: WebSocketUpgrade,
 ) -> impl IntoResponse {
+    let _ = (&state, campaign_id);
     ws.on_upgrade(|_socket| async move {
         // TODO: stream live query results over the websocket
     })

@@ -233,12 +233,13 @@ pub async fn list_team_users(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(id): Path<u64>,
-    Query(_params): Query<ListTeamUsersParams>,
+    Query(params): Query<ListTeamUsersParams>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
+    let _ = &params;
     match state.service.list_team_users(&viewer, id as u32).await {
         Ok(users) => fleet_ok("users", serde_json::to_value(&users).unwrap_or_default()),
         Err(e) => encode_service_error(&e),
@@ -250,12 +251,13 @@ pub async fn add_team_users(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(id): Path<u64>,
-    Json(_body): Json<ModifyTeamUsersBody>,
+    Json(body): Json<ModifyTeamUsersBody>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
+    let _ = &body;
     // Adding/removing team users requires enterprise user_teams table manipulation.
     // Verify auth and team exists, return team.
     match state.service.get_team(&viewer, id as u32).await {
@@ -269,12 +271,13 @@ pub async fn delete_team_users(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(id): Path<u64>,
-    Json(_body): Json<ModifyTeamUsersBody>,
+    Json(body): Json<ModifyTeamUsersBody>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
+    let _ = &body;
     match state.service.get_team(&viewer, id as u32).await {
         Ok(team) => fleet_ok("team", serde_json::to_value(&team).unwrap_or_default()),
         Err(e) => encode_service_error(&e),

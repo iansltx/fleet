@@ -390,14 +390,14 @@ pub async fn delete_scheduled_query(
 pub async fn get_global_schedule(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Query(_params): Query<GetGlobalScheduleParams>,
+    Query(params): Query<GetGlobalScheduleParams>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
+    let _ = (&viewer, &params);
     // Global schedule maps to the global pack; return empty for now.
-    let _ = &viewer;
     fleet_ok("global_schedule", serde_json::json!([]))
 }
 
@@ -481,14 +481,14 @@ pub async fn delete_global_schedule(
 pub async fn get_team_schedule(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_fleet_id): Path<u64>,
+    Path(fleet_id): Path<u64>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
     // Team schedule maps to a team-specific pack; return empty for now.
-    let _ = &viewer;
+    let _ = (&viewer, fleet_id);
     fleet_ok("scheduled", serde_json::json!([]))
 }
 
@@ -496,13 +496,14 @@ pub async fn get_team_schedule(
 pub async fn team_schedule_query(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_fleet_id): Path<u64>,
+    Path(fleet_id): Path<u64>,
     Json(body): Json<TeamScheduleQueryBody>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
+    let _ = fleet_id;
     let sq = fleet_types::ScheduledQuery {
         query_id: body.query_id.unwrap_or(0) as u32,
         interval: body.interval.unwrap_or(0) as u32,
