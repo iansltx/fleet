@@ -440,8 +440,10 @@ pub async fn delete_software_title_icon(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, title_id);
-    fleet_ok("", serde_json::json!({}))
+    match state.service.delete_software_title_icon(&viewer, title_id as u32).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/software/app_store_apps

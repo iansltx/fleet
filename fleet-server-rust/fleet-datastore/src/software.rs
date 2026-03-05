@@ -416,6 +416,18 @@ impl MysqlDatastore {
         .ok_or_else(|| DatastoreError::not_found_with_id("FleetMaintainedApp", id as u64))
     }
 
+    /// Deletes a software title icon.
+    pub async fn delete_software_title_icon(&self, title_id: u32) -> Result<()> {
+        let result = sqlx::query("DELETE FROM software_title_icons WHERE software_title_id = ?")
+            .bind(title_id)
+            .execute(self.pool())
+            .await?;
+        if result.rows_affected() == 0 {
+            return Err(DatastoreError::not_found_with_id("SoftwareTitleIcon", title_id as u64));
+        }
+        Ok(())
+    }
+
     /// Gets a software install result by execution_id.
     pub async fn get_software_install_result(&self, execution_id: &str) -> Result<SoftwareInstallResultRow> {
         sqlx::query_as::<_, SoftwareInstallResultRow>(

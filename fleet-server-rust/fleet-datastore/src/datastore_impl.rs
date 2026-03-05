@@ -1922,6 +1922,12 @@ impl Datastore for MysqlDatastore {
             .map_err(ServiceError::from)
     }
 
+    async fn delete_software_title_icon(&self, title_id: u32) -> ServiceResult<()> {
+        MysqlDatastore::delete_software_title_icon(self, title_id)
+            .await
+            .map_err(ServiceError::from)
+    }
+
     // ---- Email Changes ----
 
     async fn confirm_pending_email_change(&self, user_id: u32, token: &str) -> ServiceResult<String> {

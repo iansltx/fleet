@@ -161,6 +161,7 @@ pub trait Datastore: Send + Sync + 'static {
     async fn software_by_id(&self, id: u32) -> ServiceResult<fleet_types::Software>;
     async fn update_software_title_name(&self, id: u32, name: &str) -> ServiceResult<()>;
     async fn delete_software_installer(&self, title_id: u32) -> ServiceResult<()>;
+    async fn delete_software_title_icon(&self, title_id: u32) -> ServiceResult<()>;
 
     // ---- Email Changes ----
     async fn confirm_pending_email_change(&self, user_id: u32, token: &str) -> ServiceResult<String>;

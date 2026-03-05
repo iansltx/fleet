@@ -71,6 +71,16 @@ impl FleetService {
         self.ds.delete_software_installer(title_id).await
     }
 
+    /// Deletes a software title icon.
+    pub async fn delete_software_title_icon(
+        &self,
+        viewer: &Viewer,
+        title_id: u32,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Software, Action::Write)?;
+        self.ds.delete_software_title_icon(title_id).await
+    }
+
     /// Lists vulnerabilities with host counts.
     pub async fn list_vulnerabilities(
         &self,
