@@ -152,16 +152,8 @@ pub async fn get_query_report(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Verify the query exists and auth
-    match state.service.get_query(&viewer, id as u32).await {
-        Ok(query) => {
-            // If discard_data is set, return empty results
-            if query.discard_data {
-                return fleet_ok("report", serde_json::json!({"query_id": query.id, "results": [], "report_clipped": false}));
-            }
-            // Query report results require query_result_rows infrastructure (not yet implemented)
-            fleet_ok("report", serde_json::json!({"query_id": query.id, "results": [], "report_clipped": false}))
-        }
+    match state.service.get_query_report(&viewer, id as u32).await {
+        Ok(report) => fleet_ok("report", serde_json::to_value(&report).unwrap_or_default()),
         Err(e) => encode_service_error(&e),
     }
 }

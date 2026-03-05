@@ -299,6 +299,67 @@ impl FleetService {
         authz::authorize(viewer, Subject::Pack, Action::Write)?;
         self.ds.delete_scheduled_query(id).await
     }
+
+    // ---- Global Schedule ----
+
+    /// Returns the global schedule (scheduled queries in the global pack).
+    ///
+    /// Corresponds to Go's `(svc *Service) GetGlobalSchedule`.
+    pub async fn get_global_schedule(
+        &self,
+        viewer: &Viewer,
+    ) -> ServiceResult<Vec<fleet_types::ScheduledQuery>> {
+        authz::authorize(viewer, Subject::Pack, Action::Read)?;
+        let pack_id = self.ds.ensure_global_pack().await?;
+        self.ds.list_scheduled_queries_in_pack(pack_id).await
+    }
+
+    /// Adds a query to the global schedule.
+    ///
+    /// Corresponds to Go's `(svc *Service) GlobalScheduleQuery`.
+    pub async fn global_schedule_query(
+        &self,
+        viewer: &Viewer,
+        mut sq: fleet_types::ScheduledQuery,
+    ) -> ServiceResult<fleet_types::ScheduledQuery> {
+        authz::authorize(viewer, Subject::Pack, Action::Write)?;
+        let pack_id = self.ds.ensure_global_pack().await?;
+        sq.pack_id = pack_id;
+        self.ds.new_scheduled_query(&sq).await
+    }
+
+    // ---- Team Schedule ----
+
+    /// Returns the team schedule (scheduled queries in the team pack).
+    ///
+    /// Corresponds to Go's `(svc *Service) GetTeamSchedule`.
+    pub async fn get_team_schedule(
+        &self,
+        viewer: &Viewer,
+        team_id: u32,
+    ) -> ServiceResult<Vec<fleet_types::ScheduledQuery>> {
+        authz::authorize(viewer, Subject::Pack, Action::Read)?;
+        // Verify team exists
+        self.ds.team(team_id).await?;
+        let pack_id = self.ds.ensure_team_pack(team_id).await?;
+        self.ds.list_scheduled_queries_in_pack(pack_id).await
+    }
+
+    /// Adds a query to the team schedule.
+    ///
+    /// Corresponds to Go's `(svc *Service) TeamScheduleQuery`.
+    pub async fn team_schedule_query(
+        &self,
+        viewer: &Viewer,
+        team_id: u32,
+        mut sq: fleet_types::ScheduledQuery,
+    ) -> ServiceResult<fleet_types::ScheduledQuery> {
+        authz::authorize(viewer, Subject::Pack, Action::Write)?;
+        self.ds.team(team_id).await?;
+        let pack_id = self.ds.ensure_team_pack(team_id).await?;
+        sq.pack_id = pack_id;
+        self.ds.new_scheduled_query(&sq).await
+    }
 }
 
 /// Spec representation of a pack for declarative management.

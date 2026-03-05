@@ -43,6 +43,15 @@ pub struct QueryRow {
     pub total_executions: Option<f64>,
 }
 
+/// Row type for query result rows from the query_result_rows table.
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct QueryResultRow {
+    pub host_id: u32,
+    pub last_fetched: DateTime<Utc>,
+    pub data: Option<String>,
+    pub hostname: String,
+}
+
 /// Parameters for creating a new query.
 pub struct NewQueryParams {
     pub name: String,
@@ -289,6 +298,27 @@ impl MysqlDatastore {
 
         let result = query.execute(self.pool()).await?;
         Ok(result.rows_affected())
+    }
+
+    /// Gets query result rows for a query report.
+    /// Matches Go's `QueryResultRowsForHost` / `QueryResultRows`.
+    pub async fn query_result_rows(
+        &self,
+        query_id: u32,
+    ) -> Result<Vec<QueryResultRow>> {
+        Ok(sqlx::query_as::<_, QueryResultRow>(
+            r#"
+            SELECT qrr.host_id, qrr.last_fetched, qrr.data,
+                   COALESCE(h.hostname, '') as hostname
+            FROM query_result_rows qrr
+            LEFT JOIN hosts h ON h.id = qrr.host_id
+            WHERE qrr.query_id = ?
+            ORDER BY qrr.host_id, qrr.last_fetched DESC
+            "#,
+        )
+        .bind(query_id)
+        .fetch_all(self.pool())
+        .await?)
     }
 
     /// Checks if an observer can run a query. Matches Go's `ObserverCanRunQuery`.

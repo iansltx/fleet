@@ -396,9 +396,11 @@ pub async fn get_global_schedule(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &params);
-    // Global schedule maps to the global pack; return empty for now.
-    fleet_ok("global_schedule", serde_json::json!([]))
+    let _ = &params;
+    match state.service.get_global_schedule(&viewer).await {
+        Ok(schedule) => fleet_ok("global_schedule", serde_json::to_value(&schedule).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/global/schedule  (v1)
@@ -422,7 +424,7 @@ pub async fn global_schedule_query(
         version: body.version.unwrap_or_default(),
         ..Default::default()
     };
-    match state.service.schedule_query(&viewer, sq).await {
+    match state.service.global_schedule_query(&viewer, sq).await {
         Ok(scheduled) => fleet_ok("scheduled", serde_json::to_value(&scheduled).unwrap_or_default()),
         Err(e) => encode_service_error(&e),
     }
@@ -487,9 +489,10 @@ pub async fn get_team_schedule(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Team schedule maps to a team-specific pack; return empty for now.
-    let _ = (&viewer, fleet_id);
-    fleet_ok("scheduled", serde_json::json!([]))
+    match state.service.get_team_schedule(&viewer, fleet_id as u32).await {
+        Ok(schedule) => fleet_ok("scheduled", serde_json::to_value(&schedule).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/fleets/{fleet_id}/schedule
@@ -503,7 +506,6 @@ pub async fn team_schedule_query(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = fleet_id;
     let sq = fleet_types::ScheduledQuery {
         query_id: body.query_id.unwrap_or(0) as u32,
         interval: body.interval.unwrap_or(0) as u32,
@@ -514,7 +516,7 @@ pub async fn team_schedule_query(
         version: body.version.unwrap_or_default(),
         ..Default::default()
     };
-    match state.service.schedule_query(&viewer, sq).await {
+    match state.service.team_schedule_query(&viewer, fleet_id as u32, sq).await {
         Ok(scheduled) => fleet_ok("scheduled", serde_json::to_value(&scheduled).unwrap_or_default()),
         Err(e) => encode_service_error(&e),
     }

@@ -244,6 +244,49 @@ impl FleetService {
         info!(count = spec_count, "query specs applied");
         Ok(())
     }
+
+    /// Returns the query report (result rows) for a given query.
+    ///
+    /// Corresponds to Go's `(svc *Service) GetQueryReportResults`.
+    pub async fn get_query_report(
+        &self,
+        viewer: &Viewer,
+        query_id: u32,
+    ) -> ServiceResult<QueryReport> {
+        authz::authorize(viewer, Subject::Query, Action::Read)?;
+
+        let query = self.ds.query(query_id).await?;
+
+        if query.discard_data {
+            return Ok(QueryReport {
+                query_id: query.id,
+                results: Vec::new(),
+                report_clipped: false,
+            });
+        }
+
+        let rows = self.ds.query_result_rows(query_id).await?;
+        let report_clipped = rows.len() > 1000;
+        let results: Vec<fleet_types::QueryResultRow> = if report_clipped {
+            rows.into_iter().take(1000).collect()
+        } else {
+            rows
+        };
+
+        Ok(QueryReport {
+            query_id: query.id,
+            results,
+            report_clipped,
+        })
+    }
+}
+
+/// Query report containing result rows.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct QueryReport {
+    pub query_id: u32,
+    pub results: Vec<fleet_types::QueryResultRow>,
+    pub report_clipped: bool,
 }
 
 /// Payload for creating a new query.

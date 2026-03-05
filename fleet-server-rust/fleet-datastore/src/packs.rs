@@ -29,7 +29,7 @@ pub struct PackTargetRow {
     pub display_text: String,
 }
 
-/// Row type for scheduled queries in a pack.
+/// Row type for scheduled queries in a pack (spec/apply format).
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct ScheduledQueryRow {
     pub query_name: String,
@@ -42,6 +42,26 @@ pub struct ScheduledQueryRow {
     pub platform: Option<String>,
     pub version: Option<String>,
     pub denylist: Option<bool>,
+}
+
+/// Full row type for scheduled queries with all fields.
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct ScheduledQueryFullRow {
+    pub id: u32,
+    pub pack_id: u32,
+    pub query_id: u32,
+    pub name: String,
+    pub description: String,
+    pub interval: u32,
+    pub snapshot: Option<bool>,
+    pub removed: Option<bool>,
+    pub shard: Option<u32>,
+    pub platform: Option<String>,
+    pub version: Option<String>,
+    pub denylist: Option<bool>,
+    pub query_name: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl MysqlDatastore {
@@ -212,6 +232,151 @@ impl MysqlDatastore {
         .bind(host_id)
         .fetch_all(self.pool())
         .await?)
+    }
+
+    /// Gets a pack by its pack_type.
+    pub async fn pack_by_type(&self, pack_type: &str) -> Result<Option<PackRow>> {
+        Ok(sqlx::query_as::<_, PackRow>("SELECT * FROM packs WHERE pack_type = ?")
+            .bind(pack_type)
+            .fetch_optional(self.pool())
+            .await?)
+    }
+
+    /// Ensures a pack with the given type exists, creating it if needed.
+    pub async fn ensure_pack_by_type(&self, pack_type: &str, name: &str) -> Result<u32> {
+        if let Some(row) = self.pack_by_type(pack_type).await? {
+            return Ok(row.id);
+        }
+        let result = sqlx::query(
+            "INSERT INTO packs (name, description, platform, disabled, pack_type) VALUES (?, '', '', 0, ?)",
+        )
+        .bind(name)
+        .bind(pack_type)
+        .execute(self.pool())
+        .await?;
+        Ok(result.last_insert_id() as u32)
+    }
+
+    /// Lists scheduled queries in a pack by pack_id.
+    pub async fn list_scheduled_queries_in_pack_full(
+        &self,
+        pack_id: u32,
+    ) -> Result<Vec<ScheduledQueryFullRow>> {
+        Ok(sqlx::query_as::<_, ScheduledQueryFullRow>(
+            r#"
+            SELECT id, pack_id, query_id, name, description,
+                   `interval`, snapshot, removed, shard,
+                   platform, version, denylist, query_name,
+                   created_at, updated_at
+            FROM scheduled_queries
+            WHERE pack_id = ?
+            ORDER BY id
+            "#,
+        )
+        .bind(pack_id)
+        .fetch_all(self.pool())
+        .await?)
+    }
+
+    /// Gets a single scheduled query by ID.
+    pub async fn scheduled_query_by_id(&self, id: u32) -> Result<ScheduledQueryFullRow> {
+        sqlx::query_as::<_, ScheduledQueryFullRow>(
+            r#"
+            SELECT id, pack_id, query_id, name, description,
+                   `interval`, snapshot, removed, shard,
+                   platform, version, denylist, query_name,
+                   created_at, updated_at
+            FROM scheduled_queries
+            WHERE id = ?
+            "#,
+        )
+        .bind(id)
+        .fetch_optional(self.pool())
+        .await?
+        .ok_or_else(|| DatastoreError::not_found_with_id("ScheduledQuery", id as u64))
+    }
+
+    /// Inserts a new scheduled query.
+    pub async fn insert_scheduled_query(
+        &self,
+        pack_id: u32,
+        query_id: u32,
+        query_name: &str,
+        name: &str,
+        description: &str,
+        interval: u32,
+        snapshot: Option<bool>,
+        removed: Option<bool>,
+        platform: &str,
+        version: &str,
+        shard: Option<u32>,
+    ) -> Result<u32> {
+        let result = sqlx::query(
+            r#"
+            INSERT INTO scheduled_queries
+                (pack_id, query_id, query_name, name, description, `interval`, snapshot, removed, platform, version, shard)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            "#,
+        )
+        .bind(pack_id)
+        .bind(query_id)
+        .bind(query_name)
+        .bind(name)
+        .bind(description)
+        .bind(interval)
+        .bind(snapshot)
+        .bind(removed)
+        .bind(platform)
+        .bind(version)
+        .bind(shard)
+        .execute(self.pool())
+        .await?;
+        Ok(result.last_insert_id() as u32)
+    }
+
+    /// Updates a scheduled query.
+    pub async fn update_scheduled_query(
+        &self,
+        id: u32,
+        interval: u32,
+        snapshot: Option<bool>,
+        removed: Option<bool>,
+        platform: &str,
+        version: &str,
+        shard: Option<u32>,
+    ) -> Result<()> {
+        let result = sqlx::query(
+            r#"
+            UPDATE scheduled_queries
+            SET `interval` = ?, snapshot = ?, removed = ?, platform = ?, version = ?, shard = ?
+            WHERE id = ?
+            "#,
+        )
+        .bind(interval)
+        .bind(snapshot)
+        .bind(removed)
+        .bind(platform)
+        .bind(version)
+        .bind(shard)
+        .bind(id)
+        .execute(self.pool())
+        .await?;
+        if result.rows_affected() == 0 {
+            return Err(DatastoreError::not_found_with_id("ScheduledQuery", id as u64));
+        }
+        Ok(())
+    }
+
+    /// Deletes a scheduled query by ID.
+    pub async fn remove_scheduled_query(&self, id: u32) -> Result<()> {
+        let result = sqlx::query("DELETE FROM scheduled_queries WHERE id = ?")
+            .bind(id)
+            .execute(self.pool())
+            .await?;
+        if result.rows_affected() == 0 {
+            return Err(DatastoreError::not_found_with_id("ScheduledQuery", id as u64));
+        }
+        Ok(())
     }
 
     /// Applies pack specs (from YAML). Matches Go's `ApplyPackSpecs`.

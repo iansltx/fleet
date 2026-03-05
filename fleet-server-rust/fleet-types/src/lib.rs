@@ -40,7 +40,7 @@ pub use label::{Label, LabelMembershipType, LabelSpec, LabelSummary, LabelType};
 pub use osquery::*;
 pub use pack::{Pack, PackStats, ScheduledQuery};
 pub use policy::{HostPolicy, Policy, PolicyData};
-pub use query::Query;
+pub use query::{Query, QueryResultRow};
 pub use script::Script;
 pub use session::Session;
 pub use software::Software;

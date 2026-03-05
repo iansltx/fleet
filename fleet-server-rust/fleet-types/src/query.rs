@@ -35,6 +35,16 @@ pub struct QueryPayload {
     pub labels_include_any: Vec<String>,
 }
 
+/// QueryResultRow represents a single result row from a query report.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QueryResultRow {
+    pub host_id: u32,
+    pub hostname: String,
+    pub last_fetched: DateTime<Utc>,
+    #[serde(default)]
+    pub columns: serde_json::Value,
+}
+
 /// Query represents an osquery query to run on devices.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Query {

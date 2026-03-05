@@ -74,6 +74,7 @@ pub trait Datastore: Send + Sync + 'static {
     async fn delete_query(&self, name: &str, team_id: Option<u32>) -> ServiceResult<()>;
     async fn delete_queries(&self, ids: &[u32]) -> ServiceResult<u32>;
     async fn query_by_name(&self, team_id: Option<u32>, name: &str) -> ServiceResult<fleet_types::Query>;
+    async fn query_result_rows(&self, query_id: u32) -> ServiceResult<Vec<fleet_types::QueryResultRow>>;
 
     // ---- Packs ----
     async fn pack(&self, id: u32) -> ServiceResult<fleet_types::Pack>;
@@ -89,6 +90,8 @@ pub trait Datastore: Send + Sync + 'static {
     async fn new_scheduled_query(&self, sq: &fleet_types::ScheduledQuery) -> ServiceResult<fleet_types::ScheduledQuery>;
     async fn save_scheduled_query(&self, sq: &fleet_types::ScheduledQuery) -> ServiceResult<fleet_types::ScheduledQuery>;
     async fn delete_scheduled_query(&self, id: u32) -> ServiceResult<()>;
+    async fn ensure_global_pack(&self) -> ServiceResult<u32>;
+    async fn ensure_team_pack(&self, team_id: u32) -> ServiceResult<u32>;
 
     // ---- Labels ----
     async fn label(&self, id: u32) -> ServiceResult<fleet_types::Label>;

@@ -205,6 +205,27 @@ fn pack_row_to_pack(row: crate::packs::PackRow) -> fleet_types::Pack {
     }
 }
 
+fn sq_row_to_scheduled_query(row: crate::packs::ScheduledQueryFullRow) -> fleet_types::ScheduledQuery {
+    fleet_types::ScheduledQuery {
+        id: row.id,
+        pack_id: row.pack_id,
+        query_id: row.query_id,
+        query_name: row.query_name,
+        query: String::new(),
+        name: row.name,
+        description: row.description,
+        interval: row.interval,
+        snapshot: row.snapshot,
+        removed: row.removed,
+        platform: row.platform.unwrap_or_default(),
+        version: row.version.unwrap_or_default(),
+        shard: row.shard,
+        denylist: row.denylist,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+    }
+}
+
 fn label_row_to_label(row: crate::labels::LabelRow) -> fleet_types::Label {
     fleet_types::Label {
         id: row.id,
@@ -1030,6 +1051,23 @@ impl Datastore for MysqlDatastore {
         Ok(query_row_to_query(row))
     }
 
+    async fn query_result_rows(&self, query_id: u32) -> ServiceResult<Vec<fleet_types::QueryResultRow>> {
+        let rows = MysqlDatastore::query_result_rows(self, query_id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(|r| {
+            let columns = r.data
+                .and_then(|d| serde_json::from_str(&d).ok())
+                .unwrap_or(serde_json::json!({}));
+            fleet_types::QueryResultRow {
+                host_id: r.host_id,
+                hostname: r.hostname,
+                last_fetched: r.last_fetched,
+                columns,
+            }
+        }).collect())
+    }
+
     // ---- Packs ----
 
     async fn pack(&self, id: u32) -> ServiceResult<fleet_types::Pack> {
@@ -1089,19 +1127,67 @@ impl Datastore for MysqlDatastore {
     // ---- Scheduled Queries ----
 
     async fn scheduled_query(&self, id: u32) -> ServiceResult<fleet_types::ScheduledQuery> {
-        Err(ServiceError::not_found(format!("ScheduledQuery {id}")))
+        let row = MysqlDatastore::scheduled_query_by_id(self, id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(sq_row_to_scheduled_query(row))
     }
-    async fn list_scheduled_queries_in_pack(&self, _pack_id: u32) -> ServiceResult<Vec<fleet_types::ScheduledQuery>> {
-        Ok(vec![])
+    async fn list_scheduled_queries_in_pack(&self, pack_id: u32) -> ServiceResult<Vec<fleet_types::ScheduledQuery>> {
+        let rows = MysqlDatastore::list_scheduled_queries_in_pack_full(self, pack_id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(sq_row_to_scheduled_query).collect())
     }
     async fn new_scheduled_query(&self, sq: &fleet_types::ScheduledQuery) -> ServiceResult<fleet_types::ScheduledQuery> {
-        Ok(sq.clone())
+        let id = MysqlDatastore::insert_scheduled_query(
+            self,
+            sq.pack_id,
+            sq.query_id,
+            &sq.query_name,
+            &sq.name,
+            &sq.description,
+            sq.interval,
+            sq.snapshot,
+            sq.removed,
+            &sq.platform,
+            &sq.version,
+            sq.shard,
+        )
+        .await
+        .map_err(ServiceError::from)?;
+        self.scheduled_query(id).await
     }
     async fn save_scheduled_query(&self, sq: &fleet_types::ScheduledQuery) -> ServiceResult<fleet_types::ScheduledQuery> {
-        Ok(sq.clone())
+        MysqlDatastore::update_scheduled_query(
+            self,
+            sq.id,
+            sq.interval,
+            sq.snapshot,
+            sq.removed,
+            &sq.platform,
+            &sq.version,
+            sq.shard,
+        )
+        .await
+        .map_err(ServiceError::from)?;
+        self.scheduled_query(sq.id).await
     }
-    async fn delete_scheduled_query(&self, _id: u32) -> ServiceResult<()> {
-        Ok(())
+    async fn delete_scheduled_query(&self, id: u32) -> ServiceResult<()> {
+        MysqlDatastore::remove_scheduled_query(self, id)
+            .await
+            .map_err(ServiceError::from)
+    }
+    async fn ensure_global_pack(&self) -> ServiceResult<u32> {
+        MysqlDatastore::ensure_pack_by_type(self, "global", "Global")
+            .await
+            .map_err(ServiceError::from)
+    }
+    async fn ensure_team_pack(&self, team_id: u32) -> ServiceResult<u32> {
+        let pack_type = format!("team-{}", team_id);
+        let name = format!("Team {}", team_id);
+        MysqlDatastore::ensure_pack_by_type(self, &pack_type, &name)
+            .await
+            .map_err(ServiceError::from)
     }
 
     // ---- Labels ----
