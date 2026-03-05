@@ -76,6 +76,13 @@ pub trait Datastore: Send + Sync + 'static {
     async fn save_pack(&self, pack: &fleet_types::Pack) -> ServiceResult<()>;
     async fn delete_pack(&self, name: &str) -> ServiceResult<()>;
 
+    // ---- Scheduled Queries ----
+    async fn scheduled_query(&self, id: u32) -> ServiceResult<fleet_types::ScheduledQuery>;
+    async fn list_scheduled_queries_in_pack(&self, pack_id: u32) -> ServiceResult<Vec<fleet_types::ScheduledQuery>>;
+    async fn new_scheduled_query(&self, sq: &fleet_types::ScheduledQuery) -> ServiceResult<fleet_types::ScheduledQuery>;
+    async fn save_scheduled_query(&self, sq: &fleet_types::ScheduledQuery) -> ServiceResult<fleet_types::ScheduledQuery>;
+    async fn delete_scheduled_query(&self, id: u32) -> ServiceResult<()>;
+
     // ---- Labels ----
     async fn label(&self, id: u32) -> ServiceResult<fleet_types::Label>;
     async fn label_by_name(&self, name: &str) -> ServiceResult<fleet_types::Label>;
@@ -84,6 +91,9 @@ pub trait Datastore: Send + Sync + 'static {
     async fn save_label(&self, label: &fleet_types::Label) -> ServiceResult<fleet_types::Label>;
     async fn delete_label(&self, name: &str) -> ServiceResult<()>;
     async fn labels_summary(&self) -> ServiceResult<Vec<fleet_types::LabelSummary>>;
+    async fn record_label_membership(&self, label_id: u32, host_id: u32) -> ServiceResult<()>;
+    async fn delete_label_membership(&self, label_id: u32, host_id: u32) -> ServiceResult<()>;
+    async fn list_labels_for_host(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::Label>>;
 
     // ---- Policies ----
     async fn policy(&self, id: u32) -> ServiceResult<fleet_types::Policy>;
@@ -155,6 +165,8 @@ pub trait Datastore: Send + Sync + 'static {
 
     // ---- Activities ----
     async fn new_activity(&self, user_id: Option<u32>, activity_type: &str, details: &JsonValue) -> ServiceResult<()>;
+    async fn list_activities(&self, limit: u32, offset: u32) -> ServiceResult<Vec<fleet_types::Activity>>;
+    async fn count_host_upcoming_activities(&self, host_id: u32) -> ServiceResult<u32>;
 
     // ---- Device ----
     async fn load_host_by_device_auth_token(&self, token: &str) -> ServiceResult<fleet_types::Host>;

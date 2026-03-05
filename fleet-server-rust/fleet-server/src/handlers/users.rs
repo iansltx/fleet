@@ -107,8 +107,11 @@ pub async fn create_user(
         email: body.email.unwrap_or_default(),
         password: body.password,
         global_role: body.global_role,
-        // TODO: convert body.teams from JSON to Vec<UserTeam>
-        teams: None,
+        teams: body.teams.map(|teams_json| {
+            teams_json.into_iter().filter_map(|v| {
+                serde_json::from_value::<fleet_types::team::UserTeam>(v).ok()
+            }).collect()
+        }),
         ..Default::default()
     };
     match state.service.create_user(&viewer, payload).await {
@@ -156,8 +159,11 @@ pub async fn modify_user(
         name: body.name,
         email: body.email,
         global_role: body.global_role.map(Some),
-        // TODO: convert body.teams from JSON to Vec<UserTeam>
-        teams: None,
+        teams: body.teams.map(|teams_json| {
+            teams_json.into_iter().filter_map(|v| {
+                serde_json::from_value::<fleet_types::team::UserTeam>(v).ok()
+            }).collect()
+        }),
         ..Default::default()
     };
     match state.service.modify_user(&viewer, id as u32, payload).await {

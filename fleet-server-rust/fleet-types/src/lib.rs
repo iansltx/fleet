@@ -4,6 +4,7 @@
 //! ported from the Go implementation. All types are serialization-compatible with
 //! the Go types for JSON API responses.
 
+pub mod activity;
 pub mod campaign;
 pub mod carve;
 pub mod config;
@@ -27,6 +28,7 @@ pub mod user;
 pub mod vulnerability;
 
 // Re-export commonly used types at the crate root.
+pub use activity::Activity;
 pub use campaign::*;
 pub use carve::*;
 pub use config::*;
@@ -36,7 +38,7 @@ pub use host::{Host, HostDetail, HostListOptions, HostStatus, HostSummary, HostU
 pub use invite::*;
 pub use label::{Label, LabelMembershipType, LabelSpec, LabelSummary, LabelType};
 pub use osquery::*;
-pub use pack::{Pack, PackStats};
+pub use pack::{Pack, PackStats, ScheduledQuery};
 pub use policy::{HostPolicy, Policy, PolicyData};
 pub use query::Query;
 pub use script::Script;

@@ -299,6 +299,54 @@ impl FleetService {
         info!(count = spec_count, "label specs applied");
         Ok(())
     }
+
+    /// Adds labels to a host by label names.
+    pub async fn add_labels_to_host(
+        &self,
+        viewer: &Viewer,
+        host_id: u32,
+        label_names: &[String],
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Label, Action::Write)?;
+        // Verify the host exists.
+        self.ds.host(host_id).await?;
+
+        for name in label_names {
+            let label = self.ds.label_by_name(name).await?;
+            self.ds.record_label_membership(label.id, host_id).await?;
+        }
+        info!(host_id = host_id, count = label_names.len(), "labels added to host");
+        Ok(())
+    }
+
+    /// Removes labels from a host by label names.
+    pub async fn remove_labels_from_host(
+        &self,
+        viewer: &Viewer,
+        host_id: u32,
+        label_names: &[String],
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Label, Action::Write)?;
+        // Verify the host exists.
+        self.ds.host(host_id).await?;
+
+        for name in label_names {
+            let label = self.ds.label_by_name(name).await?;
+            self.ds.delete_label_membership(label.id, host_id).await?;
+        }
+        info!(host_id = host_id, count = label_names.len(), "labels removed from host");
+        Ok(())
+    }
+
+    /// Lists labels for a specific host.
+    pub async fn list_labels_for_host(
+        &self,
+        viewer: &Viewer,
+        host_id: u32,
+    ) -> ServiceResult<Vec<fleet_types::Label>> {
+        authz::authorize(viewer, Subject::Label, Action::Read)?;
+        self.ds.list_labels_for_host(host_id).await
+    }
 }
 
 /// Label spec for apply/get operations.

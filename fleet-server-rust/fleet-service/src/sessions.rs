@@ -167,6 +167,37 @@ impl FleetService {
         })
     }
 
+    /// Initiates SSO login flow.
+    ///
+    /// Corresponds to Go's `(svc *Service) InitiateSSO`.
+    pub async fn initiate_sso(&self, relay_url: &str) -> ServiceResult<String> {
+        let config = self.ds.app_config().await?;
+        if !config.enable_sso {
+            return Err(crate::ServiceError::bad_request("SSO is not enabled"));
+        }
+        // In a full implementation, this would generate a SAML AuthnRequest
+        // and return the IdP redirect URL.
+        info!("SSO initiation requested, relay_url={}", relay_url);
+        Ok(String::new())
+    }
+
+    /// Handles SSO callback with SAML response.
+    ///
+    /// Corresponds to Go's `(svc *Service) CallbackSSO`.
+    pub async fn callback_sso(
+        &self,
+        saml_response: &str,
+    ) -> ServiceResult<(fleet_types::User, fleet_types::Session)> {
+        let config = self.ds.app_config().await?;
+        if !config.enable_sso {
+            return Err(crate::ServiceError::bad_request("SSO is not enabled"));
+        }
+        // In a full implementation, this would validate the SAML response,
+        // extract the user identity, and create/login the user.
+        let _ = saml_response;
+        Err(crate::ServiceError::bad_request("SSO callback not yet implemented"))
+    }
+
     /// Validates that a session is still active and not expired.
     ///
     /// Corresponds to Go's `(svc *Service) validateSession`.

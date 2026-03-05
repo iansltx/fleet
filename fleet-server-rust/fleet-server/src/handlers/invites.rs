@@ -59,8 +59,11 @@ pub async fn create_invite(
         name: body.name,
         sso_enabled: body.sso_enabled,
         global_role: body.global_role,
-        // TODO: convert body.teams from JSON to Vec<UserTeam>
-        teams: None,
+        teams: body.teams.map(|teams_json| {
+            teams_json.into_iter().filter_map(|v| {
+                serde_json::from_value::<fleet_types::team::UserTeam>(v).ok()
+            }).collect()
+        }),
         ..Default::default()
     };
     match state.service.invite_new_user(&viewer, payload).await {
@@ -128,8 +131,11 @@ pub async fn update_invite(
         name: body.name,
         sso_enabled: body.sso_enabled,
         global_role: body.global_role,
-        // TODO: convert body.teams from JSON to Vec<UserTeam>
-        teams: None,
+        teams: body.teams.map(|teams_json| {
+            teams_json.into_iter().filter_map(|v| {
+                serde_json::from_value::<fleet_types::team::UserTeam>(v).ok()
+            }).collect()
+        }),
         ..Default::default()
     };
     match state.service.update_invite(&viewer, id as u32, payload).await {

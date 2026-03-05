@@ -68,6 +68,27 @@ impl Pack {
     }
 }
 
+/// ScheduledQuery represents a query scheduled in a pack.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ScheduledQuery {
+    pub id: u32,
+    pub pack_id: u32,
+    pub query_id: u32,
+    pub query_name: String,
+    pub query: String,
+    pub name: String,
+    pub description: String,
+    pub interval: u32,
+    pub snapshot: Option<bool>,
+    pub removed: Option<bool>,
+    pub platform: String,
+    pub version: String,
+    pub shard: Option<u32>,
+    pub denylist: Option<bool>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 /// ScheduledQueryStats contains per-host stats for a scheduled query.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScheduledQueryStats {

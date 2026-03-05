@@ -252,6 +252,53 @@ impl FleetService {
         }
         Ok(())
     }
+
+    // ---- Scheduled Queries ----
+
+    pub async fn get_scheduled_queries_in_pack(
+        &self,
+        viewer: &Viewer,
+        pack_id: u32,
+    ) -> ServiceResult<Vec<fleet_types::ScheduledQuery>> {
+        authz::authorize(viewer, Subject::Pack, Action::Read)?;
+        self.ds.list_scheduled_queries_in_pack(pack_id).await
+    }
+
+    pub async fn schedule_query(
+        &self,
+        viewer: &Viewer,
+        sq: fleet_types::ScheduledQuery,
+    ) -> ServiceResult<fleet_types::ScheduledQuery> {
+        authz::authorize(viewer, Subject::Pack, Action::Write)?;
+        self.ds.new_scheduled_query(&sq).await
+    }
+
+    pub async fn get_scheduled_query(
+        &self,
+        viewer: &Viewer,
+        id: u32,
+    ) -> ServiceResult<fleet_types::ScheduledQuery> {
+        authz::authorize(viewer, Subject::Pack, Action::Read)?;
+        self.ds.scheduled_query(id).await
+    }
+
+    pub async fn modify_scheduled_query(
+        &self,
+        viewer: &Viewer,
+        sq: fleet_types::ScheduledQuery,
+    ) -> ServiceResult<fleet_types::ScheduledQuery> {
+        authz::authorize(viewer, Subject::Pack, Action::Write)?;
+        self.ds.save_scheduled_query(&sq).await
+    }
+
+    pub async fn delete_scheduled_query(
+        &self,
+        viewer: &Viewer,
+        id: u32,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Pack, Action::Write)?;
+        self.ds.delete_scheduled_query(id).await
+    }
 }
 
 /// Spec representation of a pack for declarative management.

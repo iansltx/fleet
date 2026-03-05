@@ -67,6 +67,18 @@ fn user_row_to_user(row: crate::users::UserRow) -> fleet_types::User {
     }
 }
 
+fn activity_row_to_activity(row: crate::activities::ActivityRow) -> fleet_types::Activity {
+    fleet_types::Activity {
+        id: row.id,
+        created_at: row.created_at,
+        user_id: row.user_id,
+        user_name: row.user_name.unwrap_or_default(),
+        user_email: row.user_email.unwrap_or_default(),
+        activity_type: row.activity_type,
+        details: row.details.unwrap_or(serde_json::json!({})),
+    }
+}
+
 fn session_row_to_session(row: crate::sessions::SessionRow) -> fleet_types::Session {
     fleet_types::Session {
         id: row.id,
@@ -948,6 +960,24 @@ impl Datastore for MysqlDatastore {
             .map_err(ServiceError::from)
     }
 
+    // ---- Scheduled Queries ----
+
+    async fn scheduled_query(&self, id: u32) -> ServiceResult<fleet_types::ScheduledQuery> {
+        Err(ServiceError::not_found(format!("ScheduledQuery {id}")))
+    }
+    async fn list_scheduled_queries_in_pack(&self, _pack_id: u32) -> ServiceResult<Vec<fleet_types::ScheduledQuery>> {
+        Ok(vec![])
+    }
+    async fn new_scheduled_query(&self, sq: &fleet_types::ScheduledQuery) -> ServiceResult<fleet_types::ScheduledQuery> {
+        Ok(sq.clone())
+    }
+    async fn save_scheduled_query(&self, sq: &fleet_types::ScheduledQuery) -> ServiceResult<fleet_types::ScheduledQuery> {
+        Ok(sq.clone())
+    }
+    async fn delete_scheduled_query(&self, _id: u32) -> ServiceResult<()> {
+        Ok(())
+    }
+
     // ---- Labels ----
 
     async fn label(&self, id: u32) -> ServiceResult<fleet_types::Label> {
@@ -1040,6 +1070,25 @@ impl Datastore for MysqlDatastore {
                 },
             })
             .collect())
+    }
+
+    async fn record_label_membership(&self, label_id: u32, host_id: u32) -> ServiceResult<()> {
+        MysqlDatastore::record_label_membership(self, label_id, host_id)
+            .await
+            .map_err(ServiceError::from)
+    }
+
+    async fn delete_label_membership(&self, label_id: u32, host_id: u32) -> ServiceResult<()> {
+        MysqlDatastore::delete_label_membership(self, label_id, host_id)
+            .await
+            .map_err(ServiceError::from)
+    }
+
+    async fn list_labels_for_host(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::Label>> {
+        let rows = MysqlDatastore::list_labels_for_host(self, host_id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(label_row_to_label).collect())
     }
 
     // ---- Policies ----
@@ -1637,6 +1686,19 @@ impl Datastore for MysqlDatastore {
             .await
             .map_err(ServiceError::from)?;
         Ok(())
+    }
+
+    async fn list_activities(&self, limit: u32, offset: u32) -> ServiceResult<Vec<fleet_types::Activity>> {
+        let rows = MysqlDatastore::list_activities(self, limit, offset)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(activity_row_to_activity).collect())
+    }
+
+    async fn count_host_upcoming_activities(&self, host_id: u32) -> ServiceResult<u32> {
+        MysqlDatastore::count_host_upcoming_activities(self, host_id)
+            .await
+            .map_err(ServiceError::from)
     }
 
     // ---- Device ----

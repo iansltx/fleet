@@ -468,29 +468,36 @@ pub async fn get_host_health(
 pub async fn add_labels_to_host(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_id): Path<u64>,
-    Json(_body): Json<AddLabelsToHostBody>,
+    Path(id): Path<u64>,
+    Json(body): Json<AddLabelsToHostBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement add_labels_to_host logic
-    fleet_ok("", serde_json::json!({}))
+    let host_id = id as u32;
+    match state.service.add_labels_to_host(&viewer, host_id, &body.labels).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// DELETE /api/_version_/fleet/hosts/{id}/labels
 pub async fn remove_labels_from_host(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_id): Path<u64>,
+    Path(id): Path<u64>,
+    Json(body): Json<AddLabelsToHostBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement remove_labels_from_host logic
-    fleet_ok("", serde_json::json!({}))
+    let host_id = id as u32;
+    match state.service.remove_labels_from_host(&viewer, host_id, &body.labels).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/software

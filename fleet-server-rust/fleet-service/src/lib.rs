@@ -4,6 +4,7 @@
 //! It contains all business logic for user management, host management,
 //! osquery enrollment, query scheduling, policy enforcement, and more.
 
+pub mod activities;
 pub mod app_config;
 pub mod auth;
 pub mod authz;
