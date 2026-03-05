@@ -64,7 +64,7 @@ pub async fn me() -> FleetResponse {
     // let viewer = auth.to_viewer();
     // match state.service.authenticated_user(&viewer).await {
     //     Ok(user) => fleet_ok("user", serde_json::to_value(&user).unwrap()),
-    //     Err(e) => encode_error(&e),
+    //     Err(e) => encode_service_error(&e),
     // }
     fleet_ok("user", serde_json::json!({}))
 }
@@ -75,7 +75,7 @@ pub async fn get_session_info(Path(_id): Path<u64>) -> FleetResponse {
     // let viewer = auth.to_viewer();
     // match state.service.get_info_about_session(&viewer, id as u32).await {
     //     Ok(session) => fleet_ok("session", serde_json::to_value(&session).unwrap()),
-    //     Err(e) => encode_error(&e),
+    //     Err(e) => encode_service_error(&e),
     // }
     fleet_ok("session", serde_json::json!({}))
 }
@@ -86,7 +86,7 @@ pub async fn delete_session(Path(_id): Path<u64>) -> FleetResponse {
     // let viewer = auth.to_viewer();
     // match state.service.delete_session(&viewer, id as u32).await {
     //     Ok(()) => fleet_ok("", serde_json::json!({})),
-    //     Err(e) => encode_error(&e),
+    //     Err(e) => encode_service_error(&e),
     // }
     fleet_ok("", serde_json::json!({}))
 }
@@ -102,7 +102,7 @@ pub async fn login(Json(_body): Json<LoginBody>) -> FleetResponse {
     //         }
     //         fleet_ok("user", user_json)
     //     }
-    //     Err(e) => encode_error(&e),
+    //     Err(e) => encode_service_error(&e),
     // }
     fleet_ok("user", serde_json::json!({"token": ""}))
 }
@@ -118,7 +118,7 @@ pub async fn session_create(Json(_body): Json<SessionCreateBody>) -> FleetRespon
     //         }
     //         fleet_ok("user", user_json)
     //     }
-    //     Err(e) => encode_error(&e),
+    //     Err(e) => encode_service_error(&e),
     // }
     fleet_ok("user", serde_json::json!({"token": ""}))
 }
@@ -129,7 +129,7 @@ pub async fn logout() -> FleetResponse {
     // let viewer = auth.to_viewer();
     // match state.service.logout(&viewer).await {
     //     Ok(()) => fleet_ok("", serde_json::json!({})),
-    //     Err(e) => encode_error(&e),
+    //     Err(e) => encode_service_error(&e),
     // }
     fleet_ok("", serde_json::json!({}))
 }
@@ -154,7 +154,7 @@ pub async fn reset_password(Json(_body): Json<ResetPasswordBody>) -> FleetRespon
     // TODO: extract AppState from request context (no auth required)
     // match state.service.reset_password(&body.password_reset_token, &body.new_password).await {
     //     Ok(()) => fleet_ok("", serde_json::json!({})),
-    //     Err(e) => encode_error(&e),
+    //     Err(e) => encode_service_error(&e),
     // }
     fleet_ok("", serde_json::json!({}))
 }
@@ -171,7 +171,7 @@ pub async fn perform_required_password_reset(
     //         let user = state.service.get_user(&viewer, viewer.user_id()).await.unwrap();
     //         fleet_ok("user", serde_json::to_value(&user).unwrap())
     //     }
-    //     Err(e) => encode_error(&e),
+    //     Err(e) => encode_service_error(&e),
     // }
     fleet_ok("user", serde_json::json!({}))
 }
@@ -179,9 +179,10 @@ pub async fn perform_required_password_reset(
 /// POST /api/v1/fleet/sso
 pub async fn initiate_sso(Json(_body): Json<InitiateSSOBody>) -> FleetResponse {
     // TODO: extract AppState from request context (no auth required)
+    // TODO: add initiate_sso to FleetService
     // match state.service.initiate_sso(body.relay_url.as_deref()).await {
     //     Ok(url) => fleet_ok("url", serde_json::json!(url)),
-    //     Err(e) => encode_error(&e),
+    //     Err(e) => encode_service_error(&e),
     // }
     fleet_ok("url", serde_json::json!(""))
 }
@@ -189,6 +190,7 @@ pub async fn initiate_sso(Json(_body): Json<InitiateSSOBody>) -> FleetResponse {
 /// POST /api/v1/fleet/sso/callback
 pub async fn callback_sso(Json(_body): Json<CallbackSSOBody>) -> FleetResponse {
     // TODO: extract AppState from request context (no auth required)
+    // TODO: add callback_sso to FleetService
     // match state.service.callback_sso(body.saml_response.as_deref().unwrap_or("")).await {
     //     Ok((user, session)) => {
     //         let mut user_json = serde_json::to_value(&user).unwrap();
@@ -197,7 +199,7 @@ pub async fn callback_sso(Json(_body): Json<CallbackSSOBody>) -> FleetResponse {
     //         }
     //         fleet_ok("user", user_json)
     //     }
-    //     Err(e) => encode_error(&e),
+    //     Err(e) => encode_service_error(&e),
     // }
     fleet_ok("user", serde_json::json!({"token": ""}))
 }
@@ -205,9 +207,10 @@ pub async fn callback_sso(Json(_body): Json<CallbackSSOBody>) -> FleetResponse {
 /// GET /api/v1/fleet/sso
 pub async fn settings_sso() -> FleetResponse {
     // TODO: extract AppState from request context (no auth required)
+    // TODO: add get_sso_settings to FleetService
     // match state.service.get_sso_settings().await {
     //     Ok(settings) => fleet_ok("settings", serde_json::to_value(&settings).unwrap()),
-    //     Err(e) => encode_error(&e),
+    //     Err(e) => encode_service_error(&e),
     // }
     fleet_ok("settings", serde_json::json!({}))
 }

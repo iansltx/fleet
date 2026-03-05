@@ -103,7 +103,7 @@ pub async fn create_user(Json(_body): Json<CreateUserBody>) -> FleetResponse {
     //         }
     //         fleet_ok("user", user_json)
     //     }
-    //     Err(e) => encode_error(&e),
+    //     Err(e) => encode_service_error(&e),
     // }
     fleet_ok("user", serde_json::json!({}))
 }
@@ -114,7 +114,7 @@ pub async fn get_user(Path(_id): Path<u64>) -> FleetResponse {
     // let viewer = auth.to_viewer();
     // match state.service.get_user(&viewer, id as u32).await {
     //     Ok(user) => fleet_ok("user", serde_json::to_value(&user).unwrap()),
-    //     Err(e) => encode_error(&e),
+    //     Err(e) => encode_service_error(&e),
     // }
     fleet_ok("user", serde_json::json!({}))
 }
@@ -132,7 +132,7 @@ pub async fn modify_user(Path(_id): Path<u64>, Json(_body): Json<ModifyUserBody>
     // };
     // match state.service.modify_user(&viewer, id as u32, payload).await {
     //     Ok(user) => fleet_ok("user", serde_json::to_value(&user).unwrap()),
-    //     Err(e) => encode_error(&e),
+    //     Err(e) => encode_service_error(&e),
     // }
     fleet_ok("user", serde_json::json!({}))
 }
@@ -143,7 +143,7 @@ pub async fn delete_user(Path(_id): Path<u64>) -> FleetResponse {
     // let viewer = auth.to_viewer();
     // match state.service.delete_user(&viewer, id as u32).await {
     //     Ok(_user) => fleet_ok("", serde_json::json!({})),
-    //     Err(e) => encode_error(&e),
+    //     Err(e) => encode_service_error(&e),
     // }
     fleet_ok("", serde_json::json!({}))
 }
@@ -157,7 +157,7 @@ pub async fn require_password_reset(
     // let viewer = auth.to_viewer();
     // match state.service.require_password_reset(&viewer, id as u32, body.require).await {
     //     Ok(user) => fleet_ok("user", serde_json::to_value(&user).unwrap()),
-    //     Err(e) => encode_error(&e),
+    //     Err(e) => encode_service_error(&e),
     // }
     fleet_ok("user", serde_json::json!({}))
 }
@@ -165,10 +165,12 @@ pub async fn require_password_reset(
 /// GET /api/_version_/fleet/users/{id}/sessions
 pub async fn get_user_sessions(Path(_id): Path<u64>) -> FleetResponse {
     // TODO: extract AppState and auth from request context
+    // TODO: add get_info_about_sessions_for_user to FleetService
     // let viewer = auth.to_viewer();
-    // match state.service.get_info_about_sessions_for_user(&viewer, id as u32).await {
+    // authz::authorize(&viewer, Subject::User, Action::Read)?;
+    // match state.service.ds.list_sessions_for_user(id as u32).await {
     //     Ok(sessions) => fleet_ok("sessions", serde_json::to_value(&sessions).unwrap()),
-    //     Err(e) => encode_error(&e),
+    //     Err(e) => encode_service_error(&e),
     // }
     fleet_ok("sessions", serde_json::json!([]))
 }
@@ -177,9 +179,10 @@ pub async fn get_user_sessions(Path(_id): Path<u64>) -> FleetResponse {
 pub async fn delete_user_sessions(Path(_id): Path<u64>) -> FleetResponse {
     // TODO: extract AppState and auth from request context
     // let viewer = auth.to_viewer();
-    // match state.service.delete_sessions_for_user(&viewer, id as u32).await {
+    // authz::authorize(&viewer, Subject::User, Action::Write)?;
+    // match state.service.ds.destroy_all_sessions_for_user(id as u32).await {
     //     Ok(()) => fleet_ok("", serde_json::json!({})),
-    //     Err(e) => encode_error(&e),
+    //     Err(e) => encode_service_error(&e),
     // }
     fleet_ok("", serde_json::json!({}))
 }
@@ -190,7 +193,7 @@ pub async fn change_password(Json(_body): Json<ChangePasswordBody>) -> FleetResp
     // let viewer = auth.to_viewer();
     // match state.service.change_password(&viewer, &body.old_password, &body.new_password).await {
     //     Ok(()) => fleet_ok("", serde_json::json!({})),
-    //     Err(e) => encode_error(&e),
+    //     Err(e) => encode_service_error(&e),
     // }
     fleet_ok("", serde_json::json!({}))
 }
@@ -198,9 +201,10 @@ pub async fn change_password(Json(_body): Json<ChangePasswordBody>) -> FleetResp
 /// GET /api/_version_/fleet/email/change/{token}
 pub async fn change_email(Path(_token): Path<String>) -> FleetResponse {
     // TODO: extract AppState from request context
+    // TODO: add change_email to FleetService
     // match state.service.change_email(&token).await {
     //     Ok(new_email) => fleet_ok("new_email", serde_json::json!(new_email)),
-    //     Err(e) => encode_error(&e),
+    //     Err(e) => encode_service_error(&e),
     // }
     fleet_ok("new_email", serde_json::json!(""))
 }
@@ -208,10 +212,11 @@ pub async fn change_email(Path(_token): Path<String>) -> FleetResponse {
 /// POST /api/_version_/fleet/users/roles/spec
 pub async fn apply_user_role_specs(Json(_body): Json<ApplyUserRoleSpecsBody>) -> FleetResponse {
     // TODO: extract AppState and auth from request context
+    // TODO: add apply_user_role_specs to FleetService
     // let viewer = auth.to_viewer();
     // match state.service.apply_user_role_specs(&viewer, body.spec).await {
     //     Ok(()) => fleet_ok("", serde_json::json!({})),
-    //     Err(e) => encode_error(&e),
+    //     Err(e) => encode_service_error(&e),
     // }
     fleet_ok("", serde_json::json!({}))
 }
@@ -227,7 +232,7 @@ pub async fn create_user_from_invite(Json(_body): Json<CreateUserBody>) -> Fleet
     // };
     // match state.service.create_user_from_invite(payload).await {
     //     Ok(user) => fleet_ok("user", serde_json::to_value(&user).unwrap()),
-    //     Err(e) => encode_error(&e),
+    //     Err(e) => encode_service_error(&e),
     // }
     fleet_ok("user", serde_json::json!({}))
 }
