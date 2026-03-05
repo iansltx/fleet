@@ -161,4 +161,16 @@ impl FleetService {
         let opts = fleet_types::HostListOptions::default();
         self.ds.list_hosts(opts).await
     }
+
+    /// Lists software installed on a specific host.
+    ///
+    /// Corresponds to Go's host software listing endpoint.
+    pub async fn list_host_software(
+        &self,
+        viewer: &Viewer,
+        host_id: u32,
+    ) -> ServiceResult<Vec<fleet_types::Software>> {
+        authz::authorize(viewer, Subject::Host, Action::Read)?;
+        self.ds.list_software_for_host(host_id).await
+    }
 }

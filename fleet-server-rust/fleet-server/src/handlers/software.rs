@@ -121,10 +121,26 @@ pub struct CreateAndroidWebAppBody {
 
 /// GET /api/_version_/fleet/software/versions
 pub async fn list_software_versions(
-    State(_state): State<AppState>,
-    Query(_params): Query<ListSoftwareParams>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Query(params): Query<ListSoftwareParams>,
 ) -> FleetResponse {
-    fleet_ok("software", serde_json::json!([]))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let opts = fleet_types::ListOptions {
+        page: params.page.unwrap_or(0) as u32,
+        per_page: params.per_page.unwrap_or(20) as u32,
+        order_key: params.order_key.unwrap_or_default(),
+        match_query: params.query.unwrap_or_default(),
+        ..Default::default()
+    };
+    let team_id = params.team_id.map(|v| v as u32);
+    match state.service.list_software(&viewer, opts, team_id).await {
+        Ok(software) => fleet_ok("software", serde_json::to_value(&software).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/software/versions/{id}
@@ -168,10 +184,23 @@ pub async fn list_software(
 
 /// GET /api/_version_/fleet/software/count (deprecated)
 pub async fn count_software(
-    State(_state): State<AppState>,
-    Query(_params): Query<ListSoftwareParams>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Query(params): Query<ListSoftwareParams>,
 ) -> FleetResponse {
-    fleet_ok("count", serde_json::json!(0))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let opts = fleet_types::ListOptions {
+        match_query: params.query.unwrap_or_default(),
+        ..Default::default()
+    };
+    let team_id = params.team_id.map(|v| v as u32);
+    match state.service.list_software(&viewer, opts, team_id).await {
+        Ok(software) => fleet_ok("count", serde_json::json!(software.len())),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/software/titles

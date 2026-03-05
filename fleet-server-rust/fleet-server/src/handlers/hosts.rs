@@ -366,20 +366,30 @@ pub async fn list_host_device_mapping(
 
 /// PUT /api/_version_/fleet/hosts/{id}/device_mapping
 pub async fn put_host_device_mapping(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_id): Path<u64>,
     Json(_body): Json<PutHostDeviceMappingBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement put_host_device_mapping logic
     fleet_ok("device_mapping", serde_json::json!([]))
 }
 
 /// DELETE /api/_version_/fleet/hosts/{id}/device_mapping/idp
 pub async fn delete_host_idp(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement delete_host_idp logic
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -400,178 +410,280 @@ pub async fn hosts_report(
 
 /// GET /api/_version_/fleet/os_versions
 pub async fn os_versions(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement os_versions logic
     fleet_ok("os_versions", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/os_versions/{id}
 pub async fn get_os_version(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_os_version logic
     fleet_ok("os_version", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/reports/{report_id}
 pub async fn get_host_query_report(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path((_id, _report_id)): Path<(u64, u64)>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_host_query_report logic
     fleet_ok("report", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/health
 pub async fn get_host_health(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_host_health logic
     fleet_ok("host_health", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/hosts/{id}/labels
 pub async fn add_labels_to_host(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_id): Path<u64>,
     Json(_body): Json<AddLabelsToHostBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement add_labels_to_host logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// DELETE /api/_version_/fleet/hosts/{id}/labels
 pub async fn remove_labels_from_host(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement remove_labels_from_host logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/software
 pub async fn get_host_software(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_id): Path<u64>,
+    Path(id): Path<u64>,
 ) -> FleetResponse {
-    fleet_ok("software", serde_json::json!([]))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.list_host_software(&viewer, id as u32).await {
+        Ok(software) => fleet_ok("software", serde_json::to_value(&software).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/certificates
 pub async fn list_host_certificates(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement list_host_certificates logic
     fleet_ok("certificates", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/hosts/summary/mdm
 pub async fn get_host_mdm_summary(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_host_mdm_summary logic
     fleet_ok("mdm_summary", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/mdm
 pub async fn get_host_mdm(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_host_mdm logic
     fleet_ok("host_mdm", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/macadmins
 pub async fn get_macadmins_data(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_macadmins_data logic
     fleet_ok("macadmins", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/macadmins
 pub async fn get_aggregated_macadmins_data(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_aggregated_macadmins_data logic
     fleet_ok("macadmins", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/scripts
 pub async fn get_host_script_details(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_host_script_details logic
     fleet_ok("scripts", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/activities/upcoming
 pub async fn list_host_upcoming_activities(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement list_host_upcoming_activities logic
     fleet_ok("activities", serde_json::json!([]))
 }
 
 /// DELETE /api/_version_/fleet/hosts/{id}/activities/upcoming/{activity_id}
 pub async fn cancel_host_upcoming_activity(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path((_id, _activity_id)): Path<(u64, u64)>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement cancel_host_upcoming_activity logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/hosts/{id}/lock
 pub async fn lock_host(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement lock_host logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/hosts/{id}/unlock
 pub async fn unlock_host(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement unlock_host logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/hosts/{id}/wipe
 pub async fn wipe_host(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement wipe_host logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/targets
 pub async fn search_targets(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Json(_body): Json<SearchTargetsBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement search_targets logic
     fleet_ok("targets", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/targets/count
 pub async fn count_targets(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Json(_body): Json<CountTargetsBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement count_targets logic
     fleet_ok("targets_count", serde_json::json!(0))
 }

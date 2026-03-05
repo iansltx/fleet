@@ -225,27 +225,42 @@ pub async fn delete_pack_by_id(
 
 /// POST /api/_version_/fleet/spec/packs
 pub async fn apply_pack_specs(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Json(_body): Json<ApplyPackSpecsBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement apply_pack_specs logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/spec/packs
 pub async fn get_pack_specs(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_pack_specs logic
     fleet_ok("specs", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/spec/packs/{name}
 pub async fn get_pack_spec(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_name): Path<String>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_pack_spec logic
     fleet_ok("spec", serde_json::json!({}))
 }
 
@@ -255,50 +270,75 @@ pub async fn get_pack_spec(
 
 /// GET /api/_version_/fleet/packs/{id}/scheduled
 pub async fn get_scheduled_queries_in_pack(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_scheduled_queries_in_pack logic
     fleet_ok("scheduled", serde_json::json!([]))
 }
 
 /// POST /api/_version_/fleet/schedule  (v1)
 /// POST /api/_version_/fleet/packs/schedule  (2022-04)
 pub async fn schedule_query(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Json(_body): Json<ScheduleQueryBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement schedule_query logic
     fleet_ok("scheduled", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/schedule/{id}
 pub async fn get_scheduled_query(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_scheduled_query logic
     fleet_ok("scheduled", serde_json::json!({}))
 }
 
 /// PATCH /api/_version_/fleet/schedule/{id}  (v1)
 /// PATCH /api/_version_/fleet/packs/schedule/{id}  (2022-04)
 pub async fn modify_scheduled_query(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_id): Path<u64>,
     Json(_body): Json<ModifyScheduledQueryBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement modify_scheduled_query logic
     fleet_ok("scheduled", serde_json::json!({}))
 }
 
 /// DELETE /api/_version_/fleet/schedule/{id}  (v1)
 /// DELETE /api/_version_/fleet/packs/schedule/{id}  (2022-04)
 pub async fn delete_scheduled_query(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement delete_scheduled_query logic
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -309,41 +349,61 @@ pub async fn delete_scheduled_query(
 /// GET /api/_version_/fleet/global/schedule  (v1)
 /// GET /api/_version_/fleet/schedule  (2022-04)
 pub async fn get_global_schedule(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Query(_params): Query<GetGlobalScheduleParams>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_global_schedule logic
     fleet_ok("global_schedule", serde_json::json!([]))
 }
 
 /// POST /api/_version_/fleet/global/schedule  (v1)
 /// POST /api/_version_/fleet/schedule  (2022-04)
 pub async fn global_schedule_query(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Json(_body): Json<GlobalScheduleQueryBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement global_schedule_query logic
     fleet_ok("scheduled", serde_json::json!({}))
 }
 
 /// PATCH /api/_version_/fleet/global/schedule/{id}  (v1)
 /// PATCH /api/_version_/fleet/schedule/{id}  (2022-04)
 pub async fn modify_global_schedule(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_id): Path<u64>,
     Json(_body): Json<ModifyScheduledQueryBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement modify_global_schedule logic
     fleet_ok("scheduled", serde_json::json!({}))
 }
 
 /// DELETE /api/_version_/fleet/global/schedule/{id}  (v1)
 /// DELETE /api/_version_/fleet/schedule/{id}  (2022-04)
 pub async fn delete_global_schedule(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement delete_global_schedule logic
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -353,38 +413,58 @@ pub async fn delete_global_schedule(
 
 /// GET /api/_version_/fleet/fleets/{fleet_id}/schedule
 pub async fn get_team_schedule(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_fleet_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_team_schedule logic
     fleet_ok("scheduled", serde_json::json!([]))
 }
 
 /// POST /api/_version_/fleet/fleets/{fleet_id}/schedule
 pub async fn team_schedule_query(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path(_fleet_id): Path<u64>,
     Json(_body): Json<TeamScheduleQueryBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement team_schedule_query logic
     fleet_ok("scheduled", serde_json::json!({}))
 }
 
 /// PATCH /api/_version_/fleet/fleets/{fleet_id}/schedule/{report_id}
 pub async fn modify_team_schedule(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path((_fleet_id, _report_id)): Path<(u64, u64)>,
     Json(_body): Json<ModifyScheduledQueryBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement modify_team_schedule logic
     fleet_ok("scheduled", serde_json::json!({}))
 }
 
 /// DELETE /api/_version_/fleet/fleets/{fleet_id}/schedule/{report_id}
 pub async fn delete_team_schedule(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Path((_fleet_id, _report_id)): Path<(u64, u64)>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement delete_team_schedule logic
     fleet_ok("", serde_json::json!({}))
 }
