@@ -388,6 +388,34 @@ fn cert_authority_row_to_type(row: crate::certificates::CertificateAuthorityRow)
     }
 }
 
+fn install_result_row_to_type(row: crate::software::SoftwareInstallResultRow) -> fleet_types::software::SoftwareInstallResult {
+    // Derive status from exit codes
+    let status = if row.install_script_exit_code.is_some() {
+        if row.install_script_exit_code == Some(0) {
+            Some("installed".to_string())
+        } else {
+            Some("failed".to_string())
+        }
+    } else {
+        Some("pending".to_string())
+    };
+    fleet_types::software::SoftwareInstallResult {
+        execution_id: row.execution_id,
+        host_id: row.host_id,
+        software_installer_id: row.software_installer_id,
+        software_title_id: row.software_title_id,
+        install_script_exit_code: row.install_script_exit_code,
+        install_script_output: row.install_script_output,
+        pre_install_query_output: row.pre_install_query_output,
+        post_install_script_exit_code: row.post_install_script_exit_code,
+        post_install_script_output: row.post_install_script_output,
+        self_service: row.self_service,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        status,
+    }
+}
+
 fn fma_row_to_type(row: crate::software::FleetMaintainedAppRow) -> fleet_types::software::FleetMaintainedApp {
     fleet_types::software::FleetMaintainedApp {
         id: row.id,
@@ -2548,6 +2576,15 @@ impl Datastore for MysqlDatastore {
             .await
             .map_err(ServiceError::from)?;
         Ok(vuln_row_to_type(row))
+    }
+
+    // ---- Software Install Results ----
+
+    async fn get_software_install_result(&self, execution_id: &str) -> ServiceResult<fleet_types::software::SoftwareInstallResult> {
+        let row = MysqlDatastore::get_software_install_result(self, execution_id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(install_result_row_to_type(row))
     }
 
     // ---- Fleet Maintained Apps ----

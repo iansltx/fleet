@@ -366,8 +366,10 @@ pub async fn get_software_install_results(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &install_uuid);
-    fleet_ok("results", serde_json::json!({}))
+    match state.service.get_software_install_result(&viewer, &install_uuid).await {
+        Ok(result) => fleet_ok("results", serde_json::to_value(&result).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/software/batch

@@ -96,6 +96,16 @@ impl FleetService {
         self.ds.get_vulnerability(cve, team_id).await
     }
 
+    /// Gets a software install result by execution ID.
+    pub async fn get_software_install_result(
+        &self,
+        viewer: &Viewer,
+        execution_id: &str,
+    ) -> ServiceResult<fleet_types::software::SoftwareInstallResult> {
+        authz::authorize(viewer, Subject::Software, Action::Read)?;
+        self.ds.get_software_install_result(execution_id).await
+    }
+
     /// Lists fleet maintained apps.
     pub async fn list_fleet_maintained_apps(
         &self,

@@ -249,6 +249,9 @@ pub trait Datastore: Send + Sync + 'static {
         team_id: Option<u32>,
     ) -> ServiceResult<fleet_types::vulnerability::VulnerabilityWithMetadata>;
 
+    // ---- Software Install Results ----
+    async fn get_software_install_result(&self, execution_id: &str) -> ServiceResult<fleet_types::software::SoftwareInstallResult>;
+
     // ---- Fleet Maintained Apps ----
     async fn list_fleet_maintained_apps(
         &self,

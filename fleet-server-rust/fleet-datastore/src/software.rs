@@ -415,6 +415,46 @@ impl MysqlDatastore {
         .await?
         .ok_or_else(|| DatastoreError::not_found_with_id("FleetMaintainedApp", id as u64))
     }
+
+    /// Gets a software install result by execution_id.
+    pub async fn get_software_install_result(&self, execution_id: &str) -> Result<SoftwareInstallResultRow> {
+        sqlx::query_as::<_, SoftwareInstallResultRow>(
+            r#"SELECT execution_id, host_id, software_installer_id, software_title_id,
+                install_script_exit_code, install_script_output, pre_install_query_output,
+                post_install_script_exit_code, post_install_script_output,
+                self_service, created_at, updated_at
+            FROM host_software_installs
+            WHERE execution_id = ?"#
+        )
+        .bind(execution_id)
+        .fetch_optional(self.pool())
+        .await?
+        .ok_or_else(|| DatastoreError::not_found_with_name("SoftwareInstallResult", execution_id))
+    }
+}
+
+/// Row type for host_software_installs table.
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct SoftwareInstallResultRow {
+    pub execution_id: String,
+    pub host_id: u32,
+    #[sqlx(default)]
+    pub software_installer_id: Option<u32>,
+    #[sqlx(default)]
+    pub software_title_id: Option<u32>,
+    #[sqlx(default)]
+    pub install_script_exit_code: Option<i32>,
+    #[sqlx(default)]
+    pub install_script_output: Option<String>,
+    #[sqlx(default)]
+    pub pre_install_query_output: Option<String>,
+    #[sqlx(default)]
+    pub post_install_script_exit_code: Option<i32>,
+    #[sqlx(default)]
+    pub post_install_script_output: Option<String>,
+    pub self_service: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 /// Row type for software_cve table.

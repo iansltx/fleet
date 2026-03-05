@@ -97,6 +97,32 @@ pub struct FleetMaintainedApp {
     pub updated_at: DateTime<Utc>,
 }
 
+/// SoftwareInstallResult represents the result of a software install/uninstall on a host.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SoftwareInstallResult {
+    pub execution_id: String,
+    pub host_id: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub software_installer_id: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub software_title_id: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub install_script_exit_code: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub install_script_output: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pre_install_query_output: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub post_install_script_exit_code: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub post_install_script_output: Option<String>,
+    pub self_service: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+}
+
 // Software field length constants
 pub const SOFTWARE_NAME_MAX_LENGTH: usize = 255;
 pub const SOFTWARE_VERSION_MAX_LENGTH: usize = 255;
