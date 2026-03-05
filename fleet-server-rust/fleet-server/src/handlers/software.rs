@@ -3,11 +3,8 @@
 //! Handles software versions, titles, installers, app store apps,
 //! Fleet-maintained apps, VPP associations, vulnerabilities, and icons.
 
-use axum::{
-    extract::{Json, Path, Query, State},
-    http::StatusCode,
-};
-use serde::{Deserialize, Serialize};
+use axum::extract::{Json, Path, Query, State};
+use serde::Deserialize;
 
 use crate::middleware::auth::AuthenticatedUser;
 use crate::response::{fleet_error, fleet_ok, encode_service_error, FleetResponse};

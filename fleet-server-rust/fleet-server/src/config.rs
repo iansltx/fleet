@@ -4,7 +4,6 @@
 //! matching the Go server's configuration structure and defaults.
 
 use serde::Deserialize;
-use std::time::Duration;
 
 /// Top-level Fleet configuration, matching the Go `FleetConfig` struct.
 #[derive(Debug, Clone, Deserialize)]
@@ -99,6 +98,7 @@ impl FleetConfig {
     }
 
     /// Returns true if OTEL tracing is enabled (tracing is on and type is not elasticapm).
+    #[allow(dead_code)]
     pub fn otel_enabled(&self) -> bool {
         self.logging.tracing_enabled && self.logging.tracing_type != "elasticapm"
     }

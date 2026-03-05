@@ -11,7 +11,6 @@
 
 use axum::{
     http::StatusCode,
-    response::{IntoResponse, Response},
     Json,
 };
 use fleet_service::ServiceError;
@@ -87,6 +86,7 @@ pub struct ValidationError {
 }
 
 /// Create a response with a specific status code and a named key.
+#[allow(dead_code)]
 pub fn fleet_response(status: StatusCode, key: &str, value: Value) -> FleetResponse {
     if key.is_empty() {
         (status, Json(value))
@@ -98,11 +98,13 @@ pub fn fleet_response(status: StatusCode, key: &str, value: Value) -> FleetRespo
 }
 
 /// Create a 201 Created response.
+#[allow(dead_code)]
 pub fn fleet_created(key: &str, value: Value) -> FleetResponse {
     fleet_response(StatusCode::CREATED, key, value)
 }
 
 /// Create a 204 No Content response (no body).
+#[allow(dead_code)]
 pub fn fleet_no_content() -> FleetResponse {
     (StatusCode::NO_CONTENT, Json(Value::Null))
 }

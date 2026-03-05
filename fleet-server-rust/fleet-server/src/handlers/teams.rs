@@ -2,11 +2,8 @@
 //!
 //! Handles team CRUD, specs, agent options, team users, and enroll secrets.
 
-use axum::{
-    extract::{Json, Path, Query, State},
-    http::StatusCode,
-};
-use serde::{Deserialize, Serialize};
+use axum::extract::{Json, Path, Query, State};
+use serde::Deserialize;
 
 use crate::middleware::auth::AuthenticatedUser;
 use crate::response::{encode_service_error, fleet_error, fleet_ok, FleetResponse};

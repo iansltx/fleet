@@ -5,10 +5,9 @@
 
 use axum::{
     extract::{Json, Path, Query, State, WebSocketUpgrade},
-    http::StatusCode,
     response::IntoResponse,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::middleware::auth::AuthenticatedUser;
 use crate::response::{encode_service_error, fleet_error, fleet_ok, FleetResponse};
@@ -378,7 +377,7 @@ pub async fn stream_campaign_results(
     Path(_campaign_id): Path<u64>,
     ws: WebSocketUpgrade,
 ) -> impl IntoResponse {
-    ws.on_upgrade(|mut socket| async move {
+    ws.on_upgrade(|_socket| async move {
         // TODO: stream live query results over the websocket
     })
 }

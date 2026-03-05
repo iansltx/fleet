@@ -11,7 +11,7 @@ use axum::{
 
 use crate::frontend;
 use crate::handlers;
-use crate::middleware as fleet_mw;
+
 
 /// Build the complete axum Router with all Fleet API routes.
 pub fn build_router(state: crate::AppState) -> Router {

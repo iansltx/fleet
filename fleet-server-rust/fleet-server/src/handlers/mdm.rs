@@ -5,11 +5,8 @@
 //! Many of these endpoints have deprecated paths that are maintained for
 //! backwards compatibility.
 
-use axum::{
-    extract::{Json, Path, Query, State},
-    http::StatusCode,
-};
-use serde::{Deserialize, Serialize};
+use axum::extract::{Json, Path, Query, State};
+use serde::Deserialize;
 
 use crate::middleware::auth::AuthenticatedUser;
 use crate::response::{fleet_error, fleet_ok, FleetResponse};

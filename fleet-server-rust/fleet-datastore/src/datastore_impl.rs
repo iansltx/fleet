@@ -1402,8 +1402,8 @@ impl Datastore for MysqlDatastore {
 
     async fn list_software(
         &self,
-        opts: fleet_types::ListOptions,
-        team_id: Option<u32>,
+        _opts: fleet_types::ListOptions,
+        _team_id: Option<u32>,
     ) -> ServiceResult<Vec<fleet_types::Software>> {
         // The datastore has list_software_titles but no generic list_software yet.
         // Return empty list for now.
@@ -1487,7 +1487,7 @@ impl Datastore for MysqlDatastore {
         hardware_uuid: &str,
         hardware_serial: &str,
         orbit_node_key: &str,
-        team_id: Option<u32>,
+        _team_id: Option<u32>,
     ) -> ServiceResult<fleet_types::Host> {
         // Try to find existing host by hardware UUID or serial
         let existing = sqlx::query_as::<_, crate::hosts::HostRow>(

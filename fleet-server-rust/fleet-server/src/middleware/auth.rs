@@ -17,6 +17,7 @@ use crate::AppState;
 ///
 /// The Go server uses `auth.SetRequestsContexts(svc)` to validate
 /// the Bearer token and set the user in the request context.
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct AuthenticatedUser {
     pub id: u32,
@@ -80,6 +81,7 @@ impl FromRequestParts<AppState> for AuthenticatedUser {
 ///
 /// Osquery endpoints pass the node_key in the JSON request body.
 /// This extractor validates the node_key against the datastore.
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct AuthenticatedHost {
     pub id: u32,
@@ -92,6 +94,7 @@ pub struct AuthenticatedHost {
 /// Authenticated device extracted from the device token in the URL path.
 ///
 /// Fleet Desktop and the device API use a device token for authentication.
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct AuthenticatedDevice {
     pub host_id: u32,
@@ -101,6 +104,7 @@ pub struct AuthenticatedDevice {
 /// Authenticated Orbit agent extracted from the orbit_node_key.
 ///
 /// Orbit endpoints pass the orbit_node_key in the JSON request body.
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct AuthenticatedOrbit {
     pub host_id: u32,

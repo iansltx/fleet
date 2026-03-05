@@ -114,7 +114,7 @@ impl FleetService {
     /// decorators, and file paths.
     pub async fn get_client_config(
         &self,
-        host: &fleet_types::Host,
+        _host: &fleet_types::Host,
     ) -> ServiceResult<HashMap<String, serde_json::Value>> {
         let mut config = HashMap::new();
 
@@ -140,7 +140,7 @@ impl FleetService {
     /// and an accelerate interval (0 = no acceleration).
     pub async fn get_distributed_queries(
         &self,
-        host: &fleet_types::Host,
+        _host: &fleet_types::Host,
     ) -> ServiceResult<DistributedQueryResult> {
         let queries = HashMap::new();
         let discovery = HashMap::new();

@@ -8,9 +8,9 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
-use crate::response::{encode_service_error, fleet_error, fleet_ok, FleetResponse};
+use crate::response::{encode_service_error, fleet_ok, FleetResponse};
 use crate::AppState;
 
 // ---------------------------------------------------------------------------
