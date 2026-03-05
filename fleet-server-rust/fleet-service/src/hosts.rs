@@ -33,11 +33,20 @@ impl FleetService {
         authz::authorize(viewer, Subject::Host, Action::Read)?;
 
         let host = self.ds.host(id.into()).await?;
+        let labels: Vec<fleet_types::label::LabelSummary> = self
+            .ds
+            .list_labels_for_host(id)
+            .await
+            .unwrap_or_default()
+            .into_iter()
+            .map(label_to_summary)
+            .collect();
+        let packs = self.ds.list_packs_for_host(id).await.unwrap_or_default();
 
         Ok(fleet_types::HostDetail {
             host,
-            labels: Vec::new(),
-            packs: Vec::new(),
+            labels,
+            packs,
         })
     }
 
@@ -52,11 +61,20 @@ impl FleetService {
         authz::authorize(viewer, Subject::Host, Action::Read)?;
 
         let host = self.ds.host_by_identifier(identifier).await?;
+        let labels: Vec<fleet_types::label::LabelSummary> = self
+            .ds
+            .list_labels_for_host(host.id)
+            .await
+            .unwrap_or_default()
+            .into_iter()
+            .map(label_to_summary)
+            .collect();
+        let packs = self.ds.list_packs_for_host(host.id).await.unwrap_or_default();
 
         Ok(fleet_types::HostDetail {
             host,
-            labels: Vec::new(),
-            packs: Vec::new(),
+            labels,
+            packs,
         })
     }
 
@@ -193,5 +211,16 @@ impl FleetService {
         self.ds.transfer_hosts_to_team(host_ids, team_id).await?;
         info!(count = host_ids.len(), team_id = ?team_id, "hosts transferred to team");
         Ok(())
+    }
+}
+
+/// Converts a full Label to a LabelSummary.
+fn label_to_summary(label: fleet_types::Label) -> fleet_types::label::LabelSummary {
+    fleet_types::label::LabelSummary {
+        id: label.id,
+        name: label.name,
+        description: label.description,
+        team_id: label.team_id,
+        label_type: label.label_type,
     }
 }

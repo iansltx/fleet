@@ -71,13 +71,14 @@ pub struct BatchScriptExecutionHostResultsParams {
 pub async fn run_script(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<RunScriptBody>,
+    Json(body): Json<RunScriptBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Script execution requires async job queue (not yet implemented)
+    let _ = (&viewer, &body);
+    // Script execution requires async job queue (deferred)
     fleet_ok("execution_id", serde_json::json!(""))
 }
 
@@ -85,13 +86,14 @@ pub async fn run_script(
 pub async fn run_script_sync(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<RunScriptSyncBody>,
+    Json(body): Json<RunScriptSyncBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Sync script execution requires waiting for result (not yet implemented)
+    let _ = (&viewer, &body);
+    // Sync script execution requires waiting for result (deferred)
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -99,12 +101,13 @@ pub async fn run_script_sync(
 pub async fn batch_script_run(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<BatchScriptRunBody>,
+    Json(body): Json<BatchScriptRunBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
+    let _ = (&viewer, &body);
     fleet_ok("batch_execution_id", serde_json::json!(""))
 }
 
@@ -112,12 +115,13 @@ pub async fn batch_script_run(
 pub async fn get_script_result(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_execution_id): Path<String>,
+    Path(execution_id): Path<String>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
+    let _ = (&viewer, &execution_id);
     // Script execution result retrieval requires async job infrastructure
     fleet_ok("", serde_json::json!({}))
 }
@@ -127,11 +131,12 @@ pub async fn create_script(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: handle multipart upload of script content
+    let _ = &viewer;
+    // Stub: multipart upload deferred
     fleet_error(StatusCode::NOT_IMPLEMENTED, "multipart upload not yet implemented")
 }
 
@@ -172,13 +177,14 @@ pub async fn get_script(
 pub async fn update_script(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_script_id): Path<u64>,
+    Path(script_id): Path<u64>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: handle multipart upload
+    let _ = (&viewer, script_id);
+    // Stub: multipart upload deferred
     fleet_error(StatusCode::NOT_IMPLEMENTED, "multipart upload not yet implemented")
 }
 
@@ -202,12 +208,13 @@ pub async fn delete_script(
 pub async fn batch_set_scripts(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<BatchSetScriptsBody>,
+    Json(body): Json<BatchSetScriptsBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
+    let _ = (&viewer, &body);
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -215,12 +222,13 @@ pub async fn batch_set_scripts(
 pub async fn batch_script_cancel(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_batch_execution_id): Path<String>,
+    Path(batch_execution_id): Path<String>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
+    let _ = (&viewer, &batch_execution_id);
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -228,12 +236,13 @@ pub async fn batch_script_cancel(
 pub async fn batch_script_execution_summary(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_batch_execution_id): Path<String>,
+    Path(batch_execution_id): Path<String>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
+    let _ = (&viewer, &batch_execution_id);
     fleet_ok("summary", serde_json::json!({}))
 }
 
@@ -241,13 +250,14 @@ pub async fn batch_script_execution_summary(
 pub async fn batch_script_execution_host_results(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_batch_execution_id): Path<String>,
-    Query(_params): Query<BatchScriptExecutionHostResultsParams>,
+    Path(batch_execution_id): Path<String>,
+    Query(params): Query<BatchScriptExecutionHostResultsParams>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
+    let _ = (&viewer, &batch_execution_id, &params);
     fleet_ok("host_results", serde_json::json!([]))
 }
 
@@ -255,11 +265,12 @@ pub async fn batch_script_execution_host_results(
 pub async fn batch_script_execution_status(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_batch_execution_id): Path<String>,
+    Path(batch_execution_id): Path<String>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
+    let _ = (&viewer, &batch_execution_id);
     fleet_ok("status", serde_json::json!({}))
 }

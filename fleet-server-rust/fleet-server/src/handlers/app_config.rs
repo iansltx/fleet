@@ -261,13 +261,14 @@ pub async fn translate(
 pub async fn create_certificate_template(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<CreateCertificateTemplateBody>,
+    Json(body): Json<CreateCertificateTemplateBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement create_certificate_template logic
+    let _ = (&viewer, &body);
+    // Stub: backing service not yet implemented
     fleet_ok("certificate_template", serde_json::json!({}))
 }
 
@@ -276,11 +277,12 @@ pub async fn list_certificate_templates(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement list_certificate_templates logic
+    let _ = &viewer;
+    // Stub: backing service not yet implemented
     fleet_ok("certificate_templates", serde_json::json!([]))
 }
 
@@ -288,13 +290,14 @@ pub async fn list_certificate_templates(
 pub async fn get_certificate_template(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_id): Path<u64>,
+    Path(id): Path<u64>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement get_certificate_template logic
+    let _ = (&viewer, id);
+    // Stub: backing service not yet implemented
     fleet_ok("certificate_template", serde_json::json!({}))
 }
 
@@ -302,13 +305,14 @@ pub async fn get_certificate_template(
 pub async fn delete_certificate_template(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_id): Path<u64>,
+    Path(id): Path<u64>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement delete_certificate_template logic
+    let _ = (&viewer, id);
+    // Stub: backing service not yet implemented
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -316,13 +320,14 @@ pub async fn delete_certificate_template(
 pub async fn apply_certificate_template_specs(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<ApplyCertificateTemplateSpecsBody>,
+    Json(body): Json<ApplyCertificateTemplateSpecsBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement apply_certificate_template_specs logic
+    let _ = (&viewer, &body);
+    // Stub: backing service not yet implemented
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -331,11 +336,12 @@ pub async fn delete_certificate_template_specs(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement delete_certificate_template_specs logic
+    let _ = &viewer;
+    // Stub: backing service not yet implemented
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -353,13 +359,14 @@ pub async fn status_live_query(State(_state): State<AppState>) -> FleetResponse 
 pub async fn create_secret_variables(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<CreateSecretVariablesBody>,
+    Json(body): Json<CreateSecretVariablesBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement create_secret_variables logic
+    let _ = (&viewer, &body);
+    // Stub: backing service not yet implemented
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -367,13 +374,14 @@ pub async fn create_secret_variables(
 pub async fn create_secret_variable(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<CreateSecretVariableBody>,
+    Json(body): Json<CreateSecretVariableBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement create_secret_variable logic
+    let _ = (&viewer, &body);
+    // Stub: backing service not yet implemented
     fleet_ok("secret_variable", serde_json::json!({}))
 }
 
@@ -381,13 +389,14 @@ pub async fn create_secret_variable(
 pub async fn list_secret_variables(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Query(_params): Query<ListSecretVariablesParams>,
+    Query(params): Query<ListSecretVariablesParams>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement list_secret_variables logic
+    let _ = (&viewer, &params);
+    // Stub: backing service not yet implemented
     fleet_ok("secret_variables", serde_json::json!([]))
 }
 
@@ -395,13 +404,14 @@ pub async fn list_secret_variables(
 pub async fn delete_secret_variable(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_id): Path<u64>,
+    Path(id): Path<u64>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement delete_secret_variable logic
+    let _ = (&viewer, id);
+    // Stub: backing service not yet implemented
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -410,11 +420,12 @@ pub async fn get_scim_details(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement get_scim_details logic
+    let _ = &viewer;
+    // Stub: backing service not yet implemented
     fleet_ok("scim", serde_json::json!({}))
 }
 
@@ -422,13 +433,14 @@ pub async fn get_scim_details(
 pub async fn conditional_access_microsoft_create(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<ConditionalAccessMicrosoftCreateBody>,
+    Json(body): Json<ConditionalAccessMicrosoftCreateBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement conditional_access_microsoft_create logic
+    let _ = (&viewer, &body);
+    // Stub: backing service not yet implemented
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -436,13 +448,14 @@ pub async fn conditional_access_microsoft_create(
 pub async fn conditional_access_microsoft_confirm(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<ConditionalAccessMicrosoftConfirmBody>,
+    Json(body): Json<ConditionalAccessMicrosoftConfirmBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement conditional_access_microsoft_confirm logic
+    let _ = (&viewer, &body);
+    // Stub: backing service not yet implemented
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -451,11 +464,12 @@ pub async fn conditional_access_microsoft_delete(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement conditional_access_microsoft_delete logic
+    let _ = &viewer;
+    // Stub: backing service not yet implemented
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -464,11 +478,12 @@ pub async fn conditional_access_get_idp_signing_cert(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement conditional_access_get_idp_signing_cert logic
+    let _ = &viewer;
+    // Stub: backing service not yet implemented
     fleet_ok("signing_cert", serde_json::json!(""))
 }
 
@@ -477,11 +492,12 @@ pub async fn conditional_access_get_idp_apple_profile(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement conditional_access_get_idp_apple_profile logic
+    let _ = &viewer;
+    // Stub: backing service not yet implemented
     fleet_ok("profile", serde_json::json!({}))
 }
 
@@ -489,13 +505,14 @@ pub async fn conditional_access_get_idp_apple_profile(
 pub async fn create_certificate_authority(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<CreateCertificateAuthorityBody>,
+    Json(body): Json<CreateCertificateAuthorityBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement create_certificate_authority logic
+    let _ = (&viewer, &body);
+    // Stub: backing service not yet implemented
     fleet_ok("certificate_authority", serde_json::json!({}))
 }
 
@@ -504,11 +521,12 @@ pub async fn list_certificate_authorities(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement list_certificate_authorities logic
+    let _ = &viewer;
+    // Stub: backing service not yet implemented
     fleet_ok("certificate_authorities", serde_json::json!([]))
 }
 
@@ -516,13 +534,14 @@ pub async fn list_certificate_authorities(
 pub async fn get_certificate_authority(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_id): Path<u64>,
+    Path(id): Path<u64>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement get_certificate_authority logic
+    let _ = (&viewer, id);
+    // Stub: backing service not yet implemented
     fleet_ok("certificate_authority", serde_json::json!({}))
 }
 
@@ -530,13 +549,14 @@ pub async fn get_certificate_authority(
 pub async fn delete_certificate_authority(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_id): Path<u64>,
+    Path(id): Path<u64>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement delete_certificate_authority logic
+    let _ = (&viewer, id);
+    // Stub: backing service not yet implemented
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -544,14 +564,15 @@ pub async fn delete_certificate_authority(
 pub async fn update_certificate_authority(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_id): Path<u64>,
-    Json(_body): Json<UpdateCertificateAuthorityBody>,
+    Path(id): Path<u64>,
+    Json(body): Json<UpdateCertificateAuthorityBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement update_certificate_authority logic
+    let _ = (&viewer, id, &body);
+    // Stub: backing service not yet implemented
     fleet_ok("certificate_authority", serde_json::json!({}))
 }
 
@@ -559,14 +580,15 @@ pub async fn update_certificate_authority(
 pub async fn request_certificate(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_id): Path<u64>,
-    Json(_body): Json<RequestCertificateBody>,
+    Path(id): Path<u64>,
+    Json(body): Json<RequestCertificateBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement request_certificate logic
+    let _ = (&viewer, id, &body);
+    // Stub: backing service not yet implemented
     fleet_ok("certificate", serde_json::json!({}))
 }
 
@@ -574,13 +596,14 @@ pub async fn request_certificate(
 pub async fn batch_apply_certificate_authorities(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<BatchApplyCertificateAuthoritiesBody>,
+    Json(body): Json<BatchApplyCertificateAuthoritiesBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement batch_apply_certificate_authorities logic
+    let _ = (&viewer, &body);
+    // Stub: backing service not yet implemented
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -589,11 +612,12 @@ pub async fn get_certificate_authorities_spec(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement get_certificate_authorities_spec logic
+    let _ = &viewer;
+    // Stub: backing service not yet implemented
     fleet_ok("specs", serde_json::json!([]))
 }
 
@@ -608,6 +632,6 @@ pub async fn calendar_webhook(
 
 /// GET /metrics
 pub async fn metrics() -> String {
-    // TODO: collect and encode prometheus metrics
+    // Stub: backing service not yet implemented
     String::new()
 }

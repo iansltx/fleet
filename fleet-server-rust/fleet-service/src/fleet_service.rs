@@ -26,6 +26,7 @@ pub trait Datastore: Send + Sync + 'static {
     async fn save_user(&self, user: &fleet_types::User) -> ServiceResult<fleet_types::User>;
     async fn new_user(&self, user: &fleet_types::User) -> ServiceResult<fleet_types::User>;
     async fn delete_user(&self, id: u32) -> ServiceResult<()>;
+    async fn has_users(&self) -> ServiceResult<bool>;
 
     // ---- Sessions ----
     async fn new_session(&self, user_id: u32, key_size: usize) -> ServiceResult<fleet_types::Session>;
@@ -191,6 +192,10 @@ pub trait Datastore: Send + Sync + 'static {
     async fn list_scripts(&self, team_id: Option<u32>) -> ServiceResult<Vec<fleet_types::script::Script>>;
     async fn delete_script(&self, id: u32) -> ServiceResult<()>;
     async fn get_script_contents(&self, script_id: u32) -> ServiceResult<String>;
+
+    // ---- Utilities ----
+    async fn list_packs_for_host(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::Pack>>;
+    async fn list_software_titles(&self, team_id: Option<u32>, limit: u32, offset: u32) -> ServiceResult<Vec<fleet_types::Software>>;
 }
 
 /// TeamSummaryInfo is a minimal team representation used for validation.

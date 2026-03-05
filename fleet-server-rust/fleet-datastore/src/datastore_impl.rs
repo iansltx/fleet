@@ -318,6 +318,29 @@ fn software_row_to_software(row: crate::software::SoftwareRow) -> fleet_types::S
     }
 }
 
+fn software_title_row_to_software(row: crate::software::SoftwareTitleRow) -> fleet_types::Software {
+    fleet_types::Software {
+        id: row.id,
+        name: row.name.clone(),
+        version: String::new(),
+        bundle_identifier: String::new(),
+        source: row.source,
+        extension_id: String::new(),
+        extension_for: String::new(),
+        browser: row.browser,
+        release: String::new(),
+        vendor: String::new(),
+        arch: String::new(),
+        generated_cpe: String::new(),
+        vulnerabilities: Vec::new(),
+        hosts_count: row.hosts_count.unwrap_or(0) as i32,
+        last_opened_at: None,
+        application_id: None,
+        upgrade_code: None,
+        display_name: row.name,
+    }
+}
+
 fn carve_row_to_carve(row: crate::carves::CarveRow) -> fleet_types::CarveMetadata {
     fleet_types::CarveMetadata {
         id: row.id,
@@ -612,6 +635,10 @@ impl Datastore for MysqlDatastore {
         MysqlDatastore::delete_user(self, id)
             .await
             .map_err(ServiceError::from)
+    }
+
+    async fn has_users(&self) -> ServiceResult<bool> {
+        MysqlDatastore::has_users(self).await.map_err(ServiceError::from)
     }
 
     // ---- Sessions ----
@@ -1931,5 +1958,21 @@ impl Datastore for MysqlDatastore {
         MysqlDatastore::get_script_contents(self, script_id)
             .await
             .map_err(ServiceError::from)
+    }
+
+    // ---- Utilities ----
+
+    async fn list_packs_for_host(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::Pack>> {
+        let rows = MysqlDatastore::list_packs_for_host(self, host_id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(pack_row_to_pack).collect())
+    }
+
+    async fn list_software_titles(&self, team_id: Option<u32>, limit: u32, offset: u32) -> ServiceResult<Vec<fleet_types::Software>> {
+        let rows = MysqlDatastore::list_software_titles(self, team_id, limit, offset)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(software_title_row_to_software).collect())
     }
 }

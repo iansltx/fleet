@@ -260,13 +260,14 @@ pub async fn modify_global_policy(
 pub async fn reset_automation(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<ResetAutomationBody>,
+    Json(body): Json<ResetAutomationBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement reset automation logic
+    let _ = (&viewer, &body);
+    // Stub: reset automation deferred
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -440,12 +441,13 @@ pub async fn apply_policy_specs(
 pub async fn autofill_policies(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<AutofillPoliciesBody>,
+    Json(body): Json<AutofillPoliciesBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: implement autofill policies logic
+    let _ = (&viewer, &body);
+    // Stub: autofill policies deferred
     fleet_ok("policy", serde_json::json!({}))
 }
