@@ -120,6 +120,10 @@ pub trait Datastore: Send + Sync + 'static {
     async fn find_password_reset_by_token(&self, token: &str) -> ServiceResult<PasswordResetRequest>;
     async fn delete_password_reset_requests_for_user(&self, user_id: u32) -> ServiceResult<()>;
 
+    // ---- Software ----
+    async fn list_software(&self, opts: fleet_types::ListOptions, team_id: Option<u32>) -> ServiceResult<Vec<fleet_types::Software>>;
+    async fn software_by_id(&self, id: u32) -> ServiceResult<fleet_types::Software>;
+
     // ---- Activities ----
     async fn new_activity(&self, user_id: Option<u32>, activity_type: &str, details: &JsonValue) -> ServiceResult<()>;
 }

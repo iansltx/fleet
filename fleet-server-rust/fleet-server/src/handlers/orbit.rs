@@ -4,13 +4,14 @@
 //! disk encryption key escrow, and setup experience.
 
 use axum::{
-    extract::{Json, Path},
+    extract::{Json, Path, State},
     http::StatusCode,
     response::IntoResponse,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::response::{fleet_error, fleet_ok, FleetResponse};
+use crate::AppState;
 
 // ---------------------------------------------------------------------------
 // Request / response types
@@ -120,29 +121,40 @@ pub struct UpdateCertificateStatusBody {
 // ---------------------------------------------------------------------------
 
 /// POST /api/fleet/orbit/enroll (unauthenticated)
-pub async fn enroll_orbit(Json(_body): Json<EnrollOrbitBody>) -> FleetResponse {
+pub async fn enroll_orbit(
+    State(_state): State<AppState>,
+    Json(_body): Json<EnrollOrbitBody>,
+) -> FleetResponse {
     fleet_ok("orbit_node_key", serde_json::json!(""))
 }
 
 /// POST /api/fleet/orbit/device_token
 pub async fn set_or_update_device_token(
+    State(_state): State<AppState>,
     Json(_body): Json<SetOrUpdateDeviceTokenBody>,
 ) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/fleet/orbit/config
-pub async fn get_orbit_config(Json(_body): Json<OrbitGetConfigBody>) -> FleetResponse {
+pub async fn get_orbit_config(
+    State(_state): State<AppState>,
+    Json(_body): Json<OrbitGetConfigBody>,
+) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/fleet/orbit/scripts/request
-pub async fn get_orbit_script(Json(_body): Json<OrbitGetScriptBody>) -> FleetResponse {
+pub async fn get_orbit_script(
+    State(_state): State<AppState>,
+    Json(_body): Json<OrbitGetScriptBody>,
+) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/fleet/orbit/scripts/result
 pub async fn post_orbit_script_result(
+    State(_state): State<AppState>,
     Json(_body): Json<OrbitPostScriptResultBody>,
 ) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
@@ -150,6 +162,7 @@ pub async fn post_orbit_script_result(
 
 /// PUT /api/fleet/orbit/device_mapping
 pub async fn put_orbit_device_mapping(
+    State(_state): State<AppState>,
     Json(_body): Json<OrbitPutDeviceMappingBody>,
 ) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
@@ -157,6 +170,7 @@ pub async fn put_orbit_device_mapping(
 
 /// POST /api/fleet/orbit/software_install/result
 pub async fn post_orbit_software_install_result(
+    State(_state): State<AppState>,
     Json(_body): Json<OrbitPostSoftwareInstallResultBody>,
 ) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
@@ -164,6 +178,7 @@ pub async fn post_orbit_software_install_result(
 
 /// POST /api/fleet/orbit/software_install/package
 pub async fn orbit_download_software_installer(
+    State(_state): State<AppState>,
     Json(_body): Json<OrbitDownloadSoftwareInstallerBody>,
 ) -> FleetResponse {
     // TODO: return the actual software installer binary
@@ -172,6 +187,7 @@ pub async fn orbit_download_software_installer(
 
 /// POST /api/fleet/orbit/software_install/details
 pub async fn get_orbit_software_install_details(
+    State(_state): State<AppState>,
     Json(_body): Json<OrbitGetSoftwareInstallBody>,
 ) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
@@ -179,6 +195,7 @@ pub async fn get_orbit_software_install_details(
 
 /// POST /api/fleet/orbit/setup_experience/init
 pub async fn orbit_setup_experience_init(
+    State(_state): State<AppState>,
     Json(_body): Json<OrbitSetupExperienceInitBody>,
 ) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
@@ -186,6 +203,7 @@ pub async fn orbit_setup_experience_init(
 
 /// POST /api/fleet/orbit/setup_experience/status
 pub async fn get_orbit_setup_experience_status(
+    State(_state): State<AppState>,
     Json(_body): Json<GetOrbitSetupExperienceStatusBody>,
 ) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
@@ -193,28 +211,38 @@ pub async fn get_orbit_setup_experience_status(
 
 /// POST /api/fleet/orbit/disk_encryption_key
 pub async fn post_orbit_disk_encryption_key(
+    State(_state): State<AppState>,
     Json(_body): Json<OrbitPostDiskEncryptionKeyBody>,
 ) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/fleet/orbit/luks_data
-pub async fn post_orbit_luks(Json(_body): Json<OrbitPostLUKSBody>) -> FleetResponse {
+pub async fn post_orbit_luks(
+    State(_state): State<AppState>,
+    Json(_body): Json<OrbitPostLUKSBody>,
+) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }
 
 /// HEAD /api/fleet/orbit/ping (unauthenticated)
-pub async fn orbit_ping() -> impl IntoResponse {
+pub async fn orbit_ping(
+    State(_state): State<AppState>,
+) -> impl IntoResponse {
     StatusCode::OK
 }
 
 /// GET /api/fleetd/certificates/{id}
-pub async fn get_device_certificate_template(Path(_id): Path<u64>) -> FleetResponse {
+pub async fn get_device_certificate_template(
+    State(_state): State<AppState>,
+    Path(_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("certificate_template", serde_json::json!({}))
 }
 
 /// PUT /api/fleetd/certificates/{id}/status
 pub async fn update_certificate_status(
+    State(_state): State<AppState>,
     Path(_id): Path<u64>,
     Json(_body): Json<UpdateCertificateStatusBody>,
 ) -> FleetResponse {

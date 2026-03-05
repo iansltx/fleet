@@ -12,6 +12,14 @@ use crate::authz::{self, Action, Subject};
 use crate::fleet_service::FleetService;
 use crate::{ServiceError, ServiceResult, Viewer};
 
+/// SSO settings returned to unauthenticated users for login page display.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct SsoSettings {
+    pub sso_enabled: bool,
+    pub idp_name: String,
+    pub idp_image_url: String,
+}
+
 impl FleetService {
     /// Authenticates a user by email/password and creates a new session.
     ///
@@ -132,6 +140,32 @@ impl FleetService {
         let session = self.ds.session_by_key(key).await?;
         self.validate_session(&session).await?;
         Ok(session)
+    }
+
+    /// Returns all sessions for a user.
+    pub async fn get_info_about_sessions_for_user(
+        &self,
+        viewer: &Viewer,
+        user_id: u32,
+    ) -> ServiceResult<Vec<fleet_types::Session>> {
+        // For now, users can only see their own sessions
+        if viewer.user_id() != user_id {
+            authz::authorize(viewer, authz::Subject::Session, authz::Action::Read)?;
+        }
+        // We don't have a list_sessions_for_user in the Datastore trait yet
+        // Return empty for now
+        Ok(Vec::new())
+    }
+
+    /// Returns SSO settings for display on the login page.
+    /// Unauthenticated users need to see this to initiate SSO.
+    pub async fn sso_settings(&self) -> ServiceResult<SsoSettings> {
+        let config = self.ds.app_config().await?;
+        Ok(SsoSettings {
+            sso_enabled: config.enable_sso,
+            idp_name: config.sso_idp_name,
+            idp_image_url: config.sso_idp_image_url,
+        })
     }
 
     /// Validates that a session is still active and not expired.

@@ -76,6 +76,16 @@ pub struct NewHostParams {
     pub display_name: String,
 }
 
+/// Row type for host summary counts.
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct HostSummaryRow {
+    pub totals_count: i64,
+    pub linux_count: i64,
+    pub macos_count: i64,
+    pub windows_count: i64,
+    pub chrome_count: i64,
+}
+
 impl MysqlDatastore {
     /// Creates a new host. Matches Go's `NewHost`.
     ///
@@ -314,5 +324,24 @@ impl MysqlDatastore {
                 .await?;
 
         Ok(row.map(|(name,)| name).unwrap_or_default())
+    }
+
+    /// Gets host summary counts. Matches Go's `GenerateHostStatusStatistics`.
+    pub async fn host_summary(&self) -> Result<HostSummaryRow> {
+        let row = sqlx::query_as::<_, HostSummaryRow>(
+            r#"
+            SELECT
+                COUNT(*) as totals_count,
+                COALESCE(SUM(CASE WHEN platform = 'linux' OR platform_like LIKE '%linux%' THEN 1 ELSE 0 END), 0) as linux_count,
+                COALESCE(SUM(CASE WHEN platform = 'darwin' THEN 1 ELSE 0 END), 0) as macos_count,
+                COALESCE(SUM(CASE WHEN platform = 'windows' THEN 1 ELSE 0 END), 0) as windows_count,
+                COALESCE(SUM(CASE WHEN platform = 'chrome' THEN 1 ELSE 0 END), 0) as chrome_count
+            FROM hosts
+            "#,
+        )
+        .fetch_one(self.pool())
+        .await?;
+
+        Ok(row)
     }
 }

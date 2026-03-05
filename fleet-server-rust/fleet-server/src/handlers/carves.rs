@@ -3,12 +3,13 @@
 //! Handles carve listing, block retrieval, and the osquery carve protocol.
 
 use axum::{
-    extract::{Json, Path, Query},
+    extract::{Json, Path, Query, State},
     http::StatusCode,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::response::{fleet_error, fleet_ok, FleetResponse};
+use crate::AppState;
 
 // ---------------------------------------------------------------------------
 // Request / response types
@@ -48,28 +49,43 @@ pub struct CarveBlockBody {
 // ---------------------------------------------------------------------------
 
 /// GET /api/_version_/fleet/carves
-pub async fn list_carves(Query(_params): Query<ListCarvesParams>) -> FleetResponse {
+pub async fn list_carves(
+    State(_state): State<AppState>,
+    Query(_params): Query<ListCarvesParams>,
+) -> FleetResponse {
     fleet_ok("carves", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/carves/{id}
-pub async fn get_carve(Path(_id): Path<u64>) -> FleetResponse {
+pub async fn get_carve(
+    State(_state): State<AppState>,
+    Path(_id): Path<u64>,
+) -> FleetResponse {
     fleet_ok("carve", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/carves/{id}/block/{block_id}
-pub async fn get_carve_block(Path((_id, _block_id)): Path<(u64, u64)>) -> FleetResponse {
+pub async fn get_carve_block(
+    State(_state): State<AppState>,
+    Path((_id, _block_id)): Path<(u64, u64)>,
+) -> FleetResponse {
     fleet_ok("data", serde_json::json!(""))
 }
 
 /// POST /api/osquery/carve/begin
 /// POST /api/v1/osquery/carve/begin
-pub async fn carve_begin(Json(_body): Json<CarveBeginBody>) -> FleetResponse {
+pub async fn carve_begin(
+    State(_state): State<AppState>,
+    Json(_body): Json<CarveBeginBody>,
+) -> FleetResponse {
     fleet_ok("session_id", serde_json::json!(""))
 }
 
 /// POST /api/osquery/carve/block
 /// POST /api/v1/osquery/carve/block
-pub async fn carve_block(Json(_body): Json<CarveBlockBody>) -> FleetResponse {
+pub async fn carve_block(
+    State(_state): State<AppState>,
+    Json(_body): Json<CarveBlockBody>,
+) -> FleetResponse {
     fleet_ok("", serde_json::json!({}))
 }

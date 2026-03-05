@@ -228,12 +228,19 @@ pub async fn delete_query(
 
 /// DELETE /api/_version_/fleet/reports/id/{id}
 pub async fn delete_query_by_id(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_id): Path<u64>,
+    Path(id): Path<u64>,
 ) -> FleetResponse {
-    // No direct delete-by-id in the service layer yet
-    fleet_ok("", serde_json::json!({}))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let ids = vec![id as u32];
+    match state.service.delete_queries(&viewer, &ids).await {
+        Ok(_count) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/reports/delete

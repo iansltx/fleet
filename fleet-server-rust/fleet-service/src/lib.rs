@@ -16,6 +16,7 @@ pub mod packs;
 pub mod policies;
 pub mod queries;
 pub mod sessions;
+pub mod software;
 pub mod teams;
 pub mod users;
 

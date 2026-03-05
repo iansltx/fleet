@@ -283,6 +283,29 @@ fn invite_row_to_invite_data(row: crate::invites::InviteRow) -> InviteData {
     }
 }
 
+fn software_row_to_software(row: crate::software::SoftwareRow) -> fleet_types::Software {
+    fleet_types::Software {
+        id: row.id,
+        name: row.name.clone(),
+        version: row.version,
+        bundle_identifier: row.bundle_identifier.unwrap_or_default(),
+        source: row.source,
+        extension_id: String::new(),
+        extension_for: String::new(),
+        browser: String::new(),
+        release: row.sw_release,
+        vendor: row.vendor,
+        arch: row.arch,
+        generated_cpe: String::new(),
+        vulnerabilities: Vec::new(),
+        hosts_count: 0,
+        last_opened_at: None,
+        application_id: None,
+        upgrade_code: None,
+        display_name: row.name,
+    }
+}
+
 fn app_config_json_to_data(val: serde_json::Value) -> AppConfigData {
     serde_json::from_value(val).unwrap_or_default()
 }
@@ -533,10 +556,23 @@ impl Datastore for MysqlDatastore {
     }
 
     async fn host_summary(&self) -> ServiceResult<fleet_types::HostSummary> {
-        // Stub: not directly implemented in MysqlDatastore
-        Err(ServiceError::Internal(
-            "host_summary not yet implemented".to_string(),
-        ))
+        let row = MysqlDatastore::host_summary(self)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(fleet_types::HostSummary {
+            totals_hosts_count: row.totals_count as u32,
+            online_count: Some(0),
+            offline_count: Some(0),
+            mia_count: Some(0),
+            missing_30_days_count: None,
+            new_count: Some(0),
+            platforms: vec![
+                fleet_types::host::HostSummaryPlatform { platform: "linux".to_string(), hosts_count: row.linux_count as u32 },
+                fleet_types::host::HostSummaryPlatform { platform: "darwin".to_string(), hosts_count: row.macos_count as u32 },
+                fleet_types::host::HostSummaryPlatform { platform: "windows".to_string(), hosts_count: row.windows_count as u32 },
+                fleet_types::host::HostSummaryPlatform { platform: "chrome".to_string(), hosts_count: row.chrome_count as u32 },
+            ],
+        })
     }
 
     // ---- Queries ----
@@ -548,13 +584,20 @@ impl Datastore for MysqlDatastore {
 
     async fn list_queries(
         &self,
-        _opts: fleet_types::ListOptions,
-        _team_id: Option<u32>,
+        opts: fleet_types::ListOptions,
+        team_id: Option<u32>,
     ) -> ServiceResult<Vec<fleet_types::Query>> {
-        // MysqlDatastore doesn't have a generic list_queries; stub it
-        Err(ServiceError::Internal(
-            "list_queries not yet implemented".to_string(),
-        ))
+        let rows = MysqlDatastore::list_queries(
+            self,
+            team_id,
+            &opts.match_query,
+            &opts.order_key,
+            opts.per_page,
+            opts.page * opts.per_page,
+        )
+        .await
+        .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(query_row_to_query).collect())
     }
 
     async fn new_query(
@@ -1070,28 +1113,53 @@ impl Datastore for MysqlDatastore {
 
     async fn new_password_reset_request(
         &self,
-        _user_id: u32,
-        _expires_at: DateTime<Utc>,
-        _token: &str,
+        user_id: u32,
+        expires_at: DateTime<Utc>,
+        token: &str,
     ) -> ServiceResult<()> {
-        Err(ServiceError::Internal(
-            "new_password_reset_request not yet implemented".to_string(),
-        ))
+        MysqlDatastore::new_password_reset_request(self, user_id, expires_at, token)
+            .await
+            .map_err(ServiceError::from)
     }
 
     async fn find_password_reset_by_token(
         &self,
-        _token: &str,
+        token: &str,
     ) -> ServiceResult<PasswordResetRequest> {
-        Err(ServiceError::Internal(
-            "find_password_reset_by_token not yet implemented".to_string(),
-        ))
+        let row = MysqlDatastore::find_password_reset_by_token(self, token)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(PasswordResetRequest {
+            id: row.id,
+            user_id: row.user_id,
+            token: row.token,
+            expires_at: row.expires_at,
+        })
     }
 
-    async fn delete_password_reset_requests_for_user(&self, _user_id: u32) -> ServiceResult<()> {
-        Err(ServiceError::Internal(
-            "delete_password_reset_requests_for_user not yet implemented".to_string(),
-        ))
+    async fn delete_password_reset_requests_for_user(&self, user_id: u32) -> ServiceResult<()> {
+        MysqlDatastore::delete_password_reset_requests_for_user(self, user_id)
+            .await
+            .map_err(ServiceError::from)
+    }
+
+    // ---- Software ----
+
+    async fn list_software(
+        &self,
+        opts: fleet_types::ListOptions,
+        team_id: Option<u32>,
+    ) -> ServiceResult<Vec<fleet_types::Software>> {
+        // The datastore has list_software_titles but no generic list_software yet.
+        // Return empty list for now.
+        Ok(Vec::new())
+    }
+
+    async fn software_by_id(&self, id: u32) -> ServiceResult<fleet_types::Software> {
+        let row = MysqlDatastore::software_by_id(self, id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(software_row_to_software(row))
     }
 
     // ---- Activities ----

@@ -312,4 +312,62 @@ impl MysqlDatastore {
             .await?;
         Ok(row.0)
     }
+
+    /// Lists queries with optional team filter. Matches Go's `ListQueries`.
+    pub async fn list_queries(
+        &self,
+        team_id: Option<u32>,
+        match_query: &str,
+        order_key: &str,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<QueryRow>> {
+        let mut sql = r#"
+            SELECT
+                q.id, q.team_id, q.name, q.description, q.query, q.author_id,
+                q.saved, q.observer_can_run, q.schedule_interval, q.platform,
+                q.min_osquery_version, q.automations_enabled, q.logging_type,
+                q.discard_data, q.created_at, q.updated_at,
+                COALESCE(NULLIF(u.name, ''), u.email, '') AS author_name,
+                COALESCE(u.email, '') AS author_email,
+                JSON_EXTRACT(ag.json_value, '$.user_time_p50') as user_time_p50,
+                JSON_EXTRACT(ag.json_value, '$.user_time_p95') as user_time_p95,
+                JSON_EXTRACT(ag.json_value, '$.system_time_p50') as system_time_p50,
+                JSON_EXTRACT(ag.json_value, '$.system_time_p95') as system_time_p95,
+                JSON_EXTRACT(ag.json_value, '$.total_executions') as total_executions
+            FROM queries q
+            LEFT JOIN users u ON q.author_id = u.id
+            LEFT JOIN aggregated_stats ag ON (ag.id = q.id AND ag.global_stats = FALSE AND ag.type = 'scheduled_query')
+            WHERE q.saved = TRUE
+        "#.to_string();
+
+        if let Some(tid) = team_id {
+            sql.push_str(&format!(" AND q.team_id = {}", tid));
+        } else {
+            sql.push_str(" AND q.team_id IS NULL");
+        }
+
+        if !match_query.is_empty() {
+            sql.push_str(" AND q.name LIKE CONCAT('%', ?, '%')");
+        }
+
+        let order_col = match order_key {
+            "name" => "q.name",
+            "created_at" => "q.created_at",
+            "updated_at" => "q.updated_at",
+            _ => "q.name",
+        };
+        sql.push_str(&format!(" ORDER BY {} ASC", order_col));
+
+        if limit > 0 {
+            sql.push_str(&format!(" LIMIT {} OFFSET {}", limit, offset));
+        }
+
+        let mut query = sqlx::query_as::<_, QueryRow>(&sql);
+        if !match_query.is_empty() {
+            query = query.bind(match_query);
+        }
+
+        Ok(query.fetch_all(self.pool()).await?)
+    }
 }

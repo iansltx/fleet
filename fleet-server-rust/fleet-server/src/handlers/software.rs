@@ -9,7 +9,8 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::response::{fleet_error, fleet_ok, FleetResponse};
+use crate::middleware::auth::AuthenticatedUser;
+use crate::response::{fleet_error, fleet_ok, encode_service_error, FleetResponse};
 use crate::AppState;
 
 // ---------------------------------------------------------------------------
@@ -129,18 +130,40 @@ pub async fn list_software_versions(
 /// GET /api/_version_/fleet/software/versions/{id}
 /// GET /api/_version_/fleet/software/{id}
 pub async fn get_software(
-    State(_state): State<AppState>,
-    Path(_id): Path<u64>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(id): Path<u64>,
 ) -> FleetResponse {
-    fleet_ok("software", serde_json::json!({}))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.get_software(&viewer, id as u32).await {
+        Ok(software) => fleet_ok("software", serde_json::to_value(&software).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/software (deprecated)
 pub async fn list_software(
-    State(_state): State<AppState>,
-    Query(_params): Query<ListSoftwareParams>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Query(params): Query<ListSoftwareParams>,
 ) -> FleetResponse {
-    fleet_ok("software", serde_json::json!([]))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let opts = fleet_types::ListOptions {
+        page: params.page.unwrap_or(0) as u32,
+        per_page: params.per_page.unwrap_or(20) as u32,
+        ..Default::default()
+    };
+    let team_id = params.team_id.map(|v| v as u32);
+    match state.service.list_software(&viewer, opts, team_id).await {
+        Ok(software) => fleet_ok("software", serde_json::to_value(&software).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/software/count (deprecated)

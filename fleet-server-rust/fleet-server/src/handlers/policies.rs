@@ -173,11 +173,22 @@ pub async fn list_global_policies(
 
 /// GET /api/_version_/fleet/policies/count
 pub async fn count_global_policies(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Query(_params): Query<CountGlobalPoliciesParams>,
+    Query(params): Query<CountGlobalPoliciesParams>,
 ) -> FleetResponse {
-    fleet_ok("count", serde_json::json!(0))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let opts = fleet_types::ListOptions {
+        match_query: params.query.unwrap_or_default(),
+        ..Default::default()
+    };
+    match state.service.list_global_policies(&viewer, opts).await {
+        Ok(policies) => fleet_ok("count", serde_json::json!(policies.len())),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/global/policies/{policy_id}  (v1)
@@ -317,12 +328,23 @@ pub async fn list_team_policies(
 
 /// GET /api/_version_/fleet/fleets/{fleet_id}/policies/count
 pub async fn count_team_policies(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_fleet_id): Path<u64>,
-    Query(_params): Query<CountTeamPoliciesParams>,
+    Path(fleet_id): Path<u64>,
+    Query(params): Query<CountTeamPoliciesParams>,
 ) -> FleetResponse {
-    fleet_ok("count", serde_json::json!(0))
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    let opts = fleet_types::ListOptions {
+        match_query: params.query.unwrap_or_default(),
+        ..Default::default()
+    };
+    match state.service.list_team_policies(&viewer, fleet_id as u32, opts).await {
+        Ok(policies) => fleet_ok("count", serde_json::json!(policies.len())),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/fleets/{fleet_id}/policies/{policy_id}

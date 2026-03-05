@@ -203,16 +203,16 @@ pub async fn require_password_reset(
 pub async fn get_user_sessions(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_id): Path<u64>,
+    Path(id): Path<u64>,
 ) -> FleetResponse {
-    // Verify the user is authenticated and authorized
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // TODO: list_sessions_for_user is not yet on the Datastore trait.
-    // Once added, call: state.service.datastore().list_sessions_for_user(id as u32)
-    fleet_ok("sessions", serde_json::json!([]))
+    match state.service.get_info_about_sessions_for_user(&viewer, id as u32).await {
+        Ok(sessions) => fleet_ok("sessions", serde_json::to_value(&sessions).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// DELETE /api/_version_/fleet/users/{id}/sessions

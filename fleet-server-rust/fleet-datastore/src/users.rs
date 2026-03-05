@@ -76,6 +76,15 @@ pub struct SaveUserParams {
     pub settings_json: Option<Vec<u8>>,
 }
 
+/// Row type for password_reset_requests table.
+#[derive(Debug, sqlx::FromRow)]
+pub struct PasswordResetRow {
+    pub id: u32,
+    pub user_id: u32,
+    pub token: String,
+    pub expires_at: chrono::DateTime<Utc>,
+}
+
 impl MysqlDatastore {
     /// Creates a new user. Matches Go's `NewUser`.
     ///
@@ -412,6 +421,48 @@ impl MysqlDatastore {
         }
 
         query.execute(self.pool()).await?;
+        Ok(())
+    }
+
+    /// Creates a new password reset request. Matches Go's `NewPasswordResetRequest`.
+    pub async fn new_password_reset_request(
+        &self,
+        user_id: u32,
+        expires_at: chrono::DateTime<Utc>,
+        token: &str,
+    ) -> Result<()> {
+        sqlx::query(
+            r#"
+            INSERT INTO password_reset_requests (user_id, token, expires_at)
+            VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE token = VALUES(token), expires_at = VALUES(expires_at)
+            "#,
+        )
+        .bind(user_id)
+        .bind(token)
+        .bind(expires_at)
+        .execute(self.pool())
+        .await?;
+        Ok(())
+    }
+
+    /// Finds a password reset request by token. Matches Go's `FindPassResetByToken`.
+    pub async fn find_password_reset_by_token(&self, token: &str) -> Result<PasswordResetRow> {
+        sqlx::query_as::<_, PasswordResetRow>(
+            "SELECT id, user_id, token, expires_at FROM password_reset_requests WHERE token = ?",
+        )
+        .bind(token)
+        .fetch_optional(self.pool())
+        .await?
+        .ok_or_else(|| DatastoreError::not_found_with_name("PasswordResetRequest", token))
+    }
+
+    /// Deletes all password reset requests for a user.
+    pub async fn delete_password_reset_requests_for_user(&self, user_id: u32) -> Result<()> {
+        sqlx::query("DELETE FROM password_reset_requests WHERE user_id = ?")
+            .bind(user_id)
+            .execute(self.pool())
+            .await?;
         Ok(())
     }
 }

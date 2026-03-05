@@ -221,8 +221,10 @@ pub async fn callback_sso(
 
 /// GET /api/v1/fleet/sso
 pub async fn settings_sso(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
 ) -> FleetResponse {
-    // TODO: add get_sso_settings to FleetService
-    fleet_ok("settings", serde_json::json!({}))
+    match state.service.sso_settings().await {
+        Ok(settings) => fleet_ok("settings", serde_json::to_value(&settings).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
