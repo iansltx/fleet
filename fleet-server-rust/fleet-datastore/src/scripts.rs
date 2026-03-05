@@ -20,6 +20,25 @@ pub struct ScriptRow {
     pub updated_at: DateTime<Utc>,
 }
 
+/// Row type for host_script_results table.
+#[derive(Debug, Clone, FromRow)]
+pub struct ScriptResultRow {
+    pub id: u32,
+    pub host_id: u32,
+    pub execution_id: String,
+    pub script_id: Option<u32>,
+    pub script_contents: String,
+    pub output: String,
+    pub runtime: i32,
+    pub exit_code: Option<i64>,
+    #[sqlx(default)]
+    pub message: Option<String>,
+    #[sqlx(default)]
+    pub host_timeout: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 /// Row type for script content.
 #[derive(Debug, Clone, FromRow)]
 pub struct ScriptContentRow {
@@ -153,6 +172,83 @@ impl MysqlDatastore {
         .bind(user_id)
         .execute(self.pool())
         .await?;
+        Ok(())
+    }
+
+    /// Creates a new host script execution request.
+    pub async fn new_host_script_execution_request(
+        &self,
+        host_id: u32,
+        script_id: Option<u32>,
+        script_contents: &str,
+        execution_id: &str,
+        sync_request: bool,
+    ) -> crate::error::Result<()> {
+        sqlx::query(
+            "INSERT INTO host_script_results (host_id, script_id, script_contents, execution_id, sync_request, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())",
+        )
+        .bind(host_id)
+        .bind(script_id)
+        .bind(script_contents)
+        .bind(execution_id)
+        .bind(sync_request)
+        .execute(self.pool())
+        .await?;
+
+        Ok(())
+    }
+
+    /// Lists host results for a batch script execution.
+    pub async fn list_batch_script_execution_hosts(
+        &self,
+        batch_execution_id: &str,
+        limit: u32,
+        offset: u32,
+    ) -> crate::error::Result<Vec<ScriptResultRow>> {
+        let rows = sqlx::query_as::<_, ScriptResultRow>(
+            "SELECT id, host_id, execution_id, script_id, script_contents, output, runtime, exit_code, message, host_timeout, created_at, updated_at FROM host_script_results WHERE execution_id LIKE ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
+        )
+        .bind(format!("{}%", batch_execution_id))
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(self.pool())
+        .await?;
+
+        Ok(rows)
+    }
+
+    /// Returns summary of a batch script execution.
+    pub async fn get_batch_script_execution_summary(
+        &self,
+        batch_execution_id: &str,
+    ) -> crate::error::Result<(i64, i64, i64)> {
+        let row = sqlx::query(
+            "SELECT COUNT(*) as total, SUM(CASE WHEN exit_code IS NOT NULL THEN 1 ELSE 0 END) as completed, SUM(CASE WHEN exit_code IS NOT NULL AND exit_code != 0 THEN 1 ELSE 0 END) as errored FROM host_script_results WHERE execution_id LIKE ?",
+        )
+        .bind(format!("{}%", batch_execution_id))
+        .fetch_one(self.pool())
+        .await?;
+
+        use sqlx::Row;
+        let total: i64 = row.try_get("total").unwrap_or(0);
+        let completed: i64 = row.try_get("completed").unwrap_or(0);
+        let errored: i64 = row.try_get("errored").unwrap_or(0);
+
+        Ok((total, completed, errored))
+    }
+
+    /// Cancels a batch script execution by deleting pending requests.
+    pub async fn cancel_batch_script_execution(
+        &self,
+        batch_execution_id: &str,
+    ) -> crate::error::Result<()> {
+        sqlx::query(
+            "DELETE FROM host_script_results WHERE execution_id LIKE ? AND exit_code IS NULL",
+        )
+        .bind(format!("{}%", batch_execution_id))
+        .execute(self.pool())
+        .await?;
+
         Ok(())
     }
 }

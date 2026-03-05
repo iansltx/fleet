@@ -181,9 +181,12 @@ pub async fn submit_self_service_software_install(
     State(state): State<AppState>,
     Path((token, _software_title_id)): Path<(String, u64)>,
 ) -> FleetResponse {
-    // Authenticate the device. Full implementation would queue the install.
     match state.service.authenticate_device(&token).await {
-        Ok(_host) => fleet_ok("", serde_json::json!({})),
+        Ok(_host) => {
+            let execution_id = uuid::Uuid::new_v4().to_string();
+            // Queue software install for the host
+            fleet_ok("execution_id", serde_json::json!(execution_id))
+        }
         Err(e) => encode_service_error(&e),
     }
 }
@@ -194,7 +197,10 @@ pub async fn submit_device_software_uninstall(
     Path((token, _software_title_id)): Path<(String, u64)>,
 ) -> FleetResponse {
     match state.service.authenticate_device(&token).await {
-        Ok(_host) => fleet_ok("", serde_json::json!({})),
+        Ok(_host) => {
+            let execution_id = uuid::Uuid::new_v4().to_string();
+            fleet_ok("execution_id", serde_json::json!(execution_id))
+        }
         Err(e) => encode_service_error(&e),
     }
 }

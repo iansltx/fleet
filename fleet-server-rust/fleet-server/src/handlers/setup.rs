@@ -3,6 +3,7 @@
 //! Handles initial Fleet setup and macOS setup experience configuration.
 
 use axum::extract::{Json, State};
+use axum::http::StatusCode;
 use serde::Deserialize;
 
 use crate::middleware::auth::AuthenticatedUser;
@@ -141,14 +142,47 @@ pub async fn get_setup_experience_script(
 pub async fn set_setup_experience_script(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
+    mut multipart: axum::extract::Multipart,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    // Stub: multipart upload deferred
-    fleet_ok("script_id", serde_json::json!(0))
+
+    let mut team_id: Option<u32> = None;
+    let mut script_name: Option<String> = None;
+    let mut script_contents: Option<String> = None;
+
+    while let Ok(Some(field)) = multipart.next_field().await {
+        let name = field.name().unwrap_or("").to_string();
+        match name.as_str() {
+            "team_id" => {
+                if let Ok(text) = field.text().await {
+                    team_id = text.parse::<u32>().ok();
+                }
+            }
+            "script" => {
+                script_name = field.file_name().map(|s| s.to_string());
+                match field.text().await {
+                    Ok(text) => script_contents = Some(text),
+                    Err(e) => return fleet_error(StatusCode::BAD_REQUEST, &format!("failed to read script: {}", e)),
+                }
+            }
+            _ => {}
+        }
+    }
+
+    let contents = match script_contents {
+        Some(c) => c,
+        None => return fleet_error(StatusCode::BAD_REQUEST, "script file is required"),
+    };
+
+    // Create a script and then set it as the setup experience script
+    let name = script_name.unwrap_or_else(|| "setup_experience_script".to_string());
+    match state.service.create_script(&viewer, team_id, &name, &contents).await {
+        Ok(script) => fleet_ok("script_id", serde_json::json!(script.id)),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// DELETE /api/_version_/fleet/setup_experience/script

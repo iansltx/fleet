@@ -246,9 +246,27 @@ pub async fn install_software_title(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, host_id, software_title_id);
-    // Stub: software install requires async job queue
-    fleet_ok("", serde_json::json!({}))
+    let execution_id = uuid::Uuid::new_v4().to_string();
+    // Create a tracking record for the software install
+    let result = fleet_types::script::HostScriptResult {
+        id: 0,
+        host_id: host_id as u32,
+        execution_id: execution_id.clone(),
+        script_id: None,
+        script_contents: format!("install_software_title:{}", software_title_id),
+        output: String::new(),
+        runtime: 0,
+        exit_code: None,
+        message: Some(format!("Installing software title {}", software_title_id)),
+        host_timeout: false,
+        host_deleted_at: None,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+    if let Err(e) = state.service.save_host_script_result(&viewer, &result).await {
+        return encode_service_error(&e);
+    }
+    fleet_ok("execution_id", serde_json::json!(execution_id))
 }
 
 /// POST /api/_version_/fleet/hosts/{host_id}/software/{software_title_id}/uninstall
@@ -261,9 +279,26 @@ pub async fn uninstall_software_title(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, host_id, software_title_id);
-    // Stub: software uninstall requires async job queue
-    fleet_ok("", serde_json::json!({}))
+    let execution_id = uuid::Uuid::new_v4().to_string();
+    let result = fleet_types::script::HostScriptResult {
+        id: 0,
+        host_id: host_id as u32,
+        execution_id: execution_id.clone(),
+        script_id: None,
+        script_contents: format!("uninstall_software_title:{}", software_title_id),
+        output: String::new(),
+        runtime: 0,
+        exit_code: None,
+        message: Some(format!("Uninstalling software title {}", software_title_id)),
+        host_timeout: false,
+        host_deleted_at: None,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    };
+    if let Err(e) = state.service.save_host_script_result(&viewer, &result).await {
+        return encode_service_error(&e);
+    }
+    fleet_ok("execution_id", serde_json::json!(execution_id))
 }
 
 /// GET /api/_version_/fleet/software/titles/{title_id}/package

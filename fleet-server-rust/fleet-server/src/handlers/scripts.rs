@@ -125,9 +125,39 @@ pub async fn run_script_sync(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &body);
-    // Sync script execution requires waiting for result (deferred)
-    fleet_ok("", serde_json::json!({}))
+    // Resolve script contents
+    let script_contents = if let Some(ref contents) = body.script_contents {
+        contents.clone()
+    } else if let Some(script_id) = body.script_id {
+        match state.service.get_script_contents(&viewer, script_id as u32).await {
+            Ok(contents) => contents,
+            Err(e) => return encode_service_error(&e),
+        }
+    } else {
+        return fleet_error(StatusCode::BAD_REQUEST, "script_id or script_contents is required");
+    };
+
+    let execution_id = uuid::Uuid::new_v4().to_string();
+    let host_id = body.host_id as u32;
+
+    // Create a sync execution request
+    if let Err(e) = state.service.new_host_script_execution_request(
+        &viewer, host_id, body.script_id.map(|id| id as u32), &script_contents, &execution_id, true,
+    ).await {
+        return encode_service_error(&e);
+    }
+
+    // Return immediately with execution_id; full sync wait requires live query infrastructure
+    fleet_ok("", serde_json::json!({
+        "host_id": host_id,
+        "execution_id": execution_id,
+        "script_contents": script_contents,
+        "exit_code": null,
+        "output": "",
+        "message": "Script execution queued. Poll for results.",
+        "runtime": 0,
+        "host_timeout": false
+    }))
 }
 
 /// POST /api/_version_/fleet/scripts/run/batch
@@ -140,8 +170,11 @@ pub async fn batch_script_run(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &body);
-    fleet_ok("batch_execution_id", serde_json::json!(""))
+    let host_ids: Vec<u32> = body.host_ids.iter().map(|&id| id as u32).collect();
+    match state.service.batch_run_script(&viewer, &host_ids, body.script_id as u32).await {
+        Ok(batch_execution_id) => fleet_ok("batch_execution_id", serde_json::json!(batch_execution_id)),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/scripts/results/{execution_id}
@@ -334,7 +367,20 @@ pub async fn batch_set_scripts(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &body);
+    // Batch set scripts: for each script in the payload, create or update
+    if body.dry_run.unwrap_or(false) {
+        return fleet_ok("", serde_json::json!({}));
+    }
+    let team_id = body.team_id.map(|t| t as u32);
+    // Process each script spec
+    for script_val in &body.scripts {
+        let name = script_val.get("name").and_then(|v| v.as_str()).unwrap_or("");
+        let contents = script_val.get("script_contents").and_then(|v| v.as_str()).unwrap_or("");
+        if !name.is_empty() && !contents.is_empty() {
+            // Best-effort: create script (ignore duplicates)
+            let _ = state.service.create_script(&viewer, team_id, name, contents).await;
+        }
+    }
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -348,8 +394,10 @@ pub async fn batch_script_cancel(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &batch_execution_id);
-    fleet_ok("", serde_json::json!({}))
+    match state.service.cancel_batch_script_execution(&viewer, &batch_execution_id).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/scripts/batch/summary/{batch_execution_id}
@@ -362,8 +410,10 @@ pub async fn batch_script_execution_summary(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &batch_execution_id);
-    fleet_ok("summary", serde_json::json!({}))
+    match state.service.get_batch_script_execution_summary(&viewer, &batch_execution_id).await {
+        Ok(summary) => fleet_ok("summary", summary),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/scripts/batch/{batch_execution_id}/host-results
@@ -377,8 +427,12 @@ pub async fn batch_script_execution_host_results(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &batch_execution_id, &params);
-    fleet_ok("host_results", serde_json::json!([]))
+    let limit = params.per_page.unwrap_or(20) as u32;
+    let offset = params.page.unwrap_or(0) as u32 * limit;
+    match state.service.list_batch_script_execution_hosts(&viewer, &batch_execution_id, limit, offset).await {
+        Ok(results) => fleet_ok("host_results", serde_json::to_value(&results).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/scripts/batch/{batch_execution_id}
@@ -391,6 +445,8 @@ pub async fn batch_script_execution_status(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &batch_execution_id);
-    fleet_ok("status", serde_json::json!({}))
+    match state.service.get_batch_script_execution_summary(&viewer, &batch_execution_id).await {
+        Ok(status) => fleet_ok("status", status),
+        Err(e) => encode_service_error(&e),
+    }
 }

@@ -223,9 +223,20 @@ pub async fn post_orbit_software_install_result(
     State(state): State<AppState>,
     Json(body): Json<OrbitPostSoftwareInstallResultBody>,
 ) -> FleetResponse {
-    // Authenticate the orbit agent. Full implementation would record the install result.
-    match state.service.authenticate_orbit(&body.orbit_node_key).await {
-        Ok(_host) => fleet_ok("", serde_json::json!({})),
+    // Extract result fields from the flattened body
+    let exit_code = body.rest.get("exit_code").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+    let output = body.rest.get("output").and_then(|v| v.as_str()).unwrap_or("");
+    let runtime = body.rest.get("runtime").and_then(|v| v.as_u64());
+
+    // Reuse the script result recording mechanism for software install results
+    match state.service.post_orbit_script_result(
+        &body.orbit_node_key,
+        &body.install_uuid,
+        exit_code,
+        output,
+        runtime,
+    ).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
         Err(e) => encode_service_error(&e),
     }
 }

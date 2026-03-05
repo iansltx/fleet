@@ -527,6 +527,24 @@ fn script_row_to_script(row: crate::scripts::ScriptRow) -> fleet_types::script::
     }
 }
 
+fn script_result_row_to_type(row: crate::scripts::ScriptResultRow) -> fleet_types::script::HostScriptResult {
+    fleet_types::script::HostScriptResult {
+        id: row.id,
+        host_id: row.host_id,
+        execution_id: row.execution_id,
+        script_id: row.script_id,
+        script_contents: row.script_contents,
+        output: row.output,
+        runtime: row.runtime,
+        exit_code: row.exit_code,
+        message: row.message,
+        host_timeout: row.host_timeout,
+        host_deleted_at: None,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+    }
+}
+
 fn app_config_json_to_data(val: serde_json::Value) -> AppConfigData {
     serde_json::from_value(val).unwrap_or_default()
 }
@@ -2431,6 +2449,54 @@ impl Datastore for MysqlDatastore {
 
     async fn get_script_contents(&self, script_id: u32) -> ServiceResult<String> {
         MysqlDatastore::get_script_contents(self, script_id)
+            .await
+            .map_err(ServiceError::from)
+    }
+
+    // ---- Batch Script Operations ----
+
+    async fn new_host_script_execution_request(
+        &self,
+        host_id: u32,
+        script_id: Option<u32>,
+        script_contents: &str,
+        execution_id: &str,
+        sync_request: bool,
+    ) -> ServiceResult<()> {
+        MysqlDatastore::new_host_script_execution_request(self, host_id, script_id, script_contents, execution_id, sync_request)
+            .await
+            .map_err(ServiceError::from)
+    }
+    async fn list_batch_script_execution_hosts(
+        &self,
+        batch_execution_id: &str,
+        limit: u32,
+        offset: u32,
+    ) -> ServiceResult<Vec<fleet_types::script::HostScriptResult>> {
+        let rows = MysqlDatastore::list_batch_script_execution_hosts(self, batch_execution_id, limit, offset)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(script_result_row_to_type).collect())
+    }
+    async fn get_batch_script_execution_summary(
+        &self,
+        batch_execution_id: &str,
+    ) -> ServiceResult<serde_json::Value> {
+        let (total, completed, errored) = MysqlDatastore::get_batch_script_execution_summary(self, batch_execution_id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(serde_json::json!({
+            "total": total,
+            "completed": completed,
+            "errored": errored,
+            "pending": total - completed,
+        }))
+    }
+    async fn cancel_batch_script_execution(
+        &self,
+        batch_execution_id: &str,
+    ) -> ServiceResult<()> {
+        MysqlDatastore::cancel_batch_script_execution(self, batch_execution_id)
             .await
             .map_err(ServiceError::from)
     }

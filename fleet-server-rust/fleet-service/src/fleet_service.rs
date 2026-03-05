@@ -217,6 +217,30 @@ pub trait Datastore: Send + Sync + 'static {
     async fn delete_script(&self, id: u32) -> ServiceResult<()>;
     async fn get_script_contents(&self, script_id: u32) -> ServiceResult<String>;
 
+    // ---- Batch Script Operations ----
+    async fn new_host_script_execution_request(
+        &self,
+        host_id: u32,
+        script_id: Option<u32>,
+        script_contents: &str,
+        execution_id: &str,
+        sync_request: bool,
+    ) -> ServiceResult<()>;
+    async fn list_batch_script_execution_hosts(
+        &self,
+        batch_execution_id: &str,
+        limit: u32,
+        offset: u32,
+    ) -> ServiceResult<Vec<fleet_types::script::HostScriptResult>>;
+    async fn get_batch_script_execution_summary(
+        &self,
+        batch_execution_id: &str,
+    ) -> ServiceResult<serde_json::Value>;
+    async fn cancel_batch_script_execution(
+        &self,
+        batch_execution_id: &str,
+    ) -> ServiceResult<()>;
+
     // ---- Campaigns ----
     async fn new_distributed_query_campaign(
         &self,

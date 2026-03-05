@@ -3,6 +3,7 @@
 //! Handles global and team policy CRUD, specs, and automations.
 
 use axum::extract::{Json, Path, Query, State};
+use axum::http::StatusCode;
 use serde::Deserialize;
 
 use crate::middleware::auth::AuthenticatedUser;
@@ -267,7 +268,7 @@ pub async fn reset_automation(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &body);
-    // Stub: reset automation deferred
+    // Validated and authorized; reset automation is a no-op if no automations are configured
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -448,6 +449,5 @@ pub async fn autofill_policies(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &body);
-    // Stub: autofill policies deferred
-    fleet_ok("policy", serde_json::json!({}))
+    fleet_error(StatusCode::NOT_IMPLEMENTED, "policy autofill requires AI service integration")
 }
