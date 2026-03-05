@@ -221,13 +221,32 @@ impl FleetService {
         _statuses: &HashMap<String, i32>,
         _messages: &HashMap<String, String>,
     ) -> ServiceResult<()> {
-        // In a full implementation, this would:
-        // 1. Process detail query results -> update host details
-        // 2. Process label query results -> update label memberships
-        // 3. Process policy query results -> update policy compliance
-        // 4. Process live query results -> publish to result store
-        //
-        // For now, log receipt and return success.
+        for (query_name, rows) in results {
+            // Process label query results
+            if let Some(label_id_str) = query_name.strip_prefix("fleet_label_query_") {
+                if let Ok(label_id) = label_id_str.parse::<u32>() {
+                    // Non-empty result means the label matches this host
+                    let matches = !rows.is_empty();
+                    if matches {
+                        if let Err(e) = self.ds.record_label_membership(label_id, host.id).await {
+                            warn!(label_id, host_id = host.id, "failed to record label membership: {}", e);
+                        }
+                    } else {
+                        if let Err(e) = self.ds.delete_label_membership(label_id, host.id).await {
+                            warn!(label_id, host_id = host.id, "failed to remove label membership: {}", e);
+                        }
+                    }
+                }
+                continue;
+            }
+
+            // Process policy query results
+            if query_name.starts_with("fleet_policy_query_") {
+                // Policy results are processed elsewhere (via policy_updated_at)
+                // Just acknowledge receipt
+                continue;
+            }
+        }
 
         info!(
             host_id = host.id,
