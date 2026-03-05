@@ -305,14 +305,18 @@ pub async fn delete_host(
 pub async fn add_hosts_to_team(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<TransferHostsBody>,
+    Json(body): Json<TransferHostsBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&state).await {
+    let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Host transfer requires bulk team_id update (not yet implemented)
-    fleet_ok("", serde_json::json!({}))
+    let host_ids: Vec<u32> = body.hosts.iter().map(|&id| id as u32).collect();
+    let team_id = body.team_id.map(|t| t as u32);
+    match state.service.add_hosts_to_team(&viewer, &host_ids, team_id).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/hosts/transfer/filter

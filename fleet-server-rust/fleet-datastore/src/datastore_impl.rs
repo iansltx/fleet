@@ -762,6 +762,23 @@ impl Datastore for MysqlDatastore {
         })
     }
 
+    async fn transfer_hosts_to_team(&self, host_ids: &[u32], team_id: Option<u32>) -> ServiceResult<()> {
+        if host_ids.is_empty() {
+            return Ok(());
+        }
+        let placeholders: Vec<&str> = host_ids.iter().map(|_| "?").collect();
+        let sql = format!(
+            "UPDATE hosts SET team_id = ? WHERE id IN ({})",
+            placeholders.join(",")
+        );
+        let mut query = sqlx::query(&sql).bind(team_id);
+        for &id in host_ids {
+            query = query.bind(id);
+        }
+        query.execute(self.pool()).await.map_err(ds_error)?;
+        Ok(())
+    }
+
     // ---- Queries ----
 
     async fn query(&self, id: u32) -> ServiceResult<fleet_types::Query> {

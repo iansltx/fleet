@@ -52,6 +52,7 @@ pub trait Datastore: Send + Sync + 'static {
         hardware_serial: &str,
     ) -> ServiceResult<fleet_types::Host>;
     async fn host_summary(&self) -> ServiceResult<fleet_types::HostSummary>;
+    async fn transfer_hosts_to_team(&self, host_ids: &[u32], team_id: Option<u32>) -> ServiceResult<()>;
 
     // ---- Queries ----
     async fn query(&self, id: u32) -> ServiceResult<fleet_types::Query>;

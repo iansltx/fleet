@@ -173,4 +173,25 @@ impl FleetService {
         authz::authorize(viewer, Subject::Host, Action::Read)?;
         self.ds.list_software_for_host(host_id).await
     }
+
+    /// Transfers hosts to a team (or no team if team_id is None).
+    ///
+    /// Corresponds to Go's `(svc *Service) AddHostsToTeam`.
+    pub async fn add_hosts_to_team(
+        &self,
+        viewer: &Viewer,
+        host_ids: &[u32],
+        team_id: Option<u32>,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Host, Action::Write)?;
+
+        // If transferring to a specific team, verify it exists.
+        if let Some(tid) = team_id {
+            self.ds.team(tid).await?;
+        }
+
+        self.ds.transfer_hosts_to_team(host_ids, team_id).await?;
+        info!(count = host_ids.len(), team_id = ?team_id, "hosts transferred to team");
+        Ok(())
+    }
 }
