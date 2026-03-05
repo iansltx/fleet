@@ -179,13 +179,51 @@ impl MysqlDatastore {
         limit: u32,
         offset: u32,
     ) -> Result<Vec<HostRow>> {
-        let mut sql = "SELECT * FROM hosts WHERE TRUE".to_string();
+        self.list_hosts_filtered(team_id, None, None, limit, offset).await
+    }
 
-        if let Some(tid) = team_id {
-            sql.push_str(&format!(" AND team_id = {}", tid));
+    /// Lists hosts with optional team, status, and label filters.
+    pub async fn list_hosts_filtered(
+        &self,
+        team_id: Option<u32>,
+        status_filter: Option<&str>,
+        label_id: Option<u32>,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<HostRow>> {
+        let mut sql = "SELECT h.* FROM hosts h".to_string();
+
+        if label_id.is_some() {
+            sql.push_str(" JOIN label_membership lm ON h.id = lm.host_id");
         }
 
-        sql.push_str(&format!(" ORDER BY id ASC LIMIT {} OFFSET {}", limit, offset));
+        sql.push_str(" WHERE TRUE");
+
+        if let Some(tid) = team_id {
+            sql.push_str(&format!(" AND h.team_id = {}", tid));
+        }
+
+        if let Some(lid) = label_id {
+            sql.push_str(&format!(" AND lm.label_id = {}", lid));
+        }
+
+        match status_filter {
+            Some("online") => {
+                sql.push_str(" AND h.seen_time >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)");
+            }
+            Some("offline") => {
+                sql.push_str(" AND h.seen_time >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND h.seen_time < DATE_SUB(NOW(), INTERVAL 30 MINUTE)");
+            }
+            Some("mia") => {
+                sql.push_str(" AND h.seen_time < DATE_SUB(NOW(), INTERVAL 30 DAY)");
+            }
+            Some("new") => {
+                sql.push_str(" AND h.created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+            }
+            _ => {}
+        }
+
+        sql.push_str(&format!(" ORDER BY h.id ASC LIMIT {} OFFSET {}", limit, offset));
 
         Ok(sqlx::query_as::<_, HostRow>(&sql)
             .fetch_all(self.pool())

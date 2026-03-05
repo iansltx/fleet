@@ -125,6 +125,13 @@ pub async fn list_hosts(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
+    let status_filter = params.status.as_deref().and_then(|s| match s {
+        "online" => Some(fleet_types::HostStatus::Online),
+        "offline" => Some(fleet_types::HostStatus::Offline),
+        "mia" | "missing" => Some(fleet_types::HostStatus::MIA),
+        "new" => Some(fleet_types::HostStatus::New),
+        _ => None,
+    });
     let opts = fleet_types::HostListOptions {
         list_options: fleet_types::ListOptions {
             page: params.page.unwrap_or(0) as u32,
@@ -133,7 +140,9 @@ pub async fn list_hosts(
             match_query: params.query.unwrap_or_default(),
             ..Default::default()
         },
+        status_filter,
         team_filter: params.team_id.map(|v| v as u32),
+        label_id_filter: params.label_id.map(|v| v as u32),
         policy_id_filter: params.policy_id.map(|v| v as u32),
         software_id_filter: params.software_id.map(|v| v as u32),
         software_version_id_filter: params.software_version_id.map(|v| v as u32),

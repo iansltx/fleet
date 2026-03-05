@@ -817,9 +817,18 @@ impl Datastore for MysqlDatastore {
         &self,
         opts: fleet_types::HostListOptions,
     ) -> ServiceResult<Vec<fleet_types::Host>> {
-        let rows = MysqlDatastore::list_hosts(
+        let status_str = opts.status_filter.as_ref().map(|s| match s {
+            fleet_types::HostStatus::Online => "online",
+            fleet_types::HostStatus::Offline => "offline",
+            fleet_types::HostStatus::MIA => "mia",
+            fleet_types::HostStatus::New => "new",
+            fleet_types::HostStatus::Missing => "mia",
+        });
+        let rows = MysqlDatastore::list_hosts_filtered(
             self,
             opts.team_filter,
+            status_str,
+            opts.label_id_filter,
             opts.list_options.per_page,
             opts.list_options.page * opts.list_options.per_page,
         )
