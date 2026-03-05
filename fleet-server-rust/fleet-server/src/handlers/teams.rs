@@ -76,16 +76,15 @@ pub struct ListTeamUsersParams {
 
 /// POST /api/_version_/fleet/spec/fleets
 pub async fn apply_team_specs(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     auth: AuthenticatedUser,
     Json(_body): Json<ApplyTeamSpecsBody>,
 ) -> FleetResponse {
-    let _viewer = match auth.viewer(&_state).await {
+    let _viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    // Team specs require enterprise license features (complex spec parsing).
-    // Basic stub that accepts but does not modify.
+    // TODO: implement apply_team_specs logic
     fleet_ok("", serde_json::json!({}))
 }
 

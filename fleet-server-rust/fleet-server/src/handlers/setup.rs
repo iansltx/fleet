@@ -5,7 +5,8 @@
 use axum::extract::{Json, State};
 use serde::Deserialize;
 
-use crate::response::{encode_service_error, fleet_ok, FleetResponse};
+use crate::middleware::auth::AuthenticatedUser;
+use crate::response::{encode_service_error, fleet_error, fleet_ok, FleetResponse};
 use crate::AppState;
 
 // ---------------------------------------------------------------------------
@@ -82,40 +83,69 @@ pub async fn setup(
 
 /// PUT /api/_version_/fleet/setup_experience/software
 pub async fn put_setup_experience_software(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Json(_body): Json<PutSetupExperienceSoftwareBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement put_setup_experience_software logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/setup_experience/software
 pub async fn get_setup_experience_software(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     axum::extract::Query(_params): axum::extract::Query<GetSetupExperienceSoftwareParams>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_setup_experience_software logic
     fleet_ok("software_titles", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/setup_experience/script
 pub async fn get_setup_experience_script(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     axum::extract::Query(_params): axum::extract::Query<GetSetupExperienceScriptParams>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_setup_experience_script logic
     fleet_ok("script", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/setup_experience/script
 pub async fn set_setup_experience_script(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
 ) -> FleetResponse {
-    // Multipart form upload of script content
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement set_setup_experience_script logic (multipart upload)
     fleet_ok("script_id", serde_json::json!(0))
 }
 
 /// DELETE /api/_version_/fleet/setup_experience/script
 pub async fn delete_setup_experience_script(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     axum::extract::Query(_params): axum::extract::Query<DeleteSetupExperienceScriptParams>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement delete_setup_experience_script logic
     fleet_ok("", serde_json::json!({}))
 }

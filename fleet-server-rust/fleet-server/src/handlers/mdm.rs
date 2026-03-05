@@ -11,6 +11,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::middleware::auth::AuthenticatedUser;
 use crate::response::{fleet_error, fleet_ok, FleetResponse};
 use crate::AppState;
 
@@ -191,9 +192,15 @@ pub struct MdmAppleEnrollParams {
 /// PATCH /api/_version_/fleet/mdm/apple/setup
 /// PATCH /api/_version_/fleet/setup_experience
 pub async fn update_mdm_apple_setup(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Json(_body): Json<UpdateMDMAppleSetupBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement update_mdm_apple_setup logic
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -203,25 +210,43 @@ pub async fn update_mdm_apple_setup(
 
 /// POST /api/_version_/fleet/mdm/apple/enqueue (deprecated)
 pub async fn enqueue_mdm_apple_command(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Json(_body): Json<EnqueueMDMAppleCommandBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement enqueue_mdm_apple_command logic
     fleet_ok("command_uuid", serde_json::json!(""))
 }
 
 /// GET /api/_version_/fleet/mdm/apple/commandresults (deprecated)
 pub async fn get_mdm_apple_command_results(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Query(_params): Query<GetMDMAppleCommandResultsParams>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_mdm_apple_command_results logic
     fleet_ok("results", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/mdm/apple/commands (deprecated)
 pub async fn list_mdm_apple_commands(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Query(_params): Query<ListMDMCommandsParams>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement list_mdm_apple_commands logic
     fleet_ok("commands", serde_json::json!([]))
 }
 
@@ -231,50 +256,84 @@ pub async fn list_mdm_apple_commands(
 
 /// GET /api/_version_/fleet/mdm/apple/profiles/{profile_id} (deprecated)
 pub async fn get_mdm_apple_config_profile(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_profile_id): Path<u64>,
 ) -> FleetResponse {
-    // TODO: return profile binary
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_mdm_apple_config_profile logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// DELETE /api/_version_/fleet/mdm/apple/profiles/{profile_id} (deprecated)
 pub async fn delete_mdm_apple_config_profile(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_profile_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement delete_mdm_apple_config_profile logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/mdm/apple/profiles (deprecated)
 pub async fn new_mdm_apple_config_profile(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
 ) -> FleetResponse {
-    // TODO: multipart upload
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement new_mdm_apple_config_profile logic
     fleet_ok("profile_id", serde_json::json!(0))
 }
 
 /// GET /api/_version_/fleet/mdm/apple/profiles (deprecated)
 pub async fn list_mdm_apple_config_profiles(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Query(_params): Query<ListMDMConfigProfilesParams>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement list_mdm_apple_config_profiles logic
     fleet_ok("profiles", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/mdm/apple/filevault/summary (deprecated)
 pub async fn get_mdm_apple_filevault_summary(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Query(_params): Query<GetMDMAppleFileVaultSummaryParams>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_mdm_apple_filevault_summary logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/mdm/apple/profiles/summary (deprecated)
 pub async fn get_mdm_apple_profiles_summary(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Query(_params): Query<GetMDMAppleProfilesSummaryParams>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_mdm_apple_profiles_summary logic
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -285,24 +344,42 @@ pub async fn get_mdm_apple_profiles_summary(
 /// POST /api/_version_/fleet/mdm/apple/enrollment_profile
 /// POST /api/_version_/fleet/enrollment_profiles/automatic
 pub async fn create_mdm_apple_setup_assistant(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement create_mdm_apple_setup_assistant logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/mdm/apple/enrollment_profile
 /// GET /api/_version_/fleet/enrollment_profiles/automatic
 pub async fn get_mdm_apple_setup_assistant(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_mdm_apple_setup_assistant logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// DELETE /api/_version_/fleet/mdm/apple/enrollment_profile
 /// DELETE /api/_version_/fleet/enrollment_profiles/automatic
 pub async fn delete_mdm_apple_setup_assistant(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement delete_mdm_apple_setup_assistant logic
     fleet_ok("", serde_json::json!({}))
 }
 

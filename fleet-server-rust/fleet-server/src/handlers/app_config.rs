@@ -259,43 +259,83 @@ pub async fn translate(
 
 /// POST /api/_version_/fleet/certificates
 pub async fn create_certificate_template(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Json(_body): Json<CreateCertificateTemplateBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement create_certificate_template logic
     fleet_ok("certificate_template", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/certificates
-pub async fn list_certificate_templates(State(_state): State<AppState>) -> FleetResponse {
+pub async fn list_certificate_templates(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement list_certificate_templates logic
     fleet_ok("certificate_templates", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/certificates/{id}
 pub async fn get_certificate_template(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_certificate_template logic
     fleet_ok("certificate_template", serde_json::json!({}))
 }
 
 /// DELETE /api/_version_/fleet/certificates/{id}
 pub async fn delete_certificate_template(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement delete_certificate_template logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/spec/certificates
 pub async fn apply_certificate_template_specs(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Json(_body): Json<ApplyCertificateTemplateSpecsBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement apply_certificate_template_specs logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// DELETE /api/_version_/fleet/spec/certificates
-pub async fn delete_certificate_template_specs(State(_state): State<AppState>) -> FleetResponse {
+pub async fn delete_certificate_template_specs(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement delete_certificate_template_specs logic
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -311,133 +351,249 @@ pub async fn status_live_query(State(_state): State<AppState>) -> FleetResponse 
 
 /// PUT /api/_version_/fleet/spec/secret_variables
 pub async fn create_secret_variables(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Json(_body): Json<CreateSecretVariablesBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement create_secret_variables logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/custom_variables
 pub async fn create_secret_variable(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Json(_body): Json<CreateSecretVariableBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement create_secret_variable logic
     fleet_ok("secret_variable", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/custom_variables
 pub async fn list_secret_variables(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Query(_params): Query<ListSecretVariablesParams>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement list_secret_variables logic
     fleet_ok("secret_variables", serde_json::json!([]))
 }
 
 /// DELETE /api/_version_/fleet/custom_variables/{id}
 pub async fn delete_secret_variable(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement delete_secret_variable logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/scim/details
-pub async fn get_scim_details(State(_state): State<AppState>) -> FleetResponse {
+pub async fn get_scim_details(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_scim_details logic
     fleet_ok("scim", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/conditional-access/microsoft
 pub async fn conditional_access_microsoft_create(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Json(_body): Json<ConditionalAccessMicrosoftCreateBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement conditional_access_microsoft_create logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/conditional-access/microsoft/confirm
 pub async fn conditional_access_microsoft_confirm(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Json(_body): Json<ConditionalAccessMicrosoftConfirmBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement conditional_access_microsoft_confirm logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// DELETE /api/_version_/fleet/conditional-access/microsoft
-pub async fn conditional_access_microsoft_delete(State(_state): State<AppState>) -> FleetResponse {
+pub async fn conditional_access_microsoft_delete(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement conditional_access_microsoft_delete logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/conditional_access/idp/signing_cert
 pub async fn conditional_access_get_idp_signing_cert(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement conditional_access_get_idp_signing_cert logic
     fleet_ok("signing_cert", serde_json::json!(""))
 }
 
 /// GET /api/_version_/fleet/conditional_access/idp/apple/profile
 pub async fn conditional_access_get_idp_apple_profile(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement conditional_access_get_idp_apple_profile logic
     fleet_ok("profile", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/certificate_authorities
 pub async fn create_certificate_authority(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Json(_body): Json<CreateCertificateAuthorityBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement create_certificate_authority logic
     fleet_ok("certificate_authority", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/certificate_authorities
-pub async fn list_certificate_authorities(State(_state): State<AppState>) -> FleetResponse {
+pub async fn list_certificate_authorities(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement list_certificate_authorities logic
     fleet_ok("certificate_authorities", serde_json::json!([]))
 }
 
 /// GET /api/_version_/fleet/certificate_authorities/{id}
 pub async fn get_certificate_authority(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_certificate_authority logic
     fleet_ok("certificate_authority", serde_json::json!({}))
 }
 
 /// DELETE /api/_version_/fleet/certificate_authorities/{id}
 pub async fn delete_certificate_authority(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_id): Path<u64>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement delete_certificate_authority logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// PATCH /api/_version_/fleet/certificate_authorities/{id}
 pub async fn update_certificate_authority(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_id): Path<u64>,
     Json(_body): Json<UpdateCertificateAuthorityBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement update_certificate_authority logic
     fleet_ok("certificate_authority", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/certificate_authorities/{id}/request_certificate
 pub async fn request_certificate(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Path(_id): Path<u64>,
     Json(_body): Json<RequestCertificateBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement request_certificate logic
     fleet_ok("certificate", serde_json::json!({}))
 }
 
 /// POST /api/_version_/fleet/spec/certificate_authorities
 pub async fn batch_apply_certificate_authorities(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Json(_body): Json<BatchApplyCertificateAuthoritiesBody>,
 ) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement batch_apply_certificate_authorities logic
     fleet_ok("", serde_json::json!({}))
 }
 
 /// GET /api/_version_/fleet/spec/certificate_authorities
-pub async fn get_certificate_authorities_spec(State(_state): State<AppState>) -> FleetResponse {
+pub async fn get_certificate_authorities_spec(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+) -> FleetResponse {
+    let _viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    // TODO: implement get_certificate_authorities_spec logic
     fleet_ok("specs", serde_json::json!([]))
 }
 
