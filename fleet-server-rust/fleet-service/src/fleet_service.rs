@@ -155,6 +155,22 @@ pub trait Datastore: Send + Sync + 'static {
     async fn list_software_for_host(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::Software>>;
     async fn device_mapping_for_host(&self, host_id: u32) -> ServiceResult<serde_json::Value>;
     async fn mark_host_refetch_requested(&self, host_id: u32) -> ServiceResult<()>;
+
+    // ---- Carves ----
+    async fn new_carve(&self, carve: &fleet_types::CarveMetadata) -> ServiceResult<fleet_types::CarveMetadata>;
+    async fn carve_by_id(&self, id: i64) -> ServiceResult<fleet_types::CarveMetadata>;
+    async fn carve_by_session_id(&self, session_id: &str) -> ServiceResult<fleet_types::CarveMetadata>;
+    async fn list_carves(&self, include_expired: bool) -> ServiceResult<Vec<fleet_types::CarveMetadata>>;
+    async fn update_carve(&self, id: i64, max_block: i64, expired: bool, error: Option<&str>) -> ServiceResult<()>;
+    async fn new_carve_block(&self, metadata_id: i64, block_id: i64, data: &[u8]) -> ServiceResult<()>;
+    async fn get_carve_block(&self, metadata_id: i64, block_id: i64) -> ServiceResult<Vec<u8>>;
+
+    // ---- Scripts ----
+    async fn new_script(&self, team_id: Option<u32>, name: &str, contents: &str) -> ServiceResult<fleet_types::script::Script>;
+    async fn script_by_id(&self, id: u32) -> ServiceResult<fleet_types::script::Script>;
+    async fn list_scripts(&self, team_id: Option<u32>) -> ServiceResult<Vec<fleet_types::script::Script>>;
+    async fn delete_script(&self, id: u32) -> ServiceResult<()>;
+    async fn get_script_contents(&self, script_id: u32) -> ServiceResult<String>;
 }
 
 /// TeamSummaryInfo is a minimal team representation used for validation.

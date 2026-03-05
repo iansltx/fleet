@@ -47,6 +47,9 @@ mime_guess = { workspace = true }
 # Metrics
 prometheus = { workspace = true }
 
+# Encoding
+base64 = { workspace = true }
+
 # Error handling
 anyhow = { workspace = true }
 thiserror = { workspace = true }

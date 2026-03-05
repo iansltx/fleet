@@ -306,6 +306,34 @@ fn software_row_to_software(row: crate::software::SoftwareRow) -> fleet_types::S
     }
 }
 
+fn carve_row_to_carve(row: crate::carves::CarveRow) -> fleet_types::CarveMetadata {
+    fleet_types::CarveMetadata {
+        id: row.id,
+        created_at: row.created_at,
+        host_id: row.host_id,
+        name: row.name,
+        block_count: row.block_count,
+        block_size: row.block_size,
+        carve_size: row.carve_size,
+        carve_id: row.carve_id,
+        request_id: row.request_id,
+        session_id: row.session_id,
+        expired: row.expired,
+        error: row.error,
+        max_block: row.max_block,
+    }
+}
+
+fn script_row_to_script(row: crate::scripts::ScriptRow) -> fleet_types::script::Script {
+    fleet_types::script::Script {
+        id: row.id,
+        team_id: row.team_id,
+        name: row.name,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+    }
+}
+
 fn app_config_json_to_data(val: serde_json::Value) -> AppConfigData {
     serde_json::from_value(val).unwrap_or_default()
 }
@@ -1651,5 +1679,103 @@ impl Datastore for MysqlDatastore {
             .await
             .map_err(ds_error)?;
         Ok(())
+    }
+
+    // ---- Carves ----
+
+    async fn new_carve(&self, carve: &fleet_types::CarveMetadata) -> ServiceResult<fleet_types::CarveMetadata> {
+        let row = crate::carves::CarveRow {
+            id: 0,
+            host_id: carve.host_id,
+            created_at: carve.created_at,
+            name: carve.name.clone(),
+            block_count: carve.block_count,
+            block_size: carve.block_size,
+            carve_size: carve.carve_size,
+            carve_id: carve.carve_id.clone(),
+            request_id: carve.request_id.clone(),
+            session_id: carve.session_id.clone(),
+            expired: carve.expired,
+            max_block: -1,
+            error: carve.error.clone(),
+        };
+        let result = MysqlDatastore::new_carve(self, &row)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(carve_row_to_carve(result))
+    }
+
+    async fn carve_by_id(&self, id: i64) -> ServiceResult<fleet_types::CarveMetadata> {
+        let row = MysqlDatastore::carve_by_id(self, id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(carve_row_to_carve(row))
+    }
+
+    async fn carve_by_session_id(&self, session_id: &str) -> ServiceResult<fleet_types::CarveMetadata> {
+        let row = MysqlDatastore::carve_by_session_id(self, session_id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(carve_row_to_carve(row))
+    }
+
+    async fn list_carves(&self, include_expired: bool) -> ServiceResult<Vec<fleet_types::CarveMetadata>> {
+        let rows = MysqlDatastore::list_carves(self, include_expired)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(carve_row_to_carve).collect())
+    }
+
+    async fn update_carve(&self, id: i64, max_block: i64, expired: bool, error: Option<&str>) -> ServiceResult<()> {
+        MysqlDatastore::update_carve(self, id, max_block, expired, error)
+            .await
+            .map_err(ServiceError::from)
+    }
+
+    async fn new_carve_block(&self, metadata_id: i64, block_id: i64, data: &[u8]) -> ServiceResult<()> {
+        MysqlDatastore::new_carve_block(self, metadata_id, block_id, data)
+            .await
+            .map_err(ServiceError::from)
+    }
+
+    async fn get_carve_block(&self, metadata_id: i64, block_id: i64) -> ServiceResult<Vec<u8>> {
+        MysqlDatastore::get_carve_block(self, metadata_id, block_id)
+            .await
+            .map_err(ServiceError::from)
+    }
+
+    // ---- Scripts ----
+
+    async fn new_script(&self, team_id: Option<u32>, name: &str, contents: &str) -> ServiceResult<fleet_types::script::Script> {
+        let row = MysqlDatastore::new_script(self, team_id, name, contents)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(script_row_to_script(row))
+    }
+
+    async fn script_by_id(&self, id: u32) -> ServiceResult<fleet_types::script::Script> {
+        let row = MysqlDatastore::script_by_id(self, id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(script_row_to_script(row))
+    }
+
+    async fn list_scripts(&self, team_id: Option<u32>) -> ServiceResult<Vec<fleet_types::script::Script>> {
+        let rows = MysqlDatastore::list_scripts(self, team_id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(script_row_to_script).collect())
+    }
+
+    async fn delete_script(&self, id: u32) -> ServiceResult<()> {
+        MysqlDatastore::delete_script(self, id)
+            .await
+            .map_err(ServiceError::from)
+    }
+
+    async fn get_script_contents(&self, script_id: u32) -> ServiceResult<String> {
+        MysqlDatastore::get_script_contents(self, script_id)
+            .await
+            .map_err(ServiceError::from)
     }
 }

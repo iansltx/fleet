@@ -7,6 +7,7 @@
 pub mod app_config;
 pub mod auth;
 pub mod authz;
+pub mod carves;
 pub mod device;
 pub mod fleet_service;
 pub mod hosts;
@@ -17,6 +18,7 @@ pub mod osquery;
 pub mod packs;
 pub mod policies;
 pub mod queries;
+pub mod scripts;
 pub mod sessions;
 pub mod software;
 pub mod teams;

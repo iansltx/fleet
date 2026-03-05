@@ -43,6 +43,7 @@ pub enum Subject {
     Activity,
     Carve,
     Software,
+    Script,
 }
 
 /// The known Fleet roles, matching Go constants.

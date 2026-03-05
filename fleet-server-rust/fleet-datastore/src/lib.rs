@@ -7,6 +7,7 @@
 pub mod datastore_impl;
 pub mod activities;
 pub mod app_config;
+pub mod carves;
 pub mod enroll;
 pub mod error;
 pub mod hosts;
@@ -16,6 +17,7 @@ pub mod mysql;
 pub mod packs;
 pub mod policies;
 pub mod queries;
+pub mod scripts;
 pub mod sessions;
 pub mod software;
 pub mod teams;
