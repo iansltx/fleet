@@ -10,7 +10,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::response::{fleet_error, fleet_ok, FleetResponse};
+use crate::response::{encode_service_error, fleet_error, fleet_ok, FleetResponse};
 use crate::AppState;
 
 // ---------------------------------------------------------------------------
@@ -122,107 +122,196 @@ pub struct UpdateCertificateStatusBody {
 
 /// POST /api/fleet/orbit/enroll (unauthenticated)
 pub async fn enroll_orbit(
-    State(_state): State<AppState>,
-    Json(_body): Json<EnrollOrbitBody>,
+    State(state): State<AppState>,
+    Json(body): Json<EnrollOrbitBody>,
 ) -> FleetResponse {
-    fleet_ok("orbit_node_key", serde_json::json!(""))
+    match state
+        .service
+        .enroll_orbit(
+            &body.enroll_secret,
+            body.hardware_uuid.as_deref(),
+            body.hardware_serial.as_deref(),
+        )
+        .await
+    {
+        Ok(orbit_node_key) => fleet_ok("orbit_node_key", serde_json::json!(orbit_node_key)),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/fleet/orbit/device_token
 pub async fn set_or_update_device_token(
-    State(_state): State<AppState>,
-    Json(_body): Json<SetOrUpdateDeviceTokenBody>,
+    State(state): State<AppState>,
+    Json(body): Json<SetOrUpdateDeviceTokenBody>,
 ) -> FleetResponse {
-    fleet_ok("", serde_json::json!({}))
+    match state
+        .service
+        .set_or_update_device_token(&body.orbit_node_key, &body.device_auth_token)
+        .await
+    {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/fleet/orbit/config
 pub async fn get_orbit_config(
-    State(_state): State<AppState>,
-    Json(_body): Json<OrbitGetConfigBody>,
+    State(state): State<AppState>,
+    Json(body): Json<OrbitGetConfigBody>,
 ) -> FleetResponse {
-    fleet_ok("", serde_json::json!({}))
+    match state.service.get_orbit_config(&body.orbit_node_key).await {
+        Ok(config) => (StatusCode::OK, axum::extract::Json(config)),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/fleet/orbit/scripts/request
 pub async fn get_orbit_script(
-    State(_state): State<AppState>,
-    Json(_body): Json<OrbitGetScriptBody>,
+    State(state): State<AppState>,
+    Json(body): Json<OrbitGetScriptBody>,
 ) -> FleetResponse {
-    fleet_ok("", serde_json::json!({}))
+    match state
+        .service
+        .get_orbit_script(&body.orbit_node_key, &body.execution_id)
+        .await
+    {
+        Ok(result) => {
+            fleet_ok("", serde_json::to_value(&result).unwrap_or_default())
+        }
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/fleet/orbit/scripts/result
 pub async fn post_orbit_script_result(
-    State(_state): State<AppState>,
-    Json(_body): Json<OrbitPostScriptResultBody>,
+    State(state): State<AppState>,
+    Json(body): Json<OrbitPostScriptResultBody>,
 ) -> FleetResponse {
-    fleet_ok("", serde_json::json!({}))
+    match state
+        .service
+        .post_orbit_script_result(
+            &body.orbit_node_key,
+            &body.execution_id,
+            body.exit_code,
+            &body.output,
+            body.runtime,
+        )
+        .await
+    {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// PUT /api/fleet/orbit/device_mapping
 pub async fn put_orbit_device_mapping(
-    State(_state): State<AppState>,
-    Json(_body): Json<OrbitPutDeviceMappingBody>,
+    State(state): State<AppState>,
+    Json(body): Json<OrbitPutDeviceMappingBody>,
 ) -> FleetResponse {
-    fleet_ok("", serde_json::json!({}))
+    match state
+        .service
+        .put_orbit_device_mapping(&body.orbit_node_key, body.email.as_deref())
+        .await
+    {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/fleet/orbit/software_install/result
 pub async fn post_orbit_software_install_result(
-    State(_state): State<AppState>,
-    Json(_body): Json<OrbitPostSoftwareInstallResultBody>,
+    State(state): State<AppState>,
+    Json(body): Json<OrbitPostSoftwareInstallResultBody>,
 ) -> FleetResponse {
-    fleet_ok("", serde_json::json!({}))
+    // Authenticate the orbit agent. Full implementation would record the install result.
+    match state.service.authenticate_orbit(&body.orbit_node_key).await {
+        Ok(_host) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/fleet/orbit/software_install/package
 pub async fn orbit_download_software_installer(
-    State(_state): State<AppState>,
-    Json(_body): Json<OrbitDownloadSoftwareInstallerBody>,
+    State(state): State<AppState>,
+    Json(body): Json<OrbitDownloadSoftwareInstallerBody>,
 ) -> FleetResponse {
-    // TODO: return the actual software installer binary
-    fleet_ok("", serde_json::json!({}))
+    // Authenticate the orbit agent. Full implementation would return the installer binary.
+    match state.service.authenticate_orbit(&body.orbit_node_key).await {
+        Ok(_host) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/fleet/orbit/software_install/details
 pub async fn get_orbit_software_install_details(
-    State(_state): State<AppState>,
-    Json(_body): Json<OrbitGetSoftwareInstallBody>,
+    State(state): State<AppState>,
+    Json(body): Json<OrbitGetSoftwareInstallBody>,
 ) -> FleetResponse {
-    fleet_ok("", serde_json::json!({}))
+    match state.service.authenticate_orbit(&body.orbit_node_key).await {
+        Ok(_host) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/fleet/orbit/setup_experience/init
 pub async fn orbit_setup_experience_init(
-    State(_state): State<AppState>,
-    Json(_body): Json<OrbitSetupExperienceInitBody>,
+    State(state): State<AppState>,
+    Json(body): Json<OrbitSetupExperienceInitBody>,
 ) -> FleetResponse {
-    fleet_ok("", serde_json::json!({}))
+    match state.service.authenticate_orbit(&body.orbit_node_key).await {
+        Ok(_host) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/fleet/orbit/setup_experience/status
 pub async fn get_orbit_setup_experience_status(
-    State(_state): State<AppState>,
-    Json(_body): Json<GetOrbitSetupExperienceStatusBody>,
+    State(state): State<AppState>,
+    Json(body): Json<GetOrbitSetupExperienceStatusBody>,
 ) -> FleetResponse {
-    fleet_ok("", serde_json::json!({}))
+    match state.service.authenticate_orbit(&body.orbit_node_key).await {
+        Ok(_host) => fleet_ok("status", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/fleet/orbit/disk_encryption_key
 pub async fn post_orbit_disk_encryption_key(
-    State(_state): State<AppState>,
-    Json(_body): Json<OrbitPostDiskEncryptionKeyBody>,
+    State(state): State<AppState>,
+    Json(body): Json<OrbitPostDiskEncryptionKeyBody>,
 ) -> FleetResponse {
-    fleet_ok("", serde_json::json!({}))
+    match state
+        .service
+        .post_orbit_disk_encryption_key(
+            &body.orbit_node_key,
+            &body.encryption_key,
+            body.client_error.as_deref(),
+        )
+        .await
+    {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/fleet/orbit/luks_data
 pub async fn post_orbit_luks(
-    State(_state): State<AppState>,
-    Json(_body): Json<OrbitPostLUKSBody>,
+    State(state): State<AppState>,
+    Json(body): Json<OrbitPostLUKSBody>,
 ) -> FleetResponse {
-    fleet_ok("", serde_json::json!({}))
+    match state
+        .service
+        .post_orbit_luks_data(
+            &body.orbit_node_key,
+            &body.passphrase,
+            body.slot_key.as_deref(),
+            body.client_error.as_deref(),
+        )
+        .await
+    {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// HEAD /api/fleet/orbit/ping (unauthenticated)

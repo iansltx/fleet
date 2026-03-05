@@ -314,6 +314,11 @@ fn app_config_data_to_json(data: &AppConfigData) -> serde_json::Value {
     serde_json::to_value(data).unwrap_or_default()
 }
 
+/// Helper to convert sqlx errors into ServiceError for inline queries.
+fn ds_error(e: sqlx::Error) -> ServiceError {
+    ServiceError::Internal(e.to_string())
+}
+
 // ---------------------------------------------------------------------------
 // Datastore trait implementation
 // ---------------------------------------------------------------------------
@@ -1162,6 +1167,92 @@ impl Datastore for MysqlDatastore {
         Ok(software_row_to_software(row))
     }
 
+    // ---- Orbit ----
+
+    async fn load_host_by_orbit_node_key(&self, orbit_node_key: &str) -> ServiceResult<fleet_types::Host> {
+        let row = sqlx::query_as::<_, crate::hosts::HostRow>(
+            "SELECT h.* FROM hosts h JOIN host_orbit_info hoi ON h.id = hoi.host_id WHERE hoi.orbit_node_key = ?"
+        )
+        .bind(orbit_node_key)
+        .fetch_optional(self.pool())
+        .await
+        .map_err(ds_error)?
+        .ok_or_else(|| ServiceError::not_found("host not found for orbit node key"))?;
+        Ok(host_row_to_host(row))
+    }
+
+    async fn enroll_orbit(
+        &self,
+        hardware_uuid: &str,
+        hardware_serial: &str,
+        orbit_node_key: &str,
+        team_id: Option<u32>,
+    ) -> ServiceResult<fleet_types::Host> {
+        // Try to find existing host by hardware UUID or serial
+        let existing = sqlx::query_as::<_, crate::hosts::HostRow>(
+            "SELECT * FROM hosts WHERE uuid = ? OR hardware_serial = ? LIMIT 1"
+        )
+        .bind(hardware_uuid)
+        .bind(hardware_serial)
+        .fetch_optional(self.pool())
+        .await
+        .map_err(ds_error)?;
+
+        match existing {
+            Some(row) => {
+                let host = host_row_to_host(row);
+                // Update orbit node key
+                sqlx::query(
+                    "INSERT INTO host_orbit_info (host_id, orbit_node_key) VALUES (?, ?) ON DUPLICATE KEY UPDATE orbit_node_key = VALUES(orbit_node_key)"
+                )
+                .bind(host.id)
+                .bind(orbit_node_key)
+                .execute(self.pool())
+                .await
+                .map_err(ds_error)?;
+                Ok(host)
+            }
+            None => {
+                Err(ServiceError::not_found("no matching host found for orbit enrollment"))
+            }
+        }
+    }
+
+    async fn set_orbit_node_key(&self, host_id: u32, orbit_node_key: &str) -> ServiceResult<()> {
+        sqlx::query(
+            "INSERT INTO host_orbit_info (host_id, orbit_node_key) VALUES (?, ?) ON DUPLICATE KEY UPDATE orbit_node_key = VALUES(orbit_node_key)"
+        )
+        .bind(host_id)
+        .bind(orbit_node_key)
+        .execute(self.pool())
+        .await
+        .map_err(ds_error)?;
+        Ok(())
+    }
+
+    async fn get_host_script_execution(&self, execution_id: &str) -> ServiceResult<fleet_types::script::HostScriptResult> {
+        // Simplified stub - full impl would query host_script_results table
+        Err(ServiceError::not_found("script execution not found"))
+    }
+
+    async fn save_host_script_result(&self, result: &fleet_types::script::HostScriptResult) -> ServiceResult<()> {
+        // Simplified stub - full impl would insert/update host_script_results
+        Ok(())
+    }
+
+    async fn set_host_disk_encryption_key(&self, host_id: u32, key: &[u8], client_error: Option<&str>) -> ServiceResult<()> {
+        sqlx::query(
+            "INSERT INTO host_disk_encryption_keys (host_id, base64_encrypted, client_error) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE base64_encrypted = VALUES(base64_encrypted), client_error = VALUES(client_error)"
+        )
+        .bind(host_id)
+        .bind(key)
+        .bind(client_error.unwrap_or(""))
+        .execute(self.pool())
+        .await
+        .map_err(ds_error)?;
+        Ok(())
+    }
+
     // ---- Activities ----
 
     async fn new_activity(
@@ -1173,6 +1264,56 @@ impl Datastore for MysqlDatastore {
         MysqlDatastore::new_activity(self, user_id, None, None, activity_type, details)
             .await
             .map_err(ServiceError::from)?;
+        Ok(())
+    }
+
+    // ---- Device ----
+
+    async fn load_host_by_device_auth_token(&self, token: &str) -> ServiceResult<fleet_types::Host> {
+        let row = sqlx::query_as::<_, crate::hosts::HostRow>(
+            "SELECT h.* FROM hosts h JOIN host_device_auth hda ON h.id = hda.host_id WHERE hda.token = ?"
+        )
+        .bind(token)
+        .fetch_optional(self.pool())
+        .await
+        .map_err(ds_error)?
+        .ok_or_else(|| ServiceError::not_found("host not found for device token"))?;
+        Ok(host_row_to_host(row))
+    }
+
+    async fn set_or_update_device_auth_token(&self, host_id: u32, token: &str) -> ServiceResult<()> {
+        sqlx::query(
+            "INSERT INTO host_device_auth (host_id, token) VALUES (?, ?) ON DUPLICATE KEY UPDATE token = VALUES(token)"
+        )
+        .bind(host_id)
+        .bind(token)
+        .execute(self.pool())
+        .await
+        .map_err(ds_error)?;
+        Ok(())
+    }
+
+    async fn list_policies_for_host(&self, _host_id: u32) -> ServiceResult<Vec<fleet_types::policy::HostPolicy>> {
+        // Simplified: return empty for now. Full impl would JOIN policy_membership.
+        Ok(Vec::new())
+    }
+
+    async fn list_software_for_host(&self, _host_id: u32) -> ServiceResult<Vec<fleet_types::Software>> {
+        // Simplified: return empty for now. Full impl would JOIN host_software.
+        Ok(Vec::new())
+    }
+
+    async fn device_mapping_for_host(&self, _host_id: u32) -> ServiceResult<serde_json::Value> {
+        // Simplified: return empty array. Full impl would query host_emails table.
+        Ok(serde_json::json!([]))
+    }
+
+    async fn mark_host_refetch_requested(&self, host_id: u32) -> ServiceResult<()> {
+        sqlx::query("UPDATE hosts SET refetch_requested = 1 WHERE id = ?")
+            .bind(host_id)
+            .execute(self.pool())
+            .await
+            .map_err(ds_error)?;
         Ok(())
     }
 }

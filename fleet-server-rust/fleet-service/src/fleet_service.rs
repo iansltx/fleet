@@ -124,8 +124,30 @@ pub trait Datastore: Send + Sync + 'static {
     async fn list_software(&self, opts: fleet_types::ListOptions, team_id: Option<u32>) -> ServiceResult<Vec<fleet_types::Software>>;
     async fn software_by_id(&self, id: u32) -> ServiceResult<fleet_types::Software>;
 
+    // ---- Orbit ----
+    async fn load_host_by_orbit_node_key(&self, orbit_node_key: &str) -> ServiceResult<fleet_types::Host>;
+    async fn enroll_orbit(
+        &self,
+        hardware_uuid: &str,
+        hardware_serial: &str,
+        orbit_node_key: &str,
+        team_id: Option<u32>,
+    ) -> ServiceResult<fleet_types::Host>;
+    async fn set_orbit_node_key(&self, host_id: u32, orbit_node_key: &str) -> ServiceResult<()>;
+    async fn get_host_script_execution(&self, execution_id: &str) -> ServiceResult<fleet_types::script::HostScriptResult>;
+    async fn save_host_script_result(&self, result: &fleet_types::script::HostScriptResult) -> ServiceResult<()>;
+    async fn set_host_disk_encryption_key(&self, host_id: u32, key: &[u8], client_error: Option<&str>) -> ServiceResult<()>;
+
     // ---- Activities ----
     async fn new_activity(&self, user_id: Option<u32>, activity_type: &str, details: &JsonValue) -> ServiceResult<()>;
+
+    // ---- Device ----
+    async fn load_host_by_device_auth_token(&self, token: &str) -> ServiceResult<fleet_types::Host>;
+    async fn set_or_update_device_auth_token(&self, host_id: u32, token: &str) -> ServiceResult<()>;
+    async fn list_policies_for_host(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::policy::HostPolicy>>;
+    async fn list_software_for_host(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::Software>>;
+    async fn device_mapping_for_host(&self, host_id: u32) -> ServiceResult<serde_json::Value>;
+    async fn mark_host_refetch_requested(&self, host_id: u32) -> ServiceResult<()>;
 }
 
 /// TeamSummaryInfo is a minimal team representation used for validation.
