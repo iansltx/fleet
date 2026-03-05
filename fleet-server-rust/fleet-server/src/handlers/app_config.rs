@@ -271,9 +271,14 @@ pub async fn create_certificate_template(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &body);
-    // Stub: backing service not yet implemented
-    fleet_ok("certificate_template", serde_json::json!({}))
+    let name = body.name.as_deref().unwrap_or("");
+    let team_id = body.rest.get("team_id").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+    let ca_id = body.rest.get("certificate_authority_id").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+    let subject_name = body.rest.get("subject_name").and_then(|v| v.as_str()).unwrap_or("");
+    match state.service.create_certificate_template(&viewer, team_id, ca_id, name, subject_name).await {
+        Ok(tmpl) => fleet_ok("certificate_template", serde_json::to_value(&tmpl).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/certificates
@@ -285,9 +290,10 @@ pub async fn list_certificate_templates(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    // Stub: backing service not yet implemented
-    fleet_ok("certificate_templates", serde_json::json!([]))
+    match state.service.list_certificate_templates(&viewer).await {
+        Ok(templates) => fleet_ok("certificate_templates", serde_json::to_value(&templates).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/certificates/{id}
@@ -300,9 +306,10 @@ pub async fn get_certificate_template(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id);
-    // Stub: backing service not yet implemented
-    fleet_ok("certificate_template", serde_json::json!({}))
+    match state.service.get_certificate_template(&viewer, id as u32).await {
+        Ok(tmpl) => fleet_ok("certificate_template", serde_json::to_value(&tmpl).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// DELETE /api/_version_/fleet/certificates/{id}
@@ -315,9 +322,10 @@ pub async fn delete_certificate_template(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id);
-    // Stub: backing service not yet implemented
-    fleet_ok("", serde_json::json!({}))
+    match state.service.delete_certificate_template(&viewer, id as u32).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/spec/certificates
@@ -530,9 +538,13 @@ pub async fn create_certificate_authority(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &body);
-    // Stub: backing service not yet implemented
-    fleet_ok("certificate_authority", serde_json::json!({}))
+    let ca_type = body.data.get("type").and_then(|v| v.as_str()).unwrap_or("custom_scep_proxy");
+    let name = body.data.get("name").and_then(|v| v.as_str()).unwrap_or("");
+    let url = body.data.get("url").and_then(|v| v.as_str()).unwrap_or("");
+    match state.service.create_certificate_authority(&viewer, ca_type, name, url).await {
+        Ok(ca) => fleet_ok("certificate_authority", serde_json::to_value(&ca).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/certificate_authorities
@@ -544,9 +556,10 @@ pub async fn list_certificate_authorities(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    // Stub: backing service not yet implemented
-    fleet_ok("certificate_authorities", serde_json::json!([]))
+    match state.service.list_certificate_authorities(&viewer).await {
+        Ok(cas) => fleet_ok("certificate_authorities", serde_json::to_value(&cas).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/certificate_authorities/{id}
@@ -559,9 +572,10 @@ pub async fn get_certificate_authority(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id);
-    // Stub: backing service not yet implemented
-    fleet_ok("certificate_authority", serde_json::json!({}))
+    match state.service.get_certificate_authority(&viewer, id as i32).await {
+        Ok(ca) => fleet_ok("certificate_authority", serde_json::to_value(&ca).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// DELETE /api/_version_/fleet/certificate_authorities/{id}
@@ -574,9 +588,10 @@ pub async fn delete_certificate_authority(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id);
-    // Stub: backing service not yet implemented
-    fleet_ok("", serde_json::json!({}))
+    match state.service.delete_certificate_authority(&viewer, id as i32).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// PATCH /api/_version_/fleet/certificate_authorities/{id}
@@ -590,9 +605,12 @@ pub async fn update_certificate_authority(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id, &body);
-    // Stub: backing service not yet implemented
-    fleet_ok("certificate_authority", serde_json::json!({}))
+    let name = body.data.get("name").and_then(|v| v.as_str()).unwrap_or("");
+    let url = body.data.get("url").and_then(|v| v.as_str()).unwrap_or("");
+    match state.service.update_certificate_authority(&viewer, id as i32, name, url).await {
+        Ok(ca) => fleet_ok("certificate_authority", serde_json::to_value(&ca).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/certificate_authorities/{id}/request_certificate
@@ -621,8 +639,15 @@ pub async fn batch_apply_certificate_authorities(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &body);
-    // Stub: backing service not yet implemented
+    // Batch apply creates/updates CAs from specs
+    for spec in &body.specs {
+        let ca_type = spec.get("type").and_then(|v| v.as_str()).unwrap_or("custom_scep_proxy");
+        let name = spec.get("name").and_then(|v| v.as_str()).unwrap_or("");
+        let url = spec.get("url").and_then(|v| v.as_str()).unwrap_or("");
+        if let Err(e) = state.service.create_certificate_authority(&viewer, ca_type, name, url).await {
+            return encode_service_error(&e);
+        }
+    }
     fleet_ok("", serde_json::json!({}))
 }
 
@@ -635,9 +660,10 @@ pub async fn get_certificate_authorities_spec(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    // Stub: backing service not yet implemented
-    fleet_ok("specs", serde_json::json!([]))
+    match state.service.list_certificate_authorities(&viewer).await {
+        Ok(cas) => fleet_ok("specs", serde_json::to_value(&cas).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/calendar/webhook/{event_uuid}

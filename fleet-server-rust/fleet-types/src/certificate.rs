@@ -23,6 +23,40 @@ pub struct HostCertificate {
     pub subject_common_name: String,
 }
 
+/// CertificateTemplate represents a certificate template configuration.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CertificateTemplate {
+    pub id: u32,
+    pub team_id: u32,
+    pub certificate_authority_id: i32,
+    pub name: String,
+    pub subject_name: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// CertificateAuthority represents a certificate authority configuration.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CertificateAuthority {
+    pub id: i32,
+    #[serde(rename = "type")]
+    pub ca_type: String,
+    pub name: String,
+    pub url: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub profile_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub certificate_common_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub admin_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub username: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub challenge_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub client_id: Option<String>,
+}
+
 /// SetupExperienceScript represents a setup experience script configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SetupExperienceScript {

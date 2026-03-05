@@ -9,6 +9,7 @@ pub mod app_config;
 pub mod auth;
 pub mod authz;
 pub mod carves;
+pub mod certificates;
 pub mod device;
 pub mod fleet_service;
 pub mod hosts;

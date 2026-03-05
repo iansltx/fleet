@@ -361,6 +361,33 @@ fn software_title_row_to_software(row: crate::software::SoftwareTitleRow) -> fle
     }
 }
 
+fn cert_template_row_to_type(row: crate::certificates::CertificateTemplateRow) -> fleet_types::certificate::CertificateTemplate {
+    fleet_types::certificate::CertificateTemplate {
+        id: row.id,
+        team_id: row.team_id,
+        certificate_authority_id: row.certificate_authority_id,
+        name: row.name,
+        subject_name: row.subject_name,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+    }
+}
+
+fn cert_authority_row_to_type(row: crate::certificates::CertificateAuthorityRow) -> fleet_types::certificate::CertificateAuthority {
+    fleet_types::certificate::CertificateAuthority {
+        id: row.id,
+        ca_type: row.ca_type,
+        name: row.name,
+        url: row.url,
+        profile_id: row.profile_id,
+        certificate_common_name: row.certificate_common_name,
+        admin_url: row.admin_url,
+        username: row.username,
+        challenge_url: row.challenge_url,
+        client_id: row.client_id,
+    }
+}
+
 /// Enriches a slice of Software with CVE data from the software_cve table.
 async fn enrich_software_with_cves(ds: &MysqlDatastore, software: &mut [fleet_types::Software]) {
     let ids: Vec<u32> = software.iter().map(|s| s.id).collect();
@@ -2350,6 +2377,69 @@ impl Datastore for MysqlDatastore {
             subject_org_unit: row.subject_org_unit,
             subject_common_name: row.subject_common_name,
         }).collect())
+    }
+
+    async fn create_certificate_template(&self, team_id: u32, ca_id: i32, name: &str, subject_name: &str) -> ServiceResult<fleet_types::certificate::CertificateTemplate> {
+        let row = MysqlDatastore::create_certificate_template(self, team_id, ca_id, name, subject_name)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(cert_template_row_to_type(row))
+    }
+
+    async fn get_certificate_template(&self, id: u32) -> ServiceResult<fleet_types::certificate::CertificateTemplate> {
+        let row = MysqlDatastore::get_certificate_template(self, id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(cert_template_row_to_type(row))
+    }
+
+    async fn list_certificate_templates(&self) -> ServiceResult<Vec<fleet_types::certificate::CertificateTemplate>> {
+        let rows = MysqlDatastore::list_certificate_templates(self)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(cert_template_row_to_type).collect())
+    }
+
+    async fn delete_certificate_template(&self, id: u32) -> ServiceResult<()> {
+        MysqlDatastore::delete_certificate_template(self, id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(())
+    }
+
+    async fn create_certificate_authority(&self, ca_type: &str, name: &str, url: &str) -> ServiceResult<fleet_types::certificate::CertificateAuthority> {
+        let row = MysqlDatastore::create_certificate_authority(self, ca_type, name, url)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(cert_authority_row_to_type(row))
+    }
+
+    async fn get_certificate_authority(&self, id: i32) -> ServiceResult<fleet_types::certificate::CertificateAuthority> {
+        let row = MysqlDatastore::get_certificate_authority(self, id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(cert_authority_row_to_type(row))
+    }
+
+    async fn list_certificate_authorities(&self) -> ServiceResult<Vec<fleet_types::certificate::CertificateAuthority>> {
+        let rows = MysqlDatastore::list_certificate_authorities(self)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(cert_authority_row_to_type).collect())
+    }
+
+    async fn delete_certificate_authority(&self, id: i32) -> ServiceResult<()> {
+        MysqlDatastore::delete_certificate_authority(self, id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(())
+    }
+
+    async fn update_certificate_authority(&self, id: i32, name: &str, url: &str) -> ServiceResult<fleet_types::certificate::CertificateAuthority> {
+        let row = MysqlDatastore::update_certificate_authority(self, id, name, url)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(cert_authority_row_to_type(row))
     }
 
     // ---- Setup Experience ----

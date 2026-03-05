@@ -218,6 +218,15 @@ pub trait Datastore: Send + Sync + 'static {
 
     // ---- Certificates ----
     async fn list_host_certificates(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::certificate::HostCertificate>>;
+    async fn create_certificate_template(&self, team_id: u32, ca_id: i32, name: &str, subject_name: &str) -> ServiceResult<fleet_types::certificate::CertificateTemplate>;
+    async fn get_certificate_template(&self, id: u32) -> ServiceResult<fleet_types::certificate::CertificateTemplate>;
+    async fn list_certificate_templates(&self) -> ServiceResult<Vec<fleet_types::certificate::CertificateTemplate>>;
+    async fn delete_certificate_template(&self, id: u32) -> ServiceResult<()>;
+    async fn create_certificate_authority(&self, ca_type: &str, name: &str, url: &str) -> ServiceResult<fleet_types::certificate::CertificateAuthority>;
+    async fn get_certificate_authority(&self, id: i32) -> ServiceResult<fleet_types::certificate::CertificateAuthority>;
+    async fn list_certificate_authorities(&self) -> ServiceResult<Vec<fleet_types::certificate::CertificateAuthority>>;
+    async fn delete_certificate_authority(&self, id: i32) -> ServiceResult<()>;
+    async fn update_certificate_authority(&self, id: i32, name: &str, url: &str) -> ServiceResult<fleet_types::certificate::CertificateAuthority>;
 
     // ---- Setup Experience ----
     async fn get_setup_experience_script(&self, team_id: Option<u32>) -> ServiceResult<fleet_types::certificate::SetupExperienceScript>;
