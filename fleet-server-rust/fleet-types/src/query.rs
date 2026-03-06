@@ -154,6 +154,9 @@ pub struct ScheduledQueryResult {
     pub unix_time: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub action: Option<String>,
+    /// Columns holds a single result row when snapshot results are in "event format".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub columns: Option<serde_json::Value>,
 }
 
 /// ListQueryOptions extends ListOptions with query-specific filters.
@@ -167,3 +170,53 @@ pub struct ListQueryOptions {
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub platform: String,
 }
+
+/// HostQueryReportResult holds a single result row for a query report.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostQueryReportResult {
+    pub columns: std::collections::HashMap<String, String>,
+}
+
+/// TargetedQuery represents a query with host targets.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TargetedQuery {
+    #[serde(flatten)]
+    pub query: Query,
+    pub host_targets: crate::target::HostTargets,
+}
+
+/// QueryObject wraps a QuerySpec for YAML import/export.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QueryObject {
+    #[serde(flatten)]
+    pub metadata: crate::ObjectMetadata,
+    pub spec: QuerySpec,
+}
+
+// Query kind constants.
+pub const QUERY_KIND: &str = "query";
+pub const REPORT_KIND: &str = "report";
+
+/// ScheduledQueryResultRow is a scheduled query result row from the database.
+/// Matches Go's `fleet.ScheduledQueryResultRow`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScheduledQueryResultRow {
+    pub query_id: u32,
+    pub host_id: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hostname: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub computer_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hardware_model: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hardware_serial: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data: Option<serde_json::Value>,
+    pub last_fetched: DateTime<Utc>,
+}
+
+// Logging type constants.
+pub const LOGGING_SNAPSHOT: &str = "snapshot";
+pub const LOGGING_DIFFERENTIAL: &str = "differential";
+pub const LOGGING_DIFFERENTIAL_IGNORE_REMOVALS: &str = "differential_ignore_removals";

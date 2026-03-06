@@ -138,9 +138,65 @@ pub struct LabelSpec {
     pub team_id: Option<u32>,
 }
 
+/// LabelWithTeamName extends Label with a team name field.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LabelWithTeamName {
+    #[serde(flatten)]
+    pub label: Label,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_name: Option<String>,
+}
+
+/// LabelScope identifies how labels scope entities like MDM profiles and software installers.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum LabelScope {
+    #[serde(rename = "exclude_any")]
+    ExcludeAny,
+    #[serde(rename = "include_any")]
+    IncludeAny,
+    #[serde(rename = "include_all")]
+    IncludeAll,
+}
+
+/// LabelIdentsWithScope holds label identifiers with a scope.
+#[derive(Debug, Clone)]
+pub struct LabelIdentsWithScope {
+    pub label_scope: LabelScope,
+    pub by_name: std::collections::HashMap<String, LabelIdent>,
+}
+
+/// Valid label platform variants.
+pub const VALID_LABEL_PLATFORM_VARIANTS: &[&str] = &["", "darwin", "windows", "ubuntu", "centos"];
+
 // Well-known built-in label names.
 pub const BUILTIN_LABEL_ALL_HOSTS: &str = "All Hosts";
 pub const BUILTIN_LABEL_MACOS: &str = "macOS";
 pub const BUILTIN_LABEL_UBUNTU_LINUX: &str = "Ubuntu Linux";
 pub const BUILTIN_LABEL_CENTOS_LINUX: &str = "CentOS Linux";
 pub const BUILTIN_LABEL_WINDOWS: &str = "MS Windows";
+pub const BUILTIN_LABEL_RED_HAT_LINUX: &str = "Red Hat Linux";
+pub const BUILTIN_LABEL_ALL_LINUX: &str = "All Linux";
+pub const BUILTIN_LABEL_CHROME: &str = "chrome";
+pub const BUILTIN_LABEL_MACOS_14_PLUS: &str = "macOS 14+ (Sonoma+)";
+pub const BUILTIN_LABEL_IOS: &str = "iOS";
+pub const BUILTIN_LABEL_IPADOS: &str = "iPadOS";
+pub const BUILTIN_LABEL_FEDORA_LINUX: &str = "Fedora Linux";
+pub const BUILTIN_LABEL_ANDROID: &str = "Android";
+
+/// Label kind constant.
+pub const LABEL_KIND: &str = "label";
+
+/// MissingLabelError is returned when a label referenced by name cannot be found.
+#[derive(Debug, Clone)]
+pub struct MissingLabelError {
+    pub message: String,
+    pub missing_label_name: String,
+}
+
+impl std::fmt::Display for MissingLabelError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+impl std::error::Error for MissingLabelError {}

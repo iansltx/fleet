@@ -64,18 +64,25 @@ fn user_row_to_user(row: crate::users::UserRow) -> fleet_types::User {
         api_only: row.api_only,
         teams: Vec::new(),
         settings: None,
+        invite_id: None,
+        deleted: false,
     }
 }
 
 fn activity_row_to_activity(row: crate::activities::ActivityRow) -> fleet_types::Activity {
     fleet_types::Activity {
         id: row.id,
+        uuid: None,
         created_at: row.created_at,
-        user_id: row.user_id,
-        user_name: row.user_name.unwrap_or_default(),
-        user_email: row.user_email.unwrap_or_default(),
         activity_type: row.activity_type,
-        details: row.details.unwrap_or(serde_json::json!({})),
+        actor_id: row.user_id,
+        actor_full_name: row.user_name,
+        actor_email: row.user_email.map(|e| if e.is_empty() { String::new() } else { e }),
+        actor_gravatar: None,
+        actor_api_only: None,
+        streamed: None,
+        fleet_initiated: false,
+        details: row.details.map(|d| d),
     }
 }
 
@@ -267,6 +274,9 @@ fn policy_row_to_policy(row: crate::policies::PolicyRow) -> fleet_types::Policy 
             labels_include_any: Vec::new(),
             labels_exclude_any: Vec::new(),
             calendar_events_enabled: row.calendar_events_enabled,
+            software_installer_id: None,
+            vpp_apps_teams_id: None,
+            script_id: None,
             conditional_access_enabled: false,
             conditional_access_bypass_enabled: None,
             created_at: row.created_at,
@@ -336,6 +346,10 @@ fn software_row_to_software(row: crate::software::SoftwareRow) -> fleet_types::S
         upgrade_code: None,
         display_name: row.name,
         title_id: None,
+        name_source: String::new(),
+        checksum: String::new(),
+        installed: false,
+        is_kernel: false,
     }
 }
 
@@ -360,6 +374,10 @@ fn software_title_row_to_software(row: crate::software::SoftwareTitleRow) -> fle
         upgrade_code: None,
         display_name: row.name,
         title_id: None,
+        name_source: String::new(),
+        checksum: String::new(),
+        installed: false,
+        is_kernel: false,
     }
 }
 
@@ -377,16 +395,24 @@ fn cert_template_row_to_type(row: crate::certificates::CertificateTemplateRow) -
 
 fn cert_authority_row_to_type(row: crate::certificates::CertificateAuthorityRow) -> fleet_types::certificate::CertificateAuthority {
     fleet_types::certificate::CertificateAuthority {
-        id: row.id,
+        id: row.id as u32,
         ca_type: row.ca_type,
-        name: row.name,
-        url: row.url,
+        name: Some(row.name),
+        url: Some(row.url),
         profile_id: row.profile_id,
         certificate_common_name: row.certificate_common_name,
         admin_url: row.admin_url,
         username: row.username,
         challenge_url: row.challenge_url,
         client_id: row.client_id,
+        api_token: None,
+        certificate_seat_id: None,
+        certificate_user_principal_names: None,
+        client_secret: None,
+        password: None,
+        challenge: None,
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
     }
 }
 
@@ -423,10 +449,17 @@ fn fma_row_to_type(row: crate::software::FleetMaintainedAppRow) -> fleet_types::
         id: row.id,
         name: row.name,
         slug: row.slug,
+        version: String::new(),
         platform: row.platform,
+        title_id: None,
+        installer_url: String::new(),
+        sha256: String::new(),
         unique_identifier: row.unique_identifier,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
+        install_script: String::new(),
+        uninstall_script: String::new(),
+        automatic_install_query: String::new(),
+        categories: Vec::new(),
+        upgrade_code: String::new(),
     }
 }
 
@@ -445,6 +478,8 @@ fn vuln_row_to_type(row: crate::software::VulnerabilityRow) -> fleet_types::vuln
         },
         hosts_count: row.hosts_count,
         hosts_count_updated_at: row.hosts_count_updated_at,
+        created_at: row.created_at,
+        source: None,
     }
 }
 
@@ -456,7 +491,7 @@ fn mdm_profile_row_to_type(row: crate::mdm::MDMConfigProfileRow) -> fleet_types:
         platform: row.platform,
         identifier: row.identifier,
         scope: row.scope,
-        checksum: row.checksum,
+        checksum: row.checksum.map(|s| s.into_bytes()),
         created_at: row.created_at,
         uploaded_at: row.uploaded_at,
         labels_include_all: Vec::new(),
@@ -471,9 +506,10 @@ fn mdm_command_row_to_type(row: crate::mdm::MDMCommandRow) -> fleet_types::mdm::
         command_uuid: row.command_uuid,
         updated_at: row.updated_at,
         request_type: row.request_type,
-        status: row.status,
+        status: row.status.clone(),
         hostname: row.hostname,
         team_id: row.team_id,
+        command_status: row.status,
     }
 }
 
@@ -487,15 +523,23 @@ fn mdm_command_result_row_to_type(row: crate::mdm::MDMCommandResultRow) -> fleet
         result: row.result,
         hostname: String::new(),
         payload: row.payload,
+        results_metadata: None,
     }
 }
 
 fn host_mdm_profile_row_to_type(row: crate::mdm::HostMDMProfileRow) -> fleet_types::mdm::HostMDMProfile {
     fleet_types::mdm::HostMDMProfile {
+        host_uuid: String::new(),
+        command_uuid: String::new(),
         profile_uuid: row.profile_uuid,
         name: row.name,
+        identifier: String::new(),
         status: Some(row.status),
-        operation_type: row.operation_type,
+        operation_type: if row.operation_type == "remove" {
+            fleet_types::mdm::MDMOperationType::Remove
+        } else {
+            fleet_types::mdm::MDMOperationType::Install
+        },
         detail: row.detail,
         platform: String::new(),
         scope: row.scope,
@@ -579,8 +623,10 @@ fn script_row_to_script(row: crate::scripts::ScriptRow) -> fleet_types::script::
         id: row.id,
         team_id: row.team_id,
         name: row.name,
+        script_contents: String::new(),
         created_at: row.created_at,
         updated_at: row.updated_at,
+        script_content_id: 0,
     }
 }
 
@@ -594,7 +640,7 @@ fn script_result_row_to_type(row: crate::scripts::ScriptResultRow) -> fleet_type
         output: row.output,
         runtime: row.runtime,
         exit_code: row.exit_code,
-        message: row.message,
+        message: row.message.unwrap_or_default(),
         host_timeout: row.host_timeout,
         host_deleted_at: None,
         created_at: row.created_at,
@@ -605,6 +651,10 @@ fn script_result_row_to_type(row: crate::scripts::ScriptResultRow) -> fleet_type
         sync_request: false,
         team_id: None,
         hostname: String::new(),
+        timeout: None,
+        setup_experience_script_id: None,
+        canceled: false,
+        attempt_number: None,
     }
 }
 
@@ -685,6 +735,9 @@ fn host_policy_row_to_host_policy(row: HostPolicyRow) -> fleet_types::policy::Ho
             labels_include_any: Vec::new(),
             labels_exclude_any: Vec::new(),
             calendar_events_enabled: false,
+            software_installer_id: None,
+            vpp_apps_teams_id: None,
+            script_id: None,
             conditional_access_enabled: row.conditional_access_enabled,
             conditional_access_bypass_enabled: row.conditional_access_bypass_enabled,
             created_at: row.created_at,
@@ -732,6 +785,10 @@ fn software_for_host_row_to_software(row: SoftwareForHostRow) -> fleet_types::So
         upgrade_code: row.upgrade_code,
         display_name: row.name,
         title_id: None,
+        name_source: String::new(),
+        checksum: String::new(),
+        installed: false,
+        is_kernel: false,
     }
 }
 
@@ -773,7 +830,7 @@ fn host_script_result_row_to_result(
         output: row.output,
         runtime: row.runtime,
         exit_code: row.exit_code,
-        message: None,
+        message: String::new(),
         host_timeout: row.host_timeout,
         host_deleted_at: row.host_deleted_at,
         created_at: row.created_at,
@@ -784,6 +841,10 @@ fn host_script_result_row_to_result(
         sync_request: false,
         team_id: None,
         hostname: String::new(),
+        timeout: None,
+        setup_experience_script_id: None,
+        canceled: false,
+        attempt_number: None,
     }
 }
 
@@ -1749,6 +1810,8 @@ impl Datastore for MysqlDatastore {
                     api_only: false,
                     teams: Vec::new(),
                     settings: None,
+                    invite_id: None,
+                    deleted: false,
                 },
                 role: r.role,
             }
@@ -2253,15 +2316,20 @@ impl Datastore for MysqlDatastore {
             .await
             .map_err(ServiceError::from)?;
         Ok(rows.into_iter().map(|r| fleet_types::UpcomingActivity {
-            id: r.id,
-            host_id: r.host_id,
-            user_id: r.user_id,
-            activity_type: r.activity_type,
-            execution_id: r.execution_id,
-            created_at: r.created_at,
-            activated_at: r.activated_at,
-            fleet_initiated: r.fleet_initiated,
-            priority: r.priority,
+            activity: fleet_types::activity::Activity {
+                id: r.id,
+                uuid: None,
+                created_at: r.created_at,
+                activity_type: r.activity_type,
+                actor_id: r.user_id,
+                actor_full_name: None,
+                actor_email: None,
+                actor_gravatar: None,
+                actor_api_only: None,
+                streamed: None,
+                fleet_initiated: r.fleet_initiated,
+                details: None,
+            },
         }).collect())
     }
 

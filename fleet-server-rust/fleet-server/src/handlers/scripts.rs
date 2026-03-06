@@ -101,7 +101,8 @@ pub async fn run_script(
         output: String::new(),
         runtime: 0,
         exit_code: None,
-        message: None,
+        timeout: None,
+        message: String::new(),
         host_timeout: false,
         host_deleted_at: None,
         created_at: chrono::Utc::now(),
@@ -112,6 +113,9 @@ pub async fn run_script(
         sync_request: false,
         team_id: None,
         hostname: String::new(),
+        setup_experience_script_id: None,
+        canceled: false,
+        attempt_number: None,
     };
 
     if let Err(e) = state.service.save_host_script_result(&viewer, &result).await {

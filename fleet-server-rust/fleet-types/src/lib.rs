@@ -33,8 +33,27 @@ pub mod vulnerability;
 pub use activity::{Activity, UpcomingActivity};
 pub use campaign::*;
 pub use carve::*;
-pub use config::*;
-pub use enroll::*;
+
+// Config types (selectively re-exported to avoid conflicts).
+pub use config::{
+    ActivitiesWebhookSettings, ActivityExpirySettings, AndroidSettings, AppConfig,
+    AppleOSUpdateSettings, ApplyClientSpecOptions, ApplySpecOptions, ApplyTeamSpecOptions,
+    CertificateTemplateSpec, ConditionalAccessSettings, DeviceFeatures, DeviceGlobalConfig,
+    DeviceGlobalMDMConfig, DiskEncryptionConfig, EmailConfig, EnrichedAppConfig,
+    FailingPoliciesWebhookSettings, Features, FirehoseConfig, FleetDesktopSettings,
+    GoogleCalendarApiKey, GoogleCalendarIntegration, HostExpirySettings,
+    HostStatusWebhookSettings, Integrations, JiraIntegration, KafkaRESTConfig, KinesisConfig,
+    LambdaConfig, LicenseInfo, ListOptions, ListQueryOptions, Logging, LoggingPlugin,
+    MDMAppleABMAssignmentInfo, MDMAppleVolumePurchasingProgramInfo, MDMConfig,
+    MDMEndUserAuthentication, MacOSMigration, MacOSMigrationMode, MacOSSetup, MacOSSetupSoftware,
+    MacOSSettings, NatsConfig, OrderDirection, OrgInfo, Partnerships, SESConfig, SMTPSettings,
+    SSOProviderSettings, SSOSettings, SecretVariable, ServerSettings, TeamSpecsDryRunAssumptions,
+    UIGitOpsModeConfig, UpdateIntervalConfig, VulnerabilitiesConfig,
+    VulnerabilitiesWebhookSettings, VulnerabilitySettings, WebhookSettings, WindowsSettings,
+    WindowsUpdates, YaraRule, YaraRuleSpec, ZendeskIntegration,
+};
+
+pub use enroll::{EnrollSecret, EnrollSecretSpec};
 pub use error::*;
 pub use host::{
     AggregatedMDMData, AggregatedMDMSolutions, AggregatedMDMStatus, AggregatedMacadminsData,
@@ -44,14 +63,43 @@ pub use host::{
     HostStatus, HostSummary, HostUser, HostVulnerabilitySummary, MDMSolution, MacadminsData,
     MunkiIssue, NetworkInterface, OSVersion, OSVersionStats, OSVersions,
 };
-pub use invite::*;
+pub use invite::{Invite, InvitePayload};
 pub use label::{Label, LabelMembershipType, LabelSpec, LabelSummary, LabelType};
 pub use mdm::{
-    MDMAppleBootstrapPackage, MDMAppleCommand, MDMAppleConfigProfile, MDMAppleDEPDevice,
-    MDMAppleDeclaration, MDMAppleEnrollmentProfile, MDMAppleSetupAssistant, MDMCommand,
-    MDMCommandResult, MDMConfigProfilePayload, MDMDeliveryStatus, MDMDiskEncryptionSummary,
-    MDMOperationType, MDMPlatform, MDMProfilesSummary, MDMWindowsCommand,
-    MDMWindowsConfigProfile, MDMWindowsEnrolledDevice,
+    ABMToken, ABMTokenTeam, AppleBM, AppleCSR, AppleDevice, AppleDevicesToRefetch, AppleMDM,
+    BatchModifyMDMConfigProfilePayload, CommandEnqueueResult, ConfigurationProfileLabel,
+    DEPAssignProfileResponseStatus, EnrolledAPIResult, EnrolledAPIResults, ExpectedMDMProfile,
+    HostDEPAssignment, HostLocationData, HostMDMAppleProfile, HostMDMCertificateProfile,
+    HostMDMCommand, HostMDMIdentifiers, HostMDMProfile, HostMDMProfileRetryCount,
+    HostMDMWindowsProfile, InstallableDevicePlatform, MDMAppleBootstrapPackage,
+    MDMAppleBootstrapPackageSummary, MDMAppleBulkUpsertHostProfilePayload, MDMAppleCommand,
+    MDMAppleConfigProfile, MDMCustomEnrollmentProfileItem, MDMAppleDDMActivation,
+    MDMAppleDDMActivationPayload, MDMAppleDDMDeclarationItem, MDMAppleDDMDeclarationItemsResponse,
+    MDMAppleDDMDeclarationResponse, MDMAppleDDMDeclarationsToken, MDMAppleDDMErrors,
+    MDMAppleDDMManifest, MDMAppleDDMManifestItems, MDMAppleDDMStatusDeclaration,
+    MDMAppleDDMStatusDeclarations, MDMAppleDDMStatusErrorReason, MDMAppleDDMStatusItems,
+    MDMAppleDDMStatusManagement, MDMAppleDDMStatusReport, MDMAppleDDMTokensResponse,
+    MDMAppleDEPDevice, MDMAppleDEPKeyPair, MDMAppleDeclaration, MDMAppleDeclarationValidity,
+    MDMAppleDevice, MDMAppleEnrolledDeviceInfo, MDMAppleEnrollmentProfile,
+    MDMAppleEnrollmentProfilePayload, MDMAppleEnrollmentType, MDMAppleFileVaultSummary,
+    MDMAppleFleetdConfig, MDMAppleHostDeclaration, MDMAppleInstaller, MDMAppleMachineInfo,
+    MDMApplePreassignHostProfiles, MDMApplePreassignProfile, MDMApplePreassignProfilePayload,
+    MDMAppleProfilePayload, MDMAppleRawDeclaration, MDMAppleSettingsPayload,
+    MDMAppleSetupAssistant, MDMAppleSetupPayload, MDMAppleSoftwareUpdateAsset,
+    MDMAppleSoftwareUpdateRequired, MDMAppleSoftwareUpdateRequiredDetails, MDMAssetName,
+    MDMCommand, MDMCommandAuthz, MDMCommandFilters, MDMCommandListOptions, MDMCommandResult,
+    MDMCommandStatusFilter, MDMCommandType, MDMConfigAsset, MDMConfigProfileAuthz,
+    MDMConfigProfilePayload, MDMConfigProfileStatus, MDMDeliveryStatus, MDMDiskEncryptionSummary,
+    MDMEULAPayload, MDMIdPAccount, MDMLabelsMode, MDMLinuxDiskEncryptionSummary,
+    MDMManagedCertificate, MDMOperationType, MDMPlatform, MDMPlatformsCounts,
+    MDMProfileBatchPayload, MDMProfileSpec, MDMProfileUUIDFleetVariables, MDMProfilesUpdates,
+    MDMProfilesSummary, MDMWindowsBitLockerSummary, MDMWindowsBulkUpsertHostProfilePayload,
+    MDMWindowsCommand, MDMWindowsConfigProfile, MDMWindowsEnrolledDevice,
+    MDMWindowsProfileContents, MDMWindowsProfilePayload, MDMWindowsWipeMetadata,
+    MDMWindowsWipeType, MDMWipeMetadata, MDMEULA, NanoEnrollment, NanoUser, NullTeamType,
+    PayloadScope, ProtoCmdState, SCEPIdentityAssociation, SCEPIdentityCertificate, SyncMLDataType,
+    TeamTuple, VPPTokenDB, VPPTokenData, VPPTokenInfo, VPPTokenRaw, WindowsMDMAccessTokenPayload,
+    WindowsMDMEnrollmentType,
 };
 pub use osquery::*;
 pub use pack::{Pack, PackStats, ScheduledQuery};
@@ -66,14 +114,30 @@ pub use software::{
 };
 pub use target::*;
 pub use team::{
-    AppleOSUpdateSettings, MacOSSetup, MacOSSettings, Team, TeamConfig, TeamFilter, TeamLite,
-    TeamMDM, TeamSpec, TeamSummary, TeamUser, WindowsSettings, WindowsUpdates,
+    DefaultTeam, DefaultTeamConfig, DefaultTeamIntegrations, DefaultTeamWebhookSettings, Team,
+    TeamConfig, TeamConfigLite, TeamFilter, TeamGoogleCalendarIntegration, TeamIntegrations,
+    TeamJiraIntegration, TeamLite, TeamMDM, TeamPayload, TeamPayloadMDM, TeamRole, TeamSpec,
+    TeamSpecAppStoreApp, TeamSpecIntegrations, TeamSpecMDM, TeamSpecSoftwareAsset,
+    TeamSpecWebhookSettings, TeamSummary, TeamUser, TeamWebhookSettings,
+    TeamZendeskIntegration, UserTeam,
 };
 pub use user::{User, UserPayload};
 pub use vulnerability::{CVE, CVEMeta, SoftwareVulnerability};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+
+/// API version constant for spec objects.
+pub const API_VERSION: &str = "v1";
+
+/// ObjectMetadata holds common metadata for spec objects (used in YAML import/export).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ObjectMetadata {
+    #[serde(default)]
+    pub api_version: String,
+    #[serde(default)]
+    pub kind: String,
+}
 
 /// Timestamps for entity creation.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
@@ -92,33 +156,4 @@ pub struct UpdateTimestamp {
 pub struct UpdateCreateTimestamps {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-}
-
-/// OrderDirection specifies the direction of ordering (ascending or descending).
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
-pub enum OrderDirection {
-    #[default]
-    #[serde(rename = "asc")]
-    Ascending,
-    #[serde(rename = "desc")]
-    Descending,
-}
-
-/// ListOptions defines options related to paging and ordering.
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
-pub struct ListOptions {
-    /// Which page to return (must be positive integer).
-    pub page: u32,
-    /// How many results per page (0 indicates unlimited).
-    pub per_page: u32,
-    /// Key to use for ordering.
-    pub order_key: String,
-    /// Direction of ordering.
-    pub order_direction: OrderDirection,
-    /// Query string to match against columns of the entity.
-    pub match_query: String,
-    /// Row to start from (used with cursor pagination).
-    pub after: String,
-    /// Whether to include pagination metadata in the response.
-    pub include_metadata: bool,
 }

@@ -123,3 +123,71 @@ pub struct PackStats {
     pub pack_type: String,
     pub query_stats: Vec<ScheduledQueryStats>,
 }
+
+/// PackPayload is the struct used to create/update packs.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct PackPayload {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub platform: Option<String>,
+    pub disabled: Option<bool>,
+    pub host_ids: Option<Vec<u32>>,
+    pub label_ids: Option<Vec<u32>>,
+    pub team_ids: Option<Vec<u32>>,
+}
+
+/// PackSpec is the spec format for packs (used in YAML/gitops).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PackSpec {
+    #[serde(default, skip_serializing_if = "is_zero_u32")]
+    pub id: u32,
+    pub name: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub description: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub platform: String,
+    pub disabled: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub targets: Option<PackSpecTargets>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub queries: Vec<PackSpecQuery>,
+}
+
+fn is_zero_u32(v: &u32) -> bool {
+    *v == 0
+}
+
+/// PackSpecTargets specifies the targets for a pack spec.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct PackSpecTargets {
+    #[serde(default)]
+    pub labels: Vec<String>,
+    #[serde(default)]
+    pub teams: Vec<String>,
+}
+
+/// PackSpecQuery defines a scheduled query within a pack spec.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PackSpecQuery {
+    #[serde(rename = "query")]
+    pub query_name: String,
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    pub interval: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub snapshot: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub removed: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shard: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub platform: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub denylist: Option<bool>,
+}
+
+/// Pack kind constant.
+pub const PACK_KIND: &str = "pack";

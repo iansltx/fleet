@@ -58,8 +58,15 @@ pub struct User {
     #[serde(default)]
     pub teams: Vec<UserTeam>,
 
+    /// Only used to prevent duplicate invite acceptance.
+    #[serde(skip)]
+    pub invite_id: Option<u32>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub settings: Option<UserSettings>,
+
+    #[serde(skip)]
+    pub deleted: bool,
 }
 
 impl User {
@@ -107,4 +114,6 @@ pub struct UserPayload {
     #[serde(skip)]
     pub new_password: Option<String>,
     pub settings: Option<UserSettings>,
+    #[serde(skip)]
+    pub invite_id: Option<u32>,
 }

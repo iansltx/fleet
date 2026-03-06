@@ -81,6 +81,8 @@ impl FleetService {
             position: payload.position.clone().unwrap_or_default(),
             teams: payload.teams.clone().unwrap_or_default(),
             settings: None,
+            deleted: false,
+            invite_id: None,
         };
 
         let created_user = self.ds.new_user(&user).await?;
@@ -142,6 +144,8 @@ impl FleetService {
             api_only: false,
             position: String::new(),
             settings: None,
+            deleted: false,
+            invite_id: None,
         };
 
         let created_user = self.ds.new_user(&user).await?;
@@ -353,6 +357,8 @@ impl FleetService {
             position: String::new(),
             teams: Vec::new(),
             settings: None,
+            deleted: false,
+            invite_id: None,
         };
 
         let created = self.ds.new_user(&user).await?;

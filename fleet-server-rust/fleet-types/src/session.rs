@@ -30,6 +30,23 @@ pub struct SSOSession {
     pub redirect_url: String,
 }
 
+/// SAMLAttributeValue holds the type and value of a SAML custom attribute.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct SAMLAttributeValue {
+    /// Type is the type of attribute value.
+    #[serde(rename = "type")]
+    pub value_type: String,
+    /// Value is the actual value of the attribute.
+    pub value: String,
+}
+
+/// SAMLAttribute holds the name and values of a SAML custom attribute.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct SAMLAttribute {
+    pub name: String,
+    pub values: Vec<SAMLAttributeValue>,
+}
+
 /// SSORolesInfo holds the configuration parsed from SAML custom attributes.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SSORolesInfo {

@@ -257,7 +257,8 @@ pub async fn install_software_title(
         output: String::new(),
         runtime: 0,
         exit_code: None,
-        message: Some(format!("Installing software title {}", software_title_id)),
+        timeout: None,
+        message: format!("Installing software title {}", software_title_id),
         host_timeout: false,
         host_deleted_at: None,
         created_at: chrono::Utc::now(),
@@ -268,6 +269,9 @@ pub async fn install_software_title(
         sync_request: false,
         team_id: None,
         hostname: String::new(),
+        setup_experience_script_id: None,
+        canceled: false,
+        attempt_number: None,
     };
     if let Err(e) = state.service.save_host_script_result(&viewer, &result).await {
         return encode_service_error(&e);
@@ -295,7 +299,8 @@ pub async fn uninstall_software_title(
         output: String::new(),
         runtime: 0,
         exit_code: None,
-        message: Some(format!("Uninstalling software title {}", software_title_id)),
+        timeout: None,
+        message: format!("Uninstalling software title {}", software_title_id),
         host_timeout: false,
         host_deleted_at: None,
         created_at: chrono::Utc::now(),
@@ -306,6 +311,9 @@ pub async fn uninstall_software_title(
         sync_request: false,
         team_id: None,
         hostname: String::new(),
+        setup_experience_script_id: None,
+        canceled: false,
+        attempt_number: None,
     };
     if let Err(e) = state.service.save_host_script_result(&viewer, &result).await {
         return encode_service_error(&e);

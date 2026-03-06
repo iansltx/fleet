@@ -121,8 +121,20 @@ pub struct HostListOptions {
     pub mdm_bootstrap_package_filter: Option<MDMBootstrapPackageStatus>,
     pub populate_software: bool,
     pub populate_policies: bool,
+    pub populate_users: bool,
+    pub populate_labels: bool,
+    pub include_device_status: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub connected_to_fleet_filter: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub profile_uuid_filter: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub profile_status_filter: Option<OSSettingsStatus>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub batch_script_execution_status_filter: Option<BatchScriptExecutionStatus>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub batch_script_execution_id_filter: Option<String>,
+    pub populate_software_vulnerability_details: bool,
 }
 
 /// HostUser represents a user account on a host.
@@ -727,3 +739,245 @@ pub struct NetworkInterface {
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub broadcast: String,
 }
+
+/// HostHealthVulnerableSoftware holds a vulnerable software entry for host health.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostHealthVulnerableSoftware {
+    pub id: u32,
+    pub name: String,
+    pub version: String,
+}
+
+/// HostHealthFailingPolicy holds a failing policy entry for host health.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostHealthFailingPolicy {
+    pub id: u32,
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub critical: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolution: Option<String>,
+}
+
+/// BatchScriptExecutionStatus defines the possible statuses of a batch script execution.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum BatchScriptExecutionStatus {
+    #[serde(rename = "ran")]
+    Ran,
+    #[serde(rename = "pending")]
+    Pending,
+    #[serde(rename = "errored")]
+    Errored,
+    #[serde(rename = "canceled")]
+    Canceled,
+    #[serde(rename = "incompatible")]
+    Incompatible,
+}
+
+/// ActionRequiredState defines the possible action-required states for disk encryption.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum ActionRequiredState {
+    #[serde(rename = "log_out")]
+    LogOut,
+    #[serde(rename = "rotate_key")]
+    RotateKey,
+}
+
+/// HostMacOSProfile represents a macOS profile installed on a host.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostMacOSProfile {
+    pub display_name: String,
+    pub identifier: String,
+    pub install_date: DateTime<Utc>,
+}
+
+/// HostSoftwareInstalledPath represents where in the file system a software on a host was installed.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostSoftwareInstalledPath {
+    pub id: u32,
+    pub host_id: u32,
+    pub software_id: u32,
+    pub installed_path: String,
+    pub team_identifier: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cdhash_sha256: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub executable_sha256: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub executable_path: Option<String>,
+}
+
+/// VulnerableOS extends OSVersion with a resolved_in_version field.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VulnerableOS {
+    #[serde(flatten)]
+    pub os_version: OSVersion,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolved_in_version: Option<String>,
+}
+
+/// Kernel represents a Linux kernel found on a host.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Kernel {
+    pub id: u32,
+    pub version: String,
+    #[serde(default)]
+    pub vulnerabilities: Vec<String>,
+    pub hosts_count: u32,
+}
+
+/// HostArchivedDiskEncryptionKey contains an archived disk encryption key for a host.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostArchivedDiskEncryptionKey {
+    #[serde(skip)]
+    pub host_id: u32,
+    #[serde(skip)]
+    pub base64_encrypted: String,
+    #[serde(skip)]
+    pub base64_encrypted_salt: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key_slot: Option<u32>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// DeletedHostDetails contains details about a host that has been deleted.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeletedHostDetails {
+    pub id: u32,
+    pub display_name: String,
+    pub serial: String,
+    pub host_expiry_window: i32,
+}
+
+/// AddHostsToTeamParams contains parameters for adding hosts to a team.
+#[derive(Debug, Clone)]
+pub struct AddHostsToTeamParams {
+    pub team_id: Option<u32>,
+    pub host_ids: Vec<u32>,
+    pub batch_size: u32,
+}
+
+impl Default for AddHostsToTeamParams {
+    fn default() -> Self {
+        Self {
+            team_id: None,
+            host_ids: Vec::new(),
+            batch_size: 10_000,
+        }
+    }
+}
+
+/// HostVitalType categorizes host vital data.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HostVitalType {
+    /// Domestic vitals are stored in the host table.
+    Domestic,
+    /// Foreign vitals are stored in a separate table and joined.
+    Foreign,
+    /// Additional vitals are stored as JSON in the host_additional table.
+    Additional,
+}
+
+/// HostVital describes a single host vital field.
+#[derive(Debug, Clone)]
+pub struct HostVital {
+    pub name: String,
+    pub vital_type: HostVitalType,
+    pub data_type: String,
+    pub foreign_vital_group: Option<String>,
+    pub path: String,
+}
+
+/// HostForeignVitalGroup describes a foreign vitals group for host vitals labels.
+#[derive(Debug, Clone)]
+pub struct HostForeignVitalGroup {
+    pub name: String,
+    pub query: String,
+}
+
+/// HostVitalOperator defines comparison operators for host vitals criteria.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum HostVitalOperator {
+    #[serde(rename = "=")]
+    Equal,
+    #[serde(rename = "!=")]
+    NotEqual,
+    #[serde(rename = ">")]
+    Greater,
+    #[serde(rename = "<")]
+    Less,
+    #[serde(rename = "LIKE")]
+    Like,
+}
+
+/// HostVitalCriteria defines criteria for host vitals labels.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostVitalCriteria {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vital: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub operator: Option<HostVitalOperator>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub and: Vec<HostVitalCriteria>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub or: Vec<HostVitalCriteria>,
+}
+
+// Well-known MDM solution name constants.
+pub const WELL_KNOWN_MDM_IRU: &str = "Iru";
+pub const WELL_KNOWN_MDM_JAMF: &str = "Jamf";
+pub const WELL_KNOWN_MDM_JUMPCLOUD: &str = "JumpCloud";
+pub const WELL_KNOWN_MDM_VMWARE: &str = "VMware Workspace ONE";
+pub const WELL_KNOWN_MDM_INTUNE: &str = "Intune";
+pub const WELL_KNOWN_MDM_SIMPLEMDM: &str = "SimpleMDM";
+pub const WELL_KNOWN_MDM_FLEET: &str = "Fleet";
+pub const WELL_KNOWN_MDM_MOSYLE: &str = "Mosyle";
+
+// Device mapping source constants.
+pub const DEVICE_MAPPING_GOOGLE_CHROME_PROFILES: &str = "google_chrome_profiles";
+pub const DEVICE_MAPPING_MDM_IDP_ACCOUNTS: &str = "mdm_idp_accounts";
+pub const DEVICE_MAPPING_IDP: &str = "idp";
+pub const DEVICE_MAPPING_CUSTOM_INSTALLER: &str = "custom_installer";
+pub const DEVICE_MAPPING_CUSTOM_OVERRIDE: &str = "custom_override";
+pub const DEVICE_MAPPING_CUSTOM_PREFIX: &str = "custom_";
+pub const DEVICE_MAPPING_CUSTOM_REPLACEMENT: &str = "custom";
+
+/// GeoLocation contains geolocation data for a host.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GeoLocation {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub country_iso: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub city_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub geometry: Option<GeoLocationGeometry>,
+}
+
+/// GeoLocationGeometry contains geolocation geometry data.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GeoLocationGeometry {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<String>,
+    #[serde(default)]
+    pub coordinates: Vec<f64>,
+}
+
+/// HostResponse is the response struct that contains the full host information
+/// along with the host online status and the display text for the UI.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostResponse {
+    #[serde(flatten)]
+    pub host: Host,
+    pub status: HostStatus,
+    pub display_text: String,
+    pub display_name: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub labels: Vec<crate::label::Label>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub geolocation: Option<GeoLocation>,
+}
+
+/// Duration constants matching Go's host status logic.
+pub const ONLINE_INTERVAL_BUFFER: u32 = 60;
