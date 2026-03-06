@@ -10,7 +10,6 @@ pub mod campaign;
 pub mod carve;
 pub mod certificate;
 pub mod config;
-pub mod datastore;
 pub mod enroll;
 pub mod error;
 pub mod host;

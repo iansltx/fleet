@@ -225,3 +225,100 @@ pub mod schedule_names {
     pub const BATCH_ACTIVITY_COMPLETION_CHECKER: &str = "batch_activity_completion_checker";
     pub const SCHEDULED_BATCH_ACTIVITIES: &str = "scheduled_batch_activities";
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::{AtomicU32, Ordering};
+
+    fn make_counting_job(name: &str, interval: Duration, counter: Arc<AtomicU32>) -> CronJob {
+        CronJob {
+            name: name.to_string(),
+            interval,
+            func: Box::new(move || {
+                let counter = counter.clone();
+                Box::pin(async move {
+                    counter.fetch_add(1, Ordering::SeqCst);
+                    Ok(())
+                })
+            }),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_register_and_schedule_names() {
+        let scheduler = CronScheduler::new();
+        let counter = Arc::new(AtomicU32::new(0));
+        let job = make_counting_job("test_job", Duration::from_secs(3600), counter);
+        scheduler.register(job).await;
+
+        let names = scheduler.schedule_names().await;
+        assert_eq!(names, vec!["test_job".to_string()]);
+
+        scheduler.shutdown().await;
+    }
+
+    #[tokio::test]
+    async fn test_trigger_unknown_schedule() {
+        let scheduler = CronScheduler::new();
+
+        let result = scheduler.trigger("nonexistent").await;
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            CronTriggerError::NotFound { name, .. } => {
+                assert_eq!(name, "nonexistent");
+            }
+            other => panic!("expected NotFound, got: {:?}", other),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_shutdown() {
+        let scheduler = CronScheduler::new();
+        let counter = Arc::new(AtomicU32::new(0));
+        let job = make_counting_job("my_schedule", Duration::from_secs(3600), counter);
+        scheduler.register(job).await;
+
+        assert_eq!(scheduler.schedule_names().await.len(), 1);
+
+        scheduler.shutdown().await;
+
+        assert!(scheduler.schedule_names().await.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_job_execution() {
+        let scheduler = CronScheduler::new();
+        let counter = Arc::new(AtomicU32::new(0));
+        let job = make_counting_job("fast_job", Duration::from_millis(50), counter.clone());
+        scheduler.register(job).await;
+
+        // Wait long enough for a few ticks
+        tokio::time::sleep(Duration::from_millis(200)).await;
+
+        let count = counter.load(Ordering::SeqCst);
+        assert!(count >= 1, "expected counter >= 1, got {count}");
+
+        scheduler.shutdown().await;
+    }
+
+    #[tokio::test]
+    async fn test_trigger_executes_job() {
+        let scheduler = CronScheduler::new();
+        let counter = Arc::new(AtomicU32::new(0));
+        // Very long interval so it won't fire on its own
+        let job = make_counting_job("manual_job", Duration::from_secs(3600), counter.clone());
+        scheduler.register(job).await;
+
+        assert_eq!(counter.load(Ordering::SeqCst), 0);
+
+        scheduler.trigger("manual_job").await.expect("trigger should succeed");
+
+        // Give the spawned task a moment to execute
+        tokio::time::sleep(Duration::from_millis(50)).await;
+
+        assert_eq!(counter.load(Ordering::SeqCst), 1, "job should have run exactly once via trigger");
+
+        scheduler.shutdown().await;
+    }
+}

@@ -198,4 +198,79 @@ impl FleetService {
         // to manage the full lifecycle.
         Ok(Vec::new())
     }
+
+    /// Runs a live query targeting a single host by ID.
+    ///
+    /// Creates an ad-hoc query and a distributed query campaign targeting just one host.
+    /// Returns empty results since actual results arrive via Redis pub/sub.
+    pub async fn run_live_query_on_host(
+        &self,
+        viewer: &Viewer,
+        query_sql: &str,
+        host_id: u32,
+    ) -> ServiceResult<Vec<fleet_types::campaign::QueryResult>> {
+        authz::authorize(viewer, Subject::Query, Action::Run)?;
+
+        if query_sql.is_empty() {
+            return Err(ServiceError::invalid_argument("query", "query SQL is required"));
+        }
+
+        // Verify the host exists
+        let _host = self.ds.host(host_id).await?;
+
+        // Create an ad-hoc query for the campaign
+        let query = fleet_types::Query {
+            id: 0,
+            team_id: None,
+            interval: 0,
+            platform: String::new(),
+            min_osquery_version: String::new(),
+            automations_enabled: false,
+            logging: "snapshot".to_string(),
+            name: format!("live_query_{}", chrono::Utc::now().timestamp()),
+            description: "Ad-hoc live query on host".to_string(),
+            query: query_sql.to_string(),
+            saved: false,
+            observer_can_run: false,
+            author_id: Some(viewer.user_id()),
+            author_name: viewer.user.name.clone(),
+            author_email: viewer.user.email.clone(),
+            packs: Vec::new(),
+            aggregated_stats: Default::default(),
+            discard_data: true,
+            labels_include_any: Vec::new(),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        };
+        let saved_query = self.ds.new_query(&query).await?;
+
+        // Create the campaign
+        let mut campaign = self
+            .ds
+            .new_distributed_query_campaign(saved_query.id, viewer.user_id())
+            .await?;
+
+        // Add the single host as target
+        self.ds
+            .new_distributed_query_campaign_target(
+                campaign.id,
+                fleet_types::target::TargetType::Host,
+                host_id,
+            )
+            .await?;
+
+        // Mark campaign as running
+        campaign.status = fleet_types::campaign::DistributedQueryStatus::Running;
+        self.ds.save_distributed_query_campaign(&campaign).await?;
+
+        info!(
+            campaign_id = campaign.id,
+            query_id = saved_query.id,
+            host_id = host_id,
+            "live query on host started"
+        );
+
+        // Return empty results - actual result collection happens via Redis pub/sub
+        Ok(Vec::new())
+    }
 }

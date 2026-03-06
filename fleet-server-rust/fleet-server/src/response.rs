@@ -141,3 +141,75 @@ pub fn encode_service_error(err: &ServiceError) -> FleetResponse {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_fleet_ok_with_key() {
+        let (status, Json(body)) = fleet_ok("user", json!({"id": 1}));
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body, json!({"user": {"id": 1}}));
+    }
+
+    #[test]
+    fn test_fleet_ok_empty_key() {
+        let (status, Json(body)) = fleet_ok("", json!({"foo": "bar"}));
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body, json!({"foo": "bar"}));
+    }
+
+    #[test]
+    fn test_fleet_error() {
+        let (status, Json(body)) = fleet_error(StatusCode::NOT_FOUND, "not found");
+        assert_eq!(status, StatusCode::NOT_FOUND);
+        assert_eq!(body, json!({"error": "not found"}));
+    }
+
+    #[test]
+    fn test_fleet_validation_error() {
+        let errors = vec![ValidationError {
+            name: "email".to_string(),
+            reason: "invalid format".to_string(),
+        }];
+        let (status, Json(body)) = fleet_validation_error("validation failed", errors);
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+        assert_eq!(body["error"], "validation failed");
+        let errors_arr = body["errors"].as_array().expect("errors should be an array");
+        assert_eq!(errors_arr.len(), 1);
+        assert_eq!(errors_arr[0]["name"], "email");
+        assert_eq!(errors_arr[0]["reason"], "invalid format");
+    }
+
+    #[test]
+    fn test_fleet_no_content() {
+        let (status, _) = fleet_no_content();
+        assert_eq!(status, StatusCode::NO_CONTENT);
+    }
+
+    #[test]
+    fn test_encode_service_error_not_found() {
+        let err = ServiceError::NotFound("resource missing".to_string());
+        let (status, Json(body)) = encode_service_error(&err);
+        assert_eq!(status, StatusCode::NOT_FOUND);
+        assert_eq!(body, json!({"error": "resource missing"}));
+    }
+
+    #[test]
+    fn test_encode_service_error_forbidden() {
+        let err = ServiceError::Forbidden("access denied".to_string());
+        let (status, Json(body)) = encode_service_error(&err);
+        assert_eq!(status, StatusCode::FORBIDDEN);
+        assert_eq!(body, json!({"error": "access denied"}));
+    }
+
+    #[test]
+    fn test_encode_service_error_missing_license() {
+        let err = ServiceError::MissingLicense;
+        let (status, Json(body)) = encode_service_error(&err);
+        assert_eq!(status, StatusCode::PAYMENT_REQUIRED);
+        assert_eq!(body, json!({"error": "missing license"}));
+    }
+}

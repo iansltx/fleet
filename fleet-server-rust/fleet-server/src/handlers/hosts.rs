@@ -321,9 +321,16 @@ pub async fn run_live_query_on_host(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &identifier, &body);
-    // Live query on host requires distributed query infrastructure (deferred)
-    fleet_ok("results", serde_json::json!([]))
+    // Look up the host by identifier to get the host ID
+    let host_detail = match state.service.get_host_by_identifier(&viewer, &identifier).await {
+        Ok(h) => h,
+        Err(e) => return encode_service_error(&e),
+    };
+    let host_id = host_detail.host.id;
+    match state.service.run_live_query_on_host(&viewer, &body.query, host_id).await {
+        Ok(results) => fleet_ok("results", serde_json::to_value(&results).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/hosts/{id}/query
@@ -337,9 +344,10 @@ pub async fn run_live_query_on_host_by_id(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id, &body);
-    // Live query on host requires distributed query infrastructure (deferred)
-    fleet_ok("results", serde_json::json!([]))
+    match state.service.run_live_query_on_host(&viewer, &body.query, id as u32).await {
+        Ok(results) => fleet_ok("results", serde_json::to_value(&results).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// DELETE /api/_version_/fleet/hosts/{id}
