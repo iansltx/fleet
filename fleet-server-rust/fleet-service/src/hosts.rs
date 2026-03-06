@@ -361,6 +361,47 @@ impl FleetService {
     ) -> ServiceResult<Vec<fleet_types::certificate::HostCertificate>> {
         self.ds.list_host_certificates(host_id).await
     }
+
+    /// Gets MDM enrollment data for a single host.
+    pub async fn get_host_mdm_data(
+        &self,
+        viewer: &Viewer,
+        host_id: u32,
+    ) -> ServiceResult<fleet_types::HostMDM> {
+        authz::authorize(viewer, Subject::Host, Action::Read)?;
+        self.ds.get_host_mdm_data(host_id).await
+    }
+
+    /// Gets macadmins (munki + MDM) data for a single host.
+    pub async fn get_macadmins_data(
+        &self,
+        viewer: &Viewer,
+        host_id: u32,
+    ) -> ServiceResult<fleet_types::MacadminsData> {
+        authz::authorize(viewer, Subject::Host, Action::Read)?;
+        self.ds.get_macadmins_data(host_id).await
+    }
+
+    /// Gets aggregated MDM enrollment data.
+    pub async fn aggregated_mdm_data(
+        &self,
+        viewer: &Viewer,
+        team_id: Option<u32>,
+        platform: &str,
+    ) -> ServiceResult<fleet_types::AggregatedMDMData> {
+        authz::authorize(viewer, Subject::Host, Action::Read)?;
+        self.ds.aggregated_mdm_data(team_id, platform).await
+    }
+
+    /// Gets aggregated macadmins data (munki + MDM, darwin only).
+    pub async fn aggregated_macadmins_data(
+        &self,
+        viewer: &Viewer,
+        team_id: Option<u32>,
+    ) -> ServiceResult<fleet_types::AggregatedMacadminsData> {
+        authz::authorize(viewer, Subject::Host, Action::Read)?;
+        self.ds.aggregated_macadmins_data(team_id).await
+    }
 }
 
 /// Converts a full Label to a LabelSummary.

@@ -92,6 +92,36 @@ pub struct HostSummaryRow {
     pub new_count: i64,
 }
 
+/// Row type for `host_mdm` query result.
+#[derive(Debug, sqlx::FromRow)]
+pub struct HostMDMRow {
+    pub host_id: u32,
+    pub enrolled: bool,
+    pub server_url: String,
+    pub installed_from_dep: bool,
+    pub is_server: bool,
+    pub is_personal_enrollment: bool,
+    pub mdm_id: Option<u32>,
+    pub name: String,
+    pub dep_profile_assign_status: Option<String>,
+}
+
+/// Row type for host munki issues.
+#[derive(Debug, sqlx::FromRow)]
+pub struct HostMunkiIssueRow {
+    pub munki_issue_id: u32,
+    pub name: String,
+    pub issue_type: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Row type for aggregated stats JSON.
+#[derive(Debug, sqlx::FromRow)]
+pub struct AggregatedStatsRow {
+    pub json_value: Vec<u8>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
 impl MysqlDatastore {
     /// Creates a new host. Matches Go's `NewHost`.
     ///
@@ -393,5 +423,169 @@ impl MysqlDatastore {
         .await?;
 
         Ok(row)
+    }
+
+    // -----------------------------------------------------------------------
+    // Host MDM / Macadmins queries
+    // -----------------------------------------------------------------------
+
+    /// Gets MDM enrollment data for a single host.
+    /// Matches Go's `GetHostMDM`.
+    pub async fn get_host_mdm(&self, host_id: u32) -> Result<HostMDMRow> {
+        sqlx::query_as::<_, HostMDMRow>(
+            r#"
+            SELECT
+                hm.host_id,
+                hm.enrolled,
+                hm.server_url,
+                hm.installed_from_dep,
+                hm.mdm_id,
+                hm.is_personal_enrollment,
+                COALESCE(hm.is_server, false) AS is_server,
+                COALESCE(mdms.name, '') AS name,
+                hdep.assign_profile_response AS dep_profile_assign_status
+            FROM
+                host_mdm hm
+            LEFT OUTER JOIN
+                mobile_device_management_solutions mdms ON hm.mdm_id = mdms.id
+            LEFT OUTER JOIN
+                host_dep_assignments hdep ON hdep.host_id = hm.host_id
+            WHERE hm.host_id = ?
+            "#,
+        )
+        .bind(host_id)
+        .fetch_optional(self.pool())
+        .await?
+        .ok_or_else(|| DatastoreError::not_found_with_id("HostMDMData", host_id as u64))
+    }
+
+    /// Gets munki version for a host.
+    pub async fn get_host_munki_version(&self, host_id: u32) -> Result<Option<String>> {
+        let result: Option<(String,)> = sqlx::query_as(
+            "SELECT version FROM host_munki_info WHERE deleted_at IS NULL AND host_id = ?",
+        )
+        .bind(host_id)
+        .fetch_optional(self.pool())
+        .await?;
+        Ok(result.map(|r| r.0))
+    }
+
+    /// Gets munki issues for a host.
+    pub async fn get_host_munki_issues(&self, host_id: u32) -> Result<Vec<HostMunkiIssueRow>> {
+        let rows = sqlx::query_as::<_, HostMunkiIssueRow>(
+            r#"
+            SELECT
+                hmi.munki_issue_id,
+                mi.name,
+                mi.issue_type,
+                hmi.created_at
+            FROM
+                host_munki_issues hmi
+            INNER JOIN
+                munki_issues mi ON hmi.munki_issue_id = mi.id
+            WHERE host_id = ?
+            "#,
+        )
+        .bind(host_id)
+        .fetch_all(self.pool())
+        .await?;
+        Ok(rows)
+    }
+
+    /// Gets an aggregated stats JSON value by type.
+    async fn get_aggregated_stats(
+        &self,
+        team_id: Option<u32>,
+        stats_type: &str,
+    ) -> Result<Option<AggregatedStatsRow>> {
+        let (id, global_stats) = match team_id {
+            Some(tid) => (tid, false),
+            None => (0, true),
+        };
+        let row = sqlx::query_as::<_, AggregatedStatsRow>(
+            "SELECT json_value, updated_at FROM aggregated_stats WHERE id = ? AND global_stats = ? AND type = ?",
+        )
+        .bind(id)
+        .bind(global_stats)
+        .bind(stats_type)
+        .fetch_optional(self.pool())
+        .await?;
+        Ok(row)
+    }
+
+    /// Gets aggregated MDM enrollment status.
+    pub async fn aggregated_mdm_status(
+        &self,
+        team_id: Option<u32>,
+        platform: &str,
+    ) -> Result<(fleet_types::AggregatedMDMStatus, chrono::DateTime<chrono::Utc>)> {
+        let stats_type = if platform.is_empty() {
+            "mdm_status".to_string()
+        } else {
+            format!("mdm_status_{platform}")
+        };
+        match self.get_aggregated_stats(team_id, &stats_type).await? {
+            Some(row) => {
+                let status: fleet_types::AggregatedMDMStatus =
+                    serde_json::from_slice(&row.json_value)
+                        .map_err(|e| DatastoreError::Internal(format!("unmarshal mdm status: {e}")))?;
+                Ok((status, row.updated_at))
+            }
+            None => Ok((fleet_types::AggregatedMDMStatus::default(), chrono::Utc::now())),
+        }
+    }
+
+    /// Gets aggregated MDM solutions.
+    pub async fn aggregated_mdm_solutions(
+        &self,
+        team_id: Option<u32>,
+        platform: &str,
+    ) -> Result<(Vec<fleet_types::AggregatedMDMSolutions>, chrono::DateTime<chrono::Utc>)> {
+        let stats_type = if platform.is_empty() {
+            "mdm_solutions".to_string()
+        } else {
+            format!("mdm_solutions_{platform}")
+        };
+        match self.get_aggregated_stats(team_id, &stats_type).await? {
+            Some(row) => {
+                let solutions: Vec<fleet_types::AggregatedMDMSolutions> =
+                    serde_json::from_slice(&row.json_value)
+                        .map_err(|e| DatastoreError::Internal(format!("unmarshal mdm solutions: {e}")))?;
+                Ok((solutions, row.updated_at))
+            }
+            None => Ok((vec![], chrono::Utc::now())),
+        }
+    }
+
+    /// Gets aggregated munki versions.
+    pub async fn aggregated_munki_versions(
+        &self,
+        team_id: Option<u32>,
+    ) -> Result<(Vec<fleet_types::AggregatedMunkiVersion>, chrono::DateTime<chrono::Utc>)> {
+        match self.get_aggregated_stats(team_id, "munki_versions").await? {
+            Some(row) => {
+                let versions: Vec<fleet_types::AggregatedMunkiVersion> =
+                    serde_json::from_slice(&row.json_value)
+                        .map_err(|e| DatastoreError::Internal(format!("unmarshal munki versions: {e}")))?;
+                Ok((versions, row.updated_at))
+            }
+            None => Ok((vec![], chrono::Utc::now())),
+        }
+    }
+
+    /// Gets aggregated munki issues.
+    pub async fn aggregated_munki_issues(
+        &self,
+        team_id: Option<u32>,
+    ) -> Result<(Vec<fleet_types::AggregatedMunkiIssue>, chrono::DateTime<chrono::Utc>)> {
+        match self.get_aggregated_stats(team_id, "munki_issues").await? {
+            Some(row) => {
+                let issues: Vec<fleet_types::AggregatedMunkiIssue> =
+                    serde_json::from_slice(&row.json_value)
+                        .map_err(|e| DatastoreError::Internal(format!("unmarshal munki issues: {e}")))?;
+                Ok((issues, row.updated_at))
+            }
+            None => Ok((vec![], chrono::Utc::now())),
+        }
     }
 }

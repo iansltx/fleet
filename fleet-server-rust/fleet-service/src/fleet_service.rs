@@ -349,6 +349,19 @@ pub trait Datastore: Send + Sync + 'static {
         per_page: u32,
     ) -> ServiceResult<fleet_types::mdm::MDMConfigProfileStatus>;
 
+    // ---- Host MDM / Macadmins ----
+    async fn get_host_mdm_data(&self, host_id: u32) -> ServiceResult<fleet_types::HostMDM>;
+    async fn get_macadmins_data(&self, host_id: u32) -> ServiceResult<fleet_types::MacadminsData>;
+    async fn aggregated_mdm_data(
+        &self,
+        team_id: Option<u32>,
+        platform: &str,
+    ) -> ServiceResult<fleet_types::AggregatedMDMData>;
+    async fn aggregated_macadmins_data(
+        &self,
+        team_id: Option<u32>,
+    ) -> ServiceResult<fleet_types::AggregatedMacadminsData>;
+
     // ---- Utilities ----
     async fn list_packs_for_host(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::Pack>>;
     async fn list_software_titles(&self, team_id: Option<u32>, limit: u32, offset: u32) -> ServiceResult<Vec<fleet_types::Software>>;

@@ -92,6 +92,17 @@ pub struct CountTargetsBody {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct HostMDMSummaryParams {
+    pub team_id: Option<u32>,
+    pub platform: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AggregatedMacadminsParams {
+    pub team_id: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct RunLiveQueryOnHostBody {
     pub query: String,
 }
@@ -624,14 +635,17 @@ pub async fn list_host_certificates(
 pub async fn get_host_mdm_summary(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
+    Query(params): Query<HostMDMSummaryParams>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    // Stub: backing service not yet implemented
-    fleet_ok("mdm_summary", serde_json::json!({}))
+    let platform = params.platform.as_deref().unwrap_or("");
+    match state.service.aggregated_mdm_data(&viewer, params.team_id, platform).await {
+        Ok(data) => fleet_ok("", serde_json::to_value(&data).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/mdm
@@ -644,9 +658,10 @@ pub async fn get_host_mdm(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id);
-    // Stub: backing service not yet implemented
-    fleet_ok("host_mdm", serde_json::json!({}))
+    match state.service.get_host_mdm_data(&viewer, id as u32).await {
+        Ok(data) => fleet_ok("host_mdm", serde_json::to_value(&data).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/macadmins
@@ -659,23 +674,26 @@ pub async fn get_macadmins_data(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id);
-    // Stub: backing service not yet implemented
-    fleet_ok("macadmins", serde_json::json!({}))
+    match state.service.get_macadmins_data(&viewer, id as u32).await {
+        Ok(data) => fleet_ok("macadmins", serde_json::to_value(&data).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/macadmins
 pub async fn get_aggregated_macadmins_data(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
+    Query(params): Query<AggregatedMacadminsParams>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    // Stub: backing service not yet implemented
-    fleet_ok("macadmins", serde_json::json!({}))
+    match state.service.aggregated_macadmins_data(&viewer, params.team_id).await {
+        Ok(data) => fleet_ok("macadmins", serde_json::to_value(&data).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/hosts/{id}/scripts
@@ -750,8 +768,7 @@ pub async fn lock_host(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, id);
-    // Stub: backing service not yet implemented
-    fleet_ok("", serde_json::json!({}))
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// POST /api/_version_/fleet/hosts/{id}/unlock
@@ -765,8 +782,7 @@ pub async fn unlock_host(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, id);
-    // Stub: backing service not yet implemented
-    fleet_ok("", serde_json::json!({}))
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// POST /api/_version_/fleet/hosts/{id}/wipe
@@ -780,8 +796,7 @@ pub async fn wipe_host(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, id);
-    // Stub: backing service not yet implemented
-    fleet_ok("", serde_json::json!({}))
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// POST /api/_version_/fleet/targets

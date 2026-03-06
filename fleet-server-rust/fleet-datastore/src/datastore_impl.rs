@@ -2947,4 +2947,130 @@ impl Datastore for MysqlDatastore {
         }
         Ok(status)
     }
+
+    // ---- Host MDM / Macadmins ----
+
+    async fn get_host_mdm_data(&self, host_id: u32) -> ServiceResult<fleet_types::HostMDM> {
+        let row = MysqlDatastore::get_host_mdm(self, host_id)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(fleet_types::HostMDM {
+            host_id: row.host_id,
+            enrolled: row.enrolled,
+            server_url: row.server_url,
+            installed_from_dep: row.installed_from_dep,
+            is_server: row.is_server,
+            is_personal_enrollment: row.is_personal_enrollment,
+            mdm_id: row.mdm_id,
+            name: row.name,
+            dep_profile_assign_status: row.dep_profile_assign_status,
+        })
+    }
+
+    async fn get_macadmins_data(&self, host_id: u32) -> ServiceResult<fleet_types::MacadminsData> {
+        // Get munki version (optional - may not exist)
+        let munki_version = MysqlDatastore::get_host_munki_version(self, host_id)
+            .await
+            .map_err(ServiceError::from)?;
+        let munki = munki_version.map(|v| fleet_types::HostMunkiInfo { version: v });
+
+        // Get MDM data (optional - may not exist)
+        let mdm = match MysqlDatastore::get_host_mdm(self, host_id).await {
+            Ok(row) => Some(fleet_types::HostMDM {
+                host_id: row.host_id,
+                enrolled: row.enrolled,
+                server_url: row.server_url,
+                installed_from_dep: row.installed_from_dep,
+                is_server: row.is_server,
+                is_personal_enrollment: row.is_personal_enrollment,
+                mdm_id: row.mdm_id,
+                name: row.name,
+                dep_profile_assign_status: row.dep_profile_assign_status,
+            }),
+            Err(_) => None,
+        };
+
+        // Get munki issues
+        let issue_rows = MysqlDatastore::get_host_munki_issues(self, host_id)
+            .await
+            .map_err(ServiceError::from)?;
+        let munki_issues = issue_rows
+            .into_iter()
+            .map(|r| fleet_types::HostMunkiIssue {
+                munki_issue_id: r.munki_issue_id,
+                name: r.name,
+                issue_type: r.issue_type,
+                created_at: r.created_at,
+            })
+            .collect();
+
+        Ok(fleet_types::MacadminsData {
+            munki,
+            mdm,
+            munki_issues,
+        })
+    }
+
+    async fn aggregated_mdm_data(
+        &self,
+        team_id: Option<u32>,
+        platform: &str,
+    ) -> ServiceResult<fleet_types::AggregatedMDMData> {
+        let (status, status_time) = MysqlDatastore::aggregated_mdm_status(self, team_id, platform)
+            .await
+            .map_err(ServiceError::from)?;
+        let (solutions, solutions_time) =
+            MysqlDatastore::aggregated_mdm_solutions(self, team_id, platform)
+                .await
+                .map_err(ServiceError::from)?;
+
+        // Use the most recent updated_at
+        let counts_updated_at = if status_time > solutions_time {
+            status_time
+        } else {
+            solutions_time
+        };
+
+        Ok(fleet_types::AggregatedMDMData {
+            counts_updated_at,
+            mobile_device_management_enrollment_status: status,
+            mobile_device_management_solution: solutions,
+        })
+    }
+
+    async fn aggregated_macadmins_data(
+        &self,
+        team_id: Option<u32>,
+    ) -> ServiceResult<fleet_types::AggregatedMacadminsData> {
+        let (munki_versions, mv_time) =
+            MysqlDatastore::aggregated_munki_versions(self, team_id)
+                .await
+                .map_err(ServiceError::from)?;
+        let (munki_issues, mi_time) =
+            MysqlDatastore::aggregated_munki_issues(self, team_id)
+                .await
+                .map_err(ServiceError::from)?;
+        let (mdm_status, ms_time) =
+            MysqlDatastore::aggregated_mdm_status(self, team_id, "darwin")
+                .await
+                .map_err(ServiceError::from)?;
+        let (mdm_solutions, msol_time) =
+            MysqlDatastore::aggregated_mdm_solutions(self, team_id, "darwin")
+                .await
+                .map_err(ServiceError::from)?;
+
+        // Use the most recent updated_at from any source
+        let counts_updated_at = [mv_time, mi_time, ms_time, msol_time]
+            .into_iter()
+            .max()
+            .unwrap_or(chrono::Utc::now());
+
+        Ok(fleet_types::AggregatedMacadminsData {
+            counts_updated_at,
+            munki_versions,
+            munki_issues,
+            mobile_device_management_enrollment_status: mdm_status,
+            mobile_device_management_solution: mdm_solutions,
+        })
+    }
 }

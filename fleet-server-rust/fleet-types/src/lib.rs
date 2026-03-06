@@ -36,7 +36,12 @@ pub use carve::*;
 pub use config::*;
 pub use enroll::*;
 pub use error::*;
-pub use host::{Host, HostDetail, HostListOptions, HostStatus, HostSummary, HostUser, OSVersionStats};
+pub use host::{
+    AggregatedMDMData, AggregatedMDMSolutions, AggregatedMDMStatus, AggregatedMacadminsData,
+    AggregatedMunkiIssue, AggregatedMunkiVersion, Host, HostDetail, HostListOptions, HostMDM,
+    HostMunkiInfo, HostMunkiIssue, HostStatus, HostSummary, HostUser, MacadminsData, MDMSolution,
+    MunkiIssue, OSVersionStats,
+};
 pub use invite::*;
 pub use label::{Label, LabelMembershipType, LabelSpec, LabelSummary, LabelType};
 pub use osquery::*;

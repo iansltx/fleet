@@ -478,8 +478,7 @@ pub async fn get_scim_details(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    // Stub: backing service not yet implemented
-    fleet_ok("scim", serde_json::json!({}))
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// POST /api/_version_/fleet/conditional-access/microsoft
@@ -651,8 +650,7 @@ pub async fn request_certificate(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, id, &body);
-    // Stub: backing service not yet implemented
-    fleet_ok("certificate", serde_json::json!({}))
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// POST /api/_version_/fleet/spec/certificate_authorities

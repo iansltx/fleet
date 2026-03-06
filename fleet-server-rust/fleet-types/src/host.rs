@@ -336,3 +336,156 @@ pub struct HostOrbitInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scripts_enabled: Option<bool>,
 }
+
+// ---------------------------------------------------------------------------
+// Host MDM types (from Go hosts.go)
+// ---------------------------------------------------------------------------
+
+/// HostMDM represents MDM enrollment info for a single host.
+/// Matches Go's `fleet.HostMDM`.
+#[derive(Debug, Clone)]
+pub struct HostMDM {
+    pub host_id: u32,
+    pub enrolled: bool,
+    pub server_url: String,
+    pub installed_from_dep: bool,
+    pub is_server: bool,
+    pub is_personal_enrollment: bool,
+    pub mdm_id: Option<u32>,
+    pub name: String,
+    pub dep_profile_assign_status: Option<String>,
+}
+
+impl HostMDM {
+    /// Returns the enrollment status string, matching Go's `HostMDM.EnrollmentStatus()`.
+    pub fn enrollment_status(&self) -> &'static str {
+        match (self.enrolled, self.installed_from_dep, self.is_personal_enrollment) {
+            (true, false, true) => "On (personal)",
+            (true, false, false) => "On (manual)",
+            (true, true, _) => "On (automatic)",
+            (false, true, _) => "Pending",
+            _ => "Off",
+        }
+    }
+}
+
+/// Custom JSON serialization for HostMDM matching Go's MarshalJSON.
+/// Servers are serialized as null; otherwise outputs enrollment_status, server_url, name, id.
+impl Serialize for HostMDM {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        if self.is_server {
+            return serializer.serialize_none();
+        }
+        let field_count = 2 + if self.name.is_empty() { 0 } else { 1 } + if self.mdm_id.is_some() { 1 } else { 0 };
+        let mut s = serializer.serialize_struct("HostMDM", field_count)?;
+        s.serialize_field("enrollment_status", self.enrollment_status())?;
+        s.serialize_field("server_url", &self.server_url)?;
+        if !self.name.is_empty() {
+            s.serialize_field("name", &self.name)?;
+        }
+        if let Some(id) = self.mdm_id {
+            s.serialize_field("id", &id)?;
+        }
+        s.end()
+    }
+}
+
+/// HostMunkiInfo holds munki version for a host.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostMunkiInfo {
+    pub version: String,
+}
+
+/// HostMunkiIssue represents a munki issue on a host.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostMunkiIssue {
+    #[serde(rename = "id")]
+    pub munki_issue_id: u32,
+    pub name: String,
+    #[serde(rename = "type")]
+    pub issue_type: String,
+    pub created_at: DateTime<Utc>,
+}
+
+/// MacadminsData holds macadmins (munki + MDM) data for a single host.
+#[derive(Debug, Clone, Serialize)]
+pub struct MacadminsData {
+    pub munki: Option<HostMunkiInfo>,
+    #[serde(rename = "mobile_device_management")]
+    pub mdm: Option<HostMDM>,
+    pub munki_issues: Vec<HostMunkiIssue>,
+}
+
+// ---------------------------------------------------------------------------
+// Aggregated MDM / Macadmins types
+// ---------------------------------------------------------------------------
+
+/// AggregatedMDMStatus holds enrollment status counts.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct AggregatedMDMStatus {
+    pub enrolled_manual_hosts_count: i64,
+    pub enrolled_automated_hosts_count: i64,
+    pub enrolled_personal_hosts_count: i64,
+    pub pending_hosts_count: i64,
+    pub unenrolled_hosts_count: i64,
+    pub hosts_count: i64,
+}
+
+/// MDMSolution identifies an MDM solution.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MDMSolution {
+    pub id: u32,
+    pub name: String,
+    pub server_url: String,
+}
+
+/// AggregatedMDMSolutions extends MDMSolution with a host count.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AggregatedMDMSolutions {
+    #[serde(flatten)]
+    pub solution: MDMSolution,
+    pub hosts_count: i64,
+}
+
+/// AggregatedMDMData is the response for the host MDM summary endpoint.
+#[derive(Debug, Clone, Serialize)]
+pub struct AggregatedMDMData {
+    pub counts_updated_at: DateTime<Utc>,
+    pub mobile_device_management_enrollment_status: AggregatedMDMStatus,
+    pub mobile_device_management_solution: Vec<AggregatedMDMSolutions>,
+}
+
+/// AggregatedMunkiVersion extends HostMunkiInfo with a host count.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AggregatedMunkiVersion {
+    pub version: String,
+    pub hosts_count: i64,
+}
+
+/// MunkiIssue is the base munki issue type (for aggregation).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MunkiIssue {
+    pub id: u32,
+    pub name: String,
+    #[serde(rename = "type")]
+    pub issue_type: String,
+}
+
+/// AggregatedMunkiIssue extends MunkiIssue with a host count.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AggregatedMunkiIssue {
+    #[serde(flatten)]
+    pub issue: MunkiIssue,
+    pub hosts_count: i64,
+}
+
+/// AggregatedMacadminsData holds all aggregated macadmins data.
+#[derive(Debug, Clone, Serialize)]
+pub struct AggregatedMacadminsData {
+    pub counts_updated_at: DateTime<Utc>,
+    pub munki_versions: Vec<AggregatedMunkiVersion>,
+    pub munki_issues: Vec<AggregatedMunkiIssue>,
+    pub mobile_device_management_enrollment_status: AggregatedMDMStatus,
+    pub mobile_device_management_solution: Vec<AggregatedMDMSolutions>,
+}
