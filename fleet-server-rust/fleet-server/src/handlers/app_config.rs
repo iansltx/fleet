@@ -4,6 +4,7 @@
 //! secret variables, SCIM, conditional access, and more.
 
 use axum::extract::{Json, Path, Query, State};
+use axum::http::StatusCode;
 use serde::Deserialize;
 
 use crate::middleware::auth::AuthenticatedUser;
@@ -134,10 +135,32 @@ pub async fn trigger(
     State(state): State<AppState>,
     Json(body): Json<TriggerBody>,
 ) -> FleetResponse {
-    let _ = &state;
-    // Log the trigger request; actual job execution requires background worker infrastructure
-    tracing::info!(trigger_name = ?body.name, "trigger requested (background workers not yet implemented)");
-    fleet_ok("", serde_json::json!({}))
+    let name = body.name.unwrap_or_default();
+    if name.is_empty() {
+        return fleet_error(StatusCode::BAD_REQUEST, "name is required");
+    }
+
+    match state.cron_scheduler.trigger(&name).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(fleet_service::cron::CronTriggerError::NotFound { name, available }) => {
+            let msg = if available.is_empty() {
+                format!("unknown schedule '{}'; no schedules registered", name)
+            } else {
+                format!("unknown schedule '{}'; available: {}", name, available.join(", "))
+            };
+            fleet_error(StatusCode::NOT_FOUND, &msg)
+        }
+        Err(fleet_service::cron::CronTriggerError::Conflict { name, started_at }) => {
+            let msg = format!(
+                "conflicts with current status of {} schedule: run started at {}",
+                name, started_at
+            );
+            fleet_error(StatusCode::CONFLICT, &msg)
+        }
+        Err(e) => {
+            fleet_error(StatusCode::INTERNAL_SERVER_ERROR, &e.to_string())
+        }
+    }
 }
 
 /// GET /api/_version_/fleet/config/certificate

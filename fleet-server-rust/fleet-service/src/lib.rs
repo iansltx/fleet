@@ -5,6 +5,7 @@
 //! osquery enrollment, query scheduling, policy enforcement, and more.
 
 pub mod activities;
+pub mod cron;
 pub mod app_config;
 pub mod auth;
 pub mod authz;

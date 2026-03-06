@@ -34,6 +34,8 @@ pub struct AppState {
     pub icon_store: Arc<dyn BlobStore>,
     /// Blob store for MDM bootstrap packages.
     pub bootstrap_package_store: Arc<dyn BlobStore>,
+    /// Background cron scheduler.
+    pub cron_scheduler: Arc<fleet_service::cron::CronScheduler>,
 }
 
 /// Fleet server - osquery management and orchestration.
@@ -238,6 +240,10 @@ async fn run_serve(
     };
 
     let svc = fleet_service::FleetService::new(Arc::new(ds), svc_config);
+    // Initialize cron scheduler with default jobs
+    let cron_scheduler = Arc::new(fleet_service::cron::CronScheduler::new());
+    register_cron_jobs(&cron_scheduler).await;
+
     let state = AppState {
         service: Arc::new(svc),
         live_query,
@@ -245,6 +251,7 @@ async fn run_serve(
         installer_store,
         icon_store,
         bootstrap_package_store,
+        cron_scheduler: cron_scheduler.clone(),
     };
 
     // Build the axum application with all routes
@@ -259,8 +266,95 @@ async fn run_serve(
         .with_graceful_shutdown(shutdown_signal())
         .await?;
 
+    // Stop background jobs
+    cron_scheduler.shutdown().await;
+
     tracing::info!("Fleet server stopped");
     Ok(())
+}
+
+/// Register default cron jobs with the scheduler.
+///
+/// Each job runs periodically and can be triggered ad-hoc via the trigger API.
+/// Jobs are lightweight stubs for now; actual implementations will query the
+/// datastore and perform cleanup, aggregation, etc.
+async fn register_cron_jobs(scheduler: &fleet_service::cron::CronScheduler) {
+    use fleet_service::cron::{CronJob, schedule_names};
+
+    // Cleanups + aggregation: runs every hour
+    scheduler.register(CronJob {
+        name: schedule_names::CLEANUPS_THEN_AGGREGATION.to_string(),
+        interval: std::time::Duration::from_secs(3600),
+        func: Box::new(|| Box::pin(async {
+            tracing::info!("Running cleanups_then_aggregation");
+            // TODO: Implement host cleanup, distributed query cleanup,
+            // label membership aggregation, etc.
+            Ok(())
+        })),
+    }).await;
+
+    // Frequent cleanups: runs every 15 minutes
+    scheduler.register(CronJob {
+        name: schedule_names::FREQUENT_CLEANUPS.to_string(),
+        interval: std::time::Duration::from_secs(900),
+        func: Box::new(|| Box::pin(async {
+            tracing::info!("Running frequent_cleanups");
+            // TODO: Implement expired session cleanup, stale host removal, etc.
+            Ok(())
+        })),
+    }).await;
+
+    // Usage statistics: runs every 24 hours
+    scheduler.register(CronJob {
+        name: schedule_names::USAGE_STATISTICS.to_string(),
+        interval: std::time::Duration::from_secs(86400),
+        func: Box::new(|| Box::pin(async {
+            tracing::info!("Running usage_statistics");
+            Ok(())
+        })),
+    }).await;
+
+    // Vulnerabilities: runs every hour
+    scheduler.register(CronJob {
+        name: schedule_names::VULNERABILITIES.to_string(),
+        interval: std::time::Duration::from_secs(3600),
+        func: Box::new(|| Box::pin(async {
+            tracing::info!("Running vulnerabilities scan");
+            Ok(())
+        })),
+    }).await;
+
+    // Automations: runs every hour
+    scheduler.register(CronJob {
+        name: schedule_names::AUTOMATIONS.to_string(),
+        interval: std::time::Duration::from_secs(3600),
+        func: Box::new(|| Box::pin(async {
+            tracing::info!("Running automations");
+            Ok(())
+        })),
+    }).await;
+
+    // Integrations worker: runs every 10 minutes
+    scheduler.register(CronJob {
+        name: schedule_names::INTEGRATIONS.to_string(),
+        interval: std::time::Duration::from_secs(600),
+        func: Box::new(|| Box::pin(async {
+            tracing::info!("Running integrations worker");
+            Ok(())
+        })),
+    }).await;
+
+    // Query results cleanup: runs every minute
+    scheduler.register(CronJob {
+        name: schedule_names::QUERY_RESULTS_CLEANUP.to_string(),
+        interval: std::time::Duration::from_secs(60),
+        func: Box::new(|| Box::pin(async {
+            tracing::debug!("Running query_results_cleanup");
+            Ok(())
+        })),
+    }).await;
+
+    tracing::info!("Registered {} cron schedules", scheduler.schedule_names().await.len());
 }
 
 /// Initialize blob stores based on configuration.
