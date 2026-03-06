@@ -170,32 +170,89 @@ impl FleetService {
     /// Initiates SSO login flow.
     ///
     /// Corresponds to Go's `(svc *Service) InitiateSSO`.
+    /// In a full implementation, this generates a SAML AuthnRequest from the
+    /// IdP metadata and returns the IdP redirect URL. Requires a SAML library
+    /// (e.g. `samael`) for AuthnRequest generation and XML signing.
     pub async fn initiate_sso(&self, relay_url: &str) -> ServiceResult<String> {
         let config = self.ds.app_config().await?;
         if !config.enable_sso {
-            return Err(crate::ServiceError::bad_request("SSO is not enabled"));
+            return Err(crate::ServiceError::bad_request(
+                "organization not configured to use sso",
+            ));
         }
-        // In a full implementation, this would generate a SAML AuthnRequest
-        // and return the IdP redirect URL.
-        info!("SSO initiation requested, relay_url={}", relay_url);
-        Ok(String::new())
+
+        // Validate relay URL scheme to prevent XSS
+        if let Ok(parsed) = url::Url::parse(relay_url) {
+            match parsed.scheme() {
+                "javascript" | "vbscript" | "data" => {
+                    return Err(crate::ServiceError::bad_request(
+                        &format!("invalid sso redirect url scheme: {}", parsed.scheme()),
+                    ));
+                }
+                _ => {}
+            }
+        }
+
+        // Validate IdP metadata is configured
+        if config.sso_metadata.is_empty() && config.sso_metadata_url.is_empty() {
+            return Err(crate::ServiceError::bad_request(
+                "SSO metadata or metadata URL must be configured",
+            ));
+        }
+
+        info!(relay_url = %relay_url, "SSO initiation requested");
+
+        // Full implementation would:
+        // 1. Parse IdP metadata XML (from config.sso_metadata or fetch config.sso_metadata_url)
+        // 2. Build SAML AuthnRequest with ACS URL = {server_url}/api/v1/fleet/sso/callback
+        // 3. Store session ID + request ID in Redis (TTL 5 min)
+        // 4. Return IdP redirect URL with SAMLRequest parameter
+        //
+        // Requires `samael` crate for SAML AuthnRequest generation.
+        Err(crate::ServiceError::bad_request(
+            "SSO SAML AuthnRequest generation not yet implemented; requires samael crate integration",
+        ))
     }
 
     /// Handles SSO callback with SAML response.
     ///
-    /// Corresponds to Go's `(svc *Service) CallbackSSO`.
+    /// Corresponds to Go's `(svc *Service) InitSSOCallback` + `getSSOSession`.
+    ///
+    /// Full implementation flow:
+    /// 1. Parse and verify the base64-decoded SAML response XML
+    /// 2. Validate signature against IdP certificate from metadata
+    /// 3. Check audience restrictions and request ID (CSRF protection)
+    /// 4. Extract user email from Subject NameID
+    /// 5. Look up user by email; if not found and JIT provisioning is enabled, create user
+    /// 6. Verify user.sso_enabled is true
+    /// 7. Create session and return user + session
+    ///
+    /// Requires `samael` crate for SAML response parsing/verification.
     pub async fn callback_sso(
         &self,
         saml_response: &str,
     ) -> ServiceResult<(fleet_types::User, fleet_types::Session)> {
         let config = self.ds.app_config().await?;
         if !config.enable_sso {
-            return Err(crate::ServiceError::bad_request("SSO is not enabled"));
+            return Err(crate::ServiceError::bad_request(
+                "organization not configured to use sso",
+            ));
         }
-        // In a full implementation, this would validate the SAML response,
-        // extract the user identity, and create/login the user.
-        let _ = saml_response;
-        Err(crate::ServiceError::bad_request("SSO callback not yet implemented"))
+
+        if saml_response.is_empty() {
+            return Err(crate::ServiceError::bad_request("SAMLResponse is required"));
+        }
+
+        warn!("SSO callback received but SAML verification not yet implemented");
+
+        // Full implementation would:
+        // 1. Base64-decode the SAMLResponse
+        // 2. Parse and verify using samael::sp::ServiceProvider
+        // 3. Extract user identity (email) from assertion
+        // 4. Lookup user, verify sso_enabled, create session
+        Err(crate::ServiceError::bad_request(
+            "SSO SAML response verification not yet implemented; requires samael crate integration",
+        ))
     }
 
     /// Validates that a session is still active and not expired.
