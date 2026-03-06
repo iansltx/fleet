@@ -7,7 +7,7 @@
 | Source files (non-test) | ~1,300 | 142 | ~11% |
 | Source lines (total) | ~620,000 | ~98,000 | ~16% |
 | API routes | ~394 | ~419 | ~100% (routes defined) |
-| Datastore methods | ~901 | ~449 | ~50% |
+| Datastore interface methods | ~1,450 | ~181 (trait) | ~12% |
 | Service interface methods | ~436 | ~554 fn defs | ~70% (many are premium-gated stubs) |
 | Type definitions (lines) | ~27,600 | ~3,000 | ~11% |
 | Test files | 675 | 0 (only inline #[cfg(test)]) | ~0% |
@@ -82,8 +82,9 @@ correct, complete types.
 
 ## Phase 2: Datastore Layer (Data Access)
 
-Go has ~901 datastore methods across `server/datastore/mysql/`. Rust has ~449,
-but many return placeholder values. The MySQL implementation is critical path.
+Go has ~1,450 datastore interface methods across `server/fleet/datastore.go`. Rust
+has ~181 trait methods, many of which return placeholder values (`Ok(Vec::new())`,
+`Ok(None)`, `Ok(0)`). The MySQL implementation is critical path.
 
 ### 2.1 Audit existing Rust datastore — fix placeholders
 - [ ] `cleanup.rs` — 14 placeholder returns, 11 stub methods
@@ -99,7 +100,7 @@ but many return placeholder values. The MySQL implementation is critical path.
 - [ ] `jobs.rs` — 2 placeholder returns
 - [ ] `enroll.rs` — 2 placeholder returns
 
-### 2.2 Missing datastore domains (~452 methods missing)
+### 2.2 Missing datastore domains (~1,270 methods missing)
 - [ ] **Hosts** — Go has ~6,500 lines of MySQL host queries; Rust has ~608 lines
   - `ListHosts`, `CountHosts`, `HostByIdentifier`, `SearchHosts`
   - `UpdateHostSoftware`, `UpdateHostOperatingSystem`
@@ -137,13 +138,42 @@ but many return placeholder values. The MySQL implementation is critical path.
 - [ ] **Android** — Go has ~1,864 lines; Rust has 0
 - [ ] **SCIM** — Go has ~2,725 lines (test); Rust has 0
 - [ ] **Certificate templates** — Go has dedicated files; Rust has 0
+- [ ] **Host lock/wipe/unlock** — Go has ~8 methods; Rust has 0
+- [ ] **Host disk encryption key management** — Go has ~10 methods; Rust has 0
+- [ ] **Host device mappings & batteries** — Go has ~10 methods; Rust has 0
+- [ ] **Calendar events** — Go has ~10 methods; Rust has 0
+- [ ] **Windows updates** — Go has ~2 methods; Rust has 0
+- [ ] **ABM tokens** — Go has ~10 methods; Rust has 0
+- [ ] **DEP profile assignments** — Go has ~9 methods; Rust has 0
+- [ ] **VPP tokens & apps** — Go has ~35+ methods; Rust has 0
+- [ ] **Conditional access** — Go has ~11 methods; Rust has 0
+- [ ] **Batch script execution** — Go has ~10 methods; Rust has 0
+- [ ] **Software categories** — Go has ~4 methods; Rust has 0
+- [ ] **Software installer operations** — Go has ~30+ methods; Rust has 0
+- [ ] **Host identity certificates** — Go has ~4 methods; Rust has 0
+- [ ] **MDM config assets** — Go has ~8 methods; Rust has 0
+- [ ] **MDM upcoming activities** — Go has ~8 methods; Rust has 0
+- [ ] **Apple MDM declarations (DDM)** — Go has ~9 methods; Rust has 0
+- [ ] **Apple MDM bootstrap packages** — Go has ~10 methods; Rust has 0
+- [ ] **Apple MDM setup assistant & EULA** — Go has ~11 methods; Rust has 0
+- [ ] **Apple MDM enrollment profiles** — Go has ~4 methods; Rust has 0
+- [ ] **Apple MDM host profiles** — Go has ~20+ methods; Rust has 0
+- [ ] **Windows MDM enrolled devices** — Go has ~15+ methods; Rust has 0
+- [ ] **Windows MDM host profiles** — Go has ~10 methods; Rust has 0
+- [ ] **Challenges (SCEP)** — Go has ~3 methods; Rust has 0
+- [ ] **Cron stats** — Go has ~6 methods; Rust has 0
+- [ ] **Aggregated stats & statistics** — Go has ~5 methods; Rust has 0
+- [ ] **Database locking & utilities** — Go has ~5 methods; Rust has 0
+- [ ] **Migrations** — Go has ~3 methods; Rust has 0
+- [ ] **Host location** — Go has ~3 methods; Rust has 0
+- [ ] **Fleet-maintained apps** — Go has ~5 methods; Rust has 0
 
 ### 2.3 Database migrations
 - [ ] Verify migration system handles Go's schema.sql correctly
 - [ ] Test migration rollback support
 - [ ] Add migration versioning/tracking
 
-**Estimated scope:** ~450 missing methods, ~80,000 lines of Go → ~25,000-35,000 lines of Rust
+**Estimated scope:** ~1,270 missing methods, ~120,000 lines of Go → ~40,000-60,000 lines of Rust
 
 ---
 
@@ -545,7 +575,7 @@ Phase 11 (Observability) — can parallel with later phases
 | Phase | Go Lines | Est. Rust Lines | Priority |
 |---|---|---|---|
 | 1. Types | ~27,600 | 8,000-12,000 | P0 — blocks everything |
-| 2. Datastore | ~80,000 | 25,000-35,000 | P0 — blocks service layer |
+| 2. Datastore | ~120,000 | 40,000-60,000 | P0 — blocks service layer |
 | 3. Service Logic | ~30,000 | 10,000-15,000 | P0 — core functionality |
 | 4. Enterprise | ~21,000 | 7,000-10,000 | P1 — premium features |
 | 5. MDM Protocol | ~30,000 | 10,000-15,000 | P1 — major feature area |
@@ -555,7 +585,7 @@ Phase 11 (Observability) — can parallel with later phases
 | 9. Authorization | spread | 2,000-4,000 | P0 — security critical |
 | 10. Testing | ~200,000 | 20,000-40,000 | P0 — ongoing |
 | 11. Observability | — | 2,000-3,000 | P2 — production |
-| **Total** | **~420,000** | **~93,500-149,500** | |
+| **Total** | **~460,000** | **~108,500-175,500** | |
 
 Current Rust: ~98,000 lines (including boilerplate/stubs)
-Estimated remaining: **~60,000-100,000 lines** of meaningful new Rust code
+Estimated remaining: **~75,000-130,000 lines** of meaningful new Rust code
