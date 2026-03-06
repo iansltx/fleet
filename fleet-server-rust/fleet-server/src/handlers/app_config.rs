@@ -157,7 +157,13 @@ pub async fn get_certificate(State(state): State<AppState>) -> FleetResponse {
 }
 
 /// Connects to the given server URL via TLS and returns the PEM-encoded
-/// peer certificate (matching Go behavior of returning the certificate chain).
+/// peer certificate.
+///
+/// Note: The Go implementation returns the full chain minus the leaf certificate
+/// (since osqueryd obtains the leaf during its own TLS handshake). The `native-tls`
+/// crate only exposes the peer (leaf) certificate. If a full chain minus the leaf
+/// is needed in the future, consider switching to the `openssl` or `rustls` crate
+/// which expose `peer_cert_chain()`.
 async fn fetch_certificate_chain(server_url: &str) -> Result<String, anyhow::Error> {
     use base64::Engine;
 
