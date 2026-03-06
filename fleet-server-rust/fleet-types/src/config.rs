@@ -32,6 +32,10 @@ pub struct ServerSettings {
     pub scripts_disabled: bool,
     #[serde(default)]
     pub ai_features_disabled: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub debug_host_ids: Option<Vec<u32>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub query_report_cap: Option<i32>,
 }
 
 /// SMTPSettings holds SMTP configuration.
@@ -97,17 +101,23 @@ pub struct VulnerabilitySettings {
 pub struct FleetDesktopSettings {
     #[serde(default)]
     pub transparency_url: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub alternative_browser_host: String,
 }
 
 /// WebhookSettings holds global webhook configuration.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct WebhookSettings {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub host_status_webhook: Option<serde_json::Value>,
+    pub activities_webhook: Option<ActivitiesWebhookSettings>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub failing_policies_webhook: Option<serde_json::Value>,
+    pub host_status_webhook: Option<HostStatusWebhookSettings>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub vulnerabilities_webhook: Option<serde_json::Value>,
+    pub failing_policies_webhook: Option<FailingPoliciesWebhookSettings>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vulnerabilities_webhook: Option<VulnerabilitiesWebhookSettings>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub interval: Option<serde_json::Value>,
 }
 
 /// Integrations holds global integration configuration.
@@ -138,7 +148,20 @@ pub struct MDMConfig {
     pub enabled_and_configured: bool,
     #[serde(default)]
     pub windows_enabled_and_configured: bool,
-    // Additional MDM fields can be added as needed.
+    #[serde(default)]
+    pub android_enabled_and_configured: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub macos_updates: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub windows_updates: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub macos_settings: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub macos_migration: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_user_authentication: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub volume_purchasing_program: Option<Vec<serde_json::Value>>,
 }
 
 /// ConditionalAccessSettings holds the global conditional access settings.
@@ -146,6 +169,8 @@ pub struct MDMConfig {
 pub struct ConditionalAccessSettings {
     pub microsoft_entra_tenant_id: String,
     pub microsoft_entra_connection_configured: bool,
+    #[serde(default)]
+    pub bypass_disabled: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub okta_idp_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -200,4 +225,110 @@ pub struct AppConfig {
     pub scripts: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub conditional_access: Option<ConditionalAccessSettings>,
+}
+
+/// HostStatusWebhookSettings configures host status webhooks.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct HostStatusWebhookSettings {
+    pub enable_host_status_webhook: bool,
+    pub destination_url: String,
+    pub host_percentage: u32,
+    pub days_count: u32,
+}
+
+/// FailingPoliciesWebhookSettings configures failing policies webhooks.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct FailingPoliciesWebhookSettings {
+    pub enable_failing_policies_webhook: bool,
+    pub destination_url: String,
+    #[serde(default)]
+    pub policy_ids: Vec<u32>,
+    pub host_batch_size: u32,
+}
+
+/// VulnerabilitiesWebhookSettings configures vulnerability webhooks.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct VulnerabilitiesWebhookSettings {
+    pub enable_vulnerabilities_webhook: bool,
+    pub destination_url: String,
+    pub host_batch_size: u32,
+}
+
+/// ActivitiesWebhookSettings configures activity webhooks.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ActivitiesWebhookSettings {
+    pub enable: bool,
+    pub destination_url: String,
+}
+
+/// JiraIntegration holds global Jira integration configuration.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct JiraIntegration {
+    pub url: String,
+    pub username: String,
+    #[serde(skip)]
+    pub api_token: String,
+    pub project_key: String,
+    pub enable_failing_policies: bool,
+    pub enable_software_vulnerabilities: bool,
+}
+
+/// ZendeskIntegration holds global Zendesk integration configuration.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ZendeskIntegration {
+    pub url: String,
+    pub email: String,
+    #[serde(skip)]
+    pub api_token: String,
+    pub group_id: u64,
+    pub enable_failing_policies: bool,
+    pub enable_software_vulnerabilities: bool,
+}
+
+/// GoogleCalendarIntegration holds global Google Calendar configuration.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GoogleCalendarIntegration {
+    pub domain: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_key: Option<serde_json::Value>,
+}
+
+/// LicenseInfo holds information about the Fleet license.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct LicenseInfo {
+    pub tier: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub organization: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub device_count: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expiration: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
+}
+
+/// EnrichedAppConfig extends AppConfig with additional runtime fields.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct EnrichedAppConfig {
+    #[serde(flatten)]
+    pub app_config: AppConfig,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub update_interval: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vulnerabilities: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub license: Option<LicenseInfo>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub logging: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<serde_json::Value>,
+}
+
+/// ApplySpecOptions controls how specs are applied.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ApplySpecOptions {
+    pub force: bool,
+    pub dry_run: bool,
+    pub no_cache: bool,
+    pub overwrite: bool,
 }

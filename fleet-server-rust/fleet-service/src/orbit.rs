@@ -124,6 +124,12 @@ impl FleetService {
             host_deleted_at: None,
             created_at: self.clock.now(),
             updated_at: self.clock.now(),
+            batch_execution_id: None,
+            policy_id: None,
+            user_id: None,
+            sync_request: false,
+            team_id: None,
+            hostname: String::new(),
         };
 
         self.ds.save_host_script_result(&result).await

@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use crate::policy::HostPolicy;
 use crate::software::HostSoftwareEntry;
+use crate::vulnerability::CVE;
 use crate::ListOptions;
 
 /// HostStatus represents the online status of a host.
@@ -106,7 +107,22 @@ pub struct HostListOptions {
     pub low_disk_space_filter: Option<i32>,
     pub vulnerability_filter: Option<String>,
     pub label_id_filter: Option<u32>,
-    // Additional filter fields omitted for brevity; add as needed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub software_status_filter: Option<crate::software::SoftwareInstallerStatus>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub macos_settings_filter: Option<OSSettingsStatus>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub macos_settings_disk_encryption_filter: Option<DiskEncryptionStatus>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub os_settings_filter: Option<OSSettingsStatus>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub os_settings_disk_encryption_filter: Option<DiskEncryptionStatus>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mdm_bootstrap_package_filter: Option<MDMBootstrapPackageStatus>,
+    pub populate_software: bool,
+    pub populate_policies: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub connected_to_fleet_filter: Option<bool>,
 }
 
 /// HostUser represents a user account on a host.
@@ -138,7 +154,26 @@ pub struct MDMHostData {
     pub server_url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-    // Additional MDM fields omitted for brevity.
+    #[serde(default)]
+    pub dep_profile_error: bool,
+    #[serde(default)]
+    pub encryption_key_available: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub encryption_key_archived: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub os_settings: Option<HostMDMOSSettings>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub profiles: Option<Vec<crate::mdm::HostMDMProfile>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub macos_settings: Option<MDMHostMacOSSettings>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub macos_setup: Option<HostMDMMacOSSetup>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub device_status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pending_action: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub connected_to_fleet: Option<bool>,
 }
 
 /// HostSoftware holds the software list and update timestamp for a host.
@@ -270,6 +305,21 @@ pub struct HostDetail {
 
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub software: Vec<crate::software::Software>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub batteries: Option<Vec<HostBattery>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub maintenance_window: Option<HostMaintenanceWindow>,
+
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub end_users: Vec<HostEndUser>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_mdm_enrolled_at: Option<DateTime<Utc>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_mdm_checked_in_at: Option<DateTime<Utc>>,
 }
 
 /// HostSummary contains the counts for the dashboard host summary.
@@ -289,6 +339,14 @@ pub struct HostSummary {
     pub new_count: Option<u32>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub platforms: Vec<HostSummaryPlatform>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_id: Option<u32>,
+    #[serde(default)]
+    pub all_linux_count: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub low_disk_space_count: Option<u32>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub builtin_labels: Vec<crate::label::LabelSummary>,
 }
 
 /// HostSummaryPlatform holds the count for a specific platform in the host summary.
@@ -488,4 +546,184 @@ pub struct AggregatedMacadminsData {
     pub munki_issues: Vec<AggregatedMunkiIssue>,
     pub mobile_device_management_enrollment_status: AggregatedMDMStatus,
     pub mobile_device_management_solution: Vec<AggregatedMDMSolutions>,
+}
+
+// ---------------------------------------------------------------------------
+// Additional host types (from Go hosts.go)
+// ---------------------------------------------------------------------------
+
+/// HostBattery represents battery information for a host.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostBattery {
+    pub id: u32,
+    #[serde(skip)]
+    pub host_id: u32,
+    #[serde(skip)]
+    pub serial_number: String,
+    pub cycle_count: i32,
+    pub health: String,
+}
+
+/// HostDeviceMapping represents a device-to-user mapping for a host.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostDeviceMapping {
+    #[serde(skip)]
+    pub id: u32,
+    #[serde(skip)]
+    pub host_id: u32,
+    pub email: String,
+    pub source: String,
+}
+
+/// HostEndUser represents an end user associated with a host.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostEndUser {
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub idp_id: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub idp_username: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub idp_full_name: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub idp_groups: Vec<String>,
+    #[serde(rename = "idp_department", default, skip_serializing_if = "String::is_empty")]
+    pub idp_department: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub idp_info_updated_at: Option<DateTime<Utc>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub other_emails: Vec<HostDeviceMapping>,
+}
+
+/// HostMaintenanceWindow represents a maintenance window for a host.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostMaintenanceWindow {
+    pub starts_at: DateTime<Utc>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timezone: Option<String>,
+}
+
+/// HostMDMOSSettings contains the OS settings status for MDM-managed hosts.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostMDMOSSettings {
+    pub disk_encryption: HostMDMDiskEncryption,
+}
+
+/// HostMDMDiskEncryption contains the disk encryption status and detail.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostMDMDiskEncryption {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<DiskEncryptionStatus>,
+    pub detail: String,
+}
+
+/// MDMHostMacOSSettings contains macOS-specific MDM settings for a host.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MDMHostMacOSSettings {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disk_encryption: Option<DiskEncryptionStatus>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub action_required: Option<String>,
+}
+
+/// HostMDMMacOSSetup contains macOS MDM setup status for a host.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostMDMMacOSSetup {
+    pub bootstrap_package_status: MDMBootstrapPackageStatus,
+    pub detail: String,
+    pub bootstrap_package_name: String,
+}
+
+/// HostDiskEncryptionKey contains the disk encryption key for a host.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostDiskEncryptionKey {
+    #[serde(skip)]
+    pub host_id: u32,
+    pub updated_at: DateTime<Utc>,
+    #[serde(rename = "decrypted_value")]
+    pub key: String,
+}
+
+/// HostLite is a minimal representation of a host with essential fields.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostLite {
+    pub id: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_id: Option<u32>,
+    pub hostname: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub osquery_host_id: Option<String>,
+    pub node_key: String,
+    pub uuid: String,
+    pub hardware_serial: String,
+    pub seen_time: DateTime<Utc>,
+    pub distributed_interval: u32,
+    pub config_tls_refresh: u32,
+}
+
+/// HostDetailOptions defines options for host detail queries.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct HostDetailOptions {
+    pub include_cve_scores: bool,
+    pub include_critical_vulnerabilities_count: bool,
+    pub include_policies: bool,
+    pub exclude_software: bool,
+}
+
+/// HostMDMCheckinInfo contains the information needed for MDM check-in.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostMDMCheckinInfo {
+    pub host_id: u32,
+    pub hardware_serial: String,
+    pub installed_from_dep: bool,
+    pub display_name: String,
+    pub team_id: u32,
+    pub dep_assigned_to_fleet: bool,
+    pub osquery_enrolled: bool,
+    pub platform: String,
+}
+
+/// OSVersion represents a specific OS version with host counts and vulnerabilities.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OSVersion {
+    pub id: u32,
+    pub os_version_id: u32,
+    pub hosts_count: i32,
+    pub name: String,
+    pub name_only: String,
+    pub version: String,
+    pub platform: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub generated_cpes: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vulnerabilities: Option<Vec<CVE>>,
+    pub vulnerabilities_count: i32,
+}
+
+/// OSVersions holds a list of OS versions with a timestamp.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OSVersions {
+    pub counts_updated_at: DateTime<Utc>,
+    pub os_versions: Vec<OSVersion>,
+}
+
+/// HostVulnerabilitySummary provides a summary of vulnerabilities for a host.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostVulnerabilitySummary {
+    pub id: u32,
+    pub hostname: String,
+    pub display_name: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub software_installed_paths: Vec<String>,
+}
+
+/// NetworkInterface represents a network interface on a host.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NetworkInterface {
+    pub id: u32,
+    pub host_id: u32,
+    pub interface: String,
+    pub address: String,
+    pub mask: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub broadcast: String,
 }

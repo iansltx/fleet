@@ -44,6 +44,11 @@ impl FleetService {
             packs: Vec::new(),
             policies,
             software,
+            batteries: None,
+            maintenance_window: None,
+            end_users: Vec::new(),
+            last_mdm_enrolled_at: None,
+            last_mdm_checked_in_at: None,
         })
     }
 
@@ -144,6 +149,12 @@ impl FleetService {
             host_deleted_at: None,
             created_at: self.clock.now(),
             updated_at: self.clock.now(),
+            batch_execution_id: None,
+            policy_id: None,
+            user_id: None,
+            sync_request: false,
+            team_id: None,
+            hostname: String::new(),
         };
         self.ds.save_host_script_result(&result).await?;
         Ok(execution_id)
@@ -171,6 +182,12 @@ impl FleetService {
             host_deleted_at: None,
             created_at: self.clock.now(),
             updated_at: self.clock.now(),
+            batch_execution_id: None,
+            policy_id: None,
+            user_id: None,
+            sync_request: false,
+            team_id: None,
+            hostname: String::new(),
         };
         self.ds.save_host_script_result(&result).await?;
         Ok(execution_id)

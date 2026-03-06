@@ -38,22 +38,38 @@ pub use enroll::*;
 pub use error::*;
 pub use host::{
     AggregatedMDMData, AggregatedMDMSolutions, AggregatedMDMStatus, AggregatedMacadminsData,
-    AggregatedMunkiIssue, AggregatedMunkiVersion, Host, HostDetail, HostListOptions, HostMDM,
-    HostMunkiInfo, HostMunkiIssue, HostStatus, HostSummary, HostUser, MacadminsData, MDMSolution,
-    MunkiIssue, OSVersionStats,
+    AggregatedMunkiIssue, AggregatedMunkiVersion, Host, HostBattery, HostDetail,
+    HostDetailOptions, HostDeviceMapping, HostDiskEncryptionKey, HostEndUser, HostListOptions,
+    HostLite, HostMDM, HostMDMCheckinInfo, HostMaintenanceWindow, HostMunkiInfo, HostMunkiIssue,
+    HostStatus, HostSummary, HostUser, HostVulnerabilitySummary, MDMSolution, MacadminsData,
+    MunkiIssue, NetworkInterface, OSVersion, OSVersionStats, OSVersions,
 };
 pub use invite::*;
 pub use label::{Label, LabelMembershipType, LabelSpec, LabelSummary, LabelType};
+pub use mdm::{
+    MDMAppleBootstrapPackage, MDMAppleCommand, MDMAppleConfigProfile, MDMAppleDEPDevice,
+    MDMAppleDeclaration, MDMAppleEnrollmentProfile, MDMAppleSetupAssistant, MDMCommand,
+    MDMCommandResult, MDMConfigProfilePayload, MDMDeliveryStatus, MDMDiskEncryptionSummary,
+    MDMOperationType, MDMPlatform, MDMProfilesSummary, MDMWindowsCommand,
+    MDMWindowsConfigProfile, MDMWindowsEnrolledDevice,
+};
 pub use osquery::*;
 pub use pack::{Pack, PackStats, ScheduledQuery};
-pub use policy::{HostPolicy, Policy, PolicyData};
-pub use query::{Query, QueryResultRow};
-pub use script::Script;
+pub use policy::{HostPolicy, Policy, PolicyData, PolicySpec};
+pub use query::{Query, QueryResultRow, QuerySpec, QueryStats};
+pub use script::{BatchScriptHost, HostLockWipeStatus, Script, ScriptPayload};
 pub use session::Session;
-pub use software::Software;
+pub use software::{
+    Software, SoftwareCategory, SoftwareInstallDetails, SoftwareInstallResult,
+    SoftwareInstallerStatus, SoftwareListOptions, SoftwareSpec, SoftwareTitle,
+    SoftwareTitleListOptions, VPPApp, VPPToken,
+};
 pub use target::*;
-pub use team::{Team, TeamConfig, TeamUser};
-pub use user::User;
+pub use team::{
+    AppleOSUpdateSettings, MacOSSetup, MacOSSettings, Team, TeamConfig, TeamFilter, TeamLite,
+    TeamMDM, TeamSpec, TeamSummary, TeamUser, WindowsSettings, WindowsUpdates,
+};
+pub use user::{User, UserPayload};
 pub use vulnerability::{CVE, CVEMeta, SoftwareVulnerability};
 
 use chrono::{DateTime, Utc};

@@ -106,6 +106,12 @@ pub async fn run_script(
         host_deleted_at: None,
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
+        batch_execution_id: None,
+        policy_id: None,
+        user_id: None,
+        sync_request: false,
+        team_id: None,
+        hostname: String::new(),
     };
 
     if let Err(e) = state.service.save_host_script_result(&viewer, &result).await {

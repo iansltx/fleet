@@ -335,6 +335,7 @@ fn software_row_to_software(row: crate::software::SoftwareRow) -> fleet_types::S
         application_id: None,
         upgrade_code: None,
         display_name: row.name,
+        title_id: None,
     }
 }
 
@@ -358,6 +359,7 @@ fn software_title_row_to_software(row: crate::software::SoftwareTitleRow) -> fle
         application_id: None,
         upgrade_code: None,
         display_name: row.name,
+        title_id: None,
     }
 }
 
@@ -597,6 +599,12 @@ fn script_result_row_to_type(row: crate::scripts::ScriptResultRow) -> fleet_type
         host_deleted_at: None,
         created_at: row.created_at,
         updated_at: row.updated_at,
+        batch_execution_id: None,
+        policy_id: None,
+        user_id: None,
+        sync_request: false,
+        team_id: None,
+        hostname: String::new(),
     }
 }
 
@@ -723,6 +731,7 @@ fn software_for_host_row_to_software(row: SoftwareForHostRow) -> fleet_types::So
         application_id: None,
         upgrade_code: row.upgrade_code,
         display_name: row.name,
+        title_id: None,
     }
 }
 
@@ -769,6 +778,12 @@ fn host_script_result_row_to_result(
         host_deleted_at: row.host_deleted_at,
         created_at: row.created_at,
         updated_at: row.updated_at,
+        batch_execution_id: None,
+        policy_id: None,
+        user_id: None,
+        sync_request: false,
+        team_id: None,
+        hostname: String::new(),
     }
 }
 
@@ -1081,6 +1096,10 @@ impl Datastore for MysqlDatastore {
                 fleet_types::host::HostSummaryPlatform { platform: "windows".to_string(), hosts_count: row.windows_count as u32 },
                 fleet_types::host::HostSummaryPlatform { platform: "chrome".to_string(), hosts_count: row.chrome_count as u32 },
             ],
+            team_id: None,
+            all_linux_count: row.linux_count as u32,
+            low_disk_space_count: None,
+            builtin_labels: Vec::new(),
         })
     }
 

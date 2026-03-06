@@ -42,6 +42,18 @@ pub enum FleetError {
     #[error("Windows MDM not configured")]
     WindowsMDMNotConfigured,
 
+    #[error("Android MDM not configured")]
+    AndroidMDMNotConfigured,
+
+    #[error("gateway error: {message}")]
+    GatewayError { message: String, code: u16 },
+
+    #[error("permission error: {message}")]
+    PermissionError { message: String },
+
+    #[error("not configured: {message}")]
+    NotConfigured { message: String },
+
     #[error("conflict: {message}")]
     Conflict { message: String },
 
@@ -66,7 +78,12 @@ impl FleetError {
             FleetError::Forbidden => 403,
             FleetError::PasswordResetRequired => 403,
             FleetError::MissingLicense => 402,
-            FleetError::MDMNotConfigured | FleetError::WindowsMDMNotConfigured => 422,
+            FleetError::MDMNotConfigured
+            | FleetError::WindowsMDMNotConfigured
+            | FleetError::AndroidMDMNotConfigured
+            | FleetError::NotConfigured { .. } => 422,
+            FleetError::GatewayError { code, .. } => *code,
+            FleetError::PermissionError { .. } => 403,
             FleetError::Conflict { .. } => 409,
             FleetError::BadRequest { .. } => 400,
             FleetError::Internal(_) | FleetError::Database(_) => 500,
@@ -142,3 +159,5 @@ pub const WINDOWS_MDM_NOT_CONFIGURED_MESSAGE: &str =
     "Windows MDM isn't turned on. For more information about setting up MDM, please visit https://fleetdm.com/learn-more-about/windows-mdm";
 pub const HOST_IDENTIFIER_NOT_FOUND: &str =
     "Host doesn't exist. Make sure you provide a valid hostname, UUID, or serial number. Learn more about host identifiers: https://fleetdm.com/learn-more-about/host-identifiers";
+pub const ANDROID_MDM_NOT_CONFIGURED_MESSAGE: &str =
+    "Android MDM isn't turned on.";

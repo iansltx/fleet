@@ -51,6 +51,11 @@ impl FleetService {
             packs,
             policies,
             software,
+            batteries: None,
+            maintenance_window: None,
+            end_users: Vec::new(),
+            last_mdm_enrolled_at: None,
+            last_mdm_checked_in_at: None,
         })
     }
 
@@ -84,6 +89,11 @@ impl FleetService {
             packs,
             policies,
             software,
+            batteries: None,
+            maintenance_window: None,
+            end_users: Vec::new(),
+            last_mdm_enrolled_at: None,
+            last_mdm_checked_in_at: None,
         })
     }
 

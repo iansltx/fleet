@@ -262,6 +262,12 @@ pub async fn install_software_title(
         host_deleted_at: None,
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
+        batch_execution_id: None,
+        policy_id: None,
+        user_id: None,
+        sync_request: false,
+        team_id: None,
+        hostname: String::new(),
     };
     if let Err(e) = state.service.save_host_script_result(&viewer, &result).await {
         return encode_service_error(&e);
@@ -294,6 +300,12 @@ pub async fn uninstall_software_title(
         host_deleted_at: None,
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
+        batch_execution_id: None,
+        policy_id: None,
+        user_id: None,
+        sync_request: false,
+        team_id: None,
+        hostname: String::new(),
     };
     if let Err(e) = state.service.save_host_script_result(&viewer, &result).await {
         return encode_service_error(&e);

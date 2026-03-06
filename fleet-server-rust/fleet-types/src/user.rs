@@ -86,3 +86,25 @@ impl User {
         self.admin_forced_password_reset
     }
 }
+
+/// UserPayload is the payload for creating/modifying a user.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct UserPayload {
+    pub name: Option<String>,
+    pub email: Option<String>,
+    #[serde(skip)]
+    pub password: Option<String>,
+    pub gravatar_url: Option<String>,
+    pub position: Option<String>,
+    pub invite_token: Option<String>,
+    pub sso_invite: Option<bool>,
+    pub mfa_enabled: Option<bool>,
+    pub sso_enabled: Option<bool>,
+    pub global_role: Option<String>,
+    pub admin_forced_password_reset: Option<bool>,
+    pub api_only: Option<bool>,
+    pub teams: Option<Vec<UserTeam>>,
+    #[serde(skip)]
+    pub new_password: Option<String>,
+    pub settings: Option<UserSettings>,
+}
