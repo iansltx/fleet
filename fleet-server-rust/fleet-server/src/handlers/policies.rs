@@ -470,6 +470,8 @@ pub async fn autofill_policies(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &body);
-    encode_service_error(&fleet_service::ServiceError::MissingLicense)
+    match state.service.autofill_policies(&viewer, body.query.as_deref(), body.name.as_deref(), body.description.as_deref()).await {
+        Ok(result) => fleet_ok("", serde_json::to_value(&result).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }

@@ -402,6 +402,47 @@ impl FleetService {
         authz::authorize(viewer, Subject::Host, Action::Read)?;
         self.ds.aggregated_macadmins_data(team_id).await
     }
+
+    // ---- Premium-gated host methods ----
+
+    /// Locks a host (premium-only).
+    pub async fn lock_host(
+        &self,
+        viewer: &Viewer,
+        host_id: u32,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Host, Action::Write)?;
+        self.require_premium()?;
+        let _ = host_id;
+        // TODO: implement with datastore operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Unlocks a host (premium-only).
+    pub async fn unlock_host(
+        &self,
+        viewer: &Viewer,
+        host_id: u32,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Host, Action::Write)?;
+        self.require_premium()?;
+        let _ = host_id;
+        // TODO: implement with datastore operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Wipes a host (premium-only).
+    pub async fn wipe_host(
+        &self,
+        viewer: &Viewer,
+        host_id: u32,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Host, Action::Write)?;
+        self.require_premium()?;
+        let _ = host_id;
+        // TODO: implement with datastore operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
 }
 
 /// Converts a full Label to a LabelSummary.

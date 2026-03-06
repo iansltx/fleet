@@ -137,4 +137,238 @@ impl FleetService {
         authz::authorize(viewer, Subject::Software, Action::Read)?;
         self.ds.get_fleet_maintained_app(id).await
     }
+
+    // ---- Premium-gated software methods ----
+
+    /// Downloads a software installer binary (premium-only).
+    pub async fn get_software_installer(
+        &self,
+        viewer: &Viewer,
+        title_id: u32,
+    ) -> ServiceResult<Vec<u8>> {
+        authz::authorize(viewer, Subject::Software, Action::Read)?;
+        self.require_premium()?;
+        let _ = title_id;
+        // TODO: implement with datastore/blob store operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Generates a download token for a software installer (premium-only).
+    pub async fn get_software_installer_token(
+        &self,
+        viewer: &Viewer,
+        title_id: u32,
+    ) -> ServiceResult<String> {
+        authz::authorize(viewer, Subject::Software, Action::Write)?;
+        self.require_premium()?;
+        let _ = title_id;
+        // TODO: implement with datastore operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Uploads a new software installer (premium-only).
+    pub async fn upload_software_installer(
+        &self,
+        viewer: &Viewer,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Software, Action::Write)?;
+        self.require_premium()?;
+        // TODO: implement with datastore/blob store operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Updates an existing software installer (premium-only).
+    pub async fn update_software_installer(
+        &self,
+        viewer: &Viewer,
+        title_id: u32,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Software, Action::Write)?;
+        self.require_premium()?;
+        let _ = title_id;
+        // TODO: implement with datastore/blob store operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Batch sets software installers (premium-only).
+    pub async fn batch_set_software_installers(
+        &self,
+        viewer: &Viewer,
+        software: &[serde_json::Value],
+        team_id: Option<u32>,
+        dry_run: bool,
+    ) -> ServiceResult<String> {
+        authz::authorize(viewer, Subject::Software, Action::Write)?;
+        self.require_premium()?;
+        let _ = (software, team_id, dry_run);
+        // TODO: implement with datastore operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Gets the result of a batch software installer set operation (premium-only).
+    pub async fn batch_set_software_installers_result(
+        &self,
+        viewer: &Viewer,
+        request_uuid: &str,
+    ) -> ServiceResult<serde_json::Value> {
+        authz::authorize(viewer, Subject::Software, Action::Read)?;
+        self.require_premium()?;
+        let _ = request_uuid;
+        // TODO: implement with datastore operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Gets a software title icon (premium-only).
+    pub async fn get_software_title_icon(
+        &self,
+        viewer: &Viewer,
+        title_id: u32,
+    ) -> ServiceResult<Vec<u8>> {
+        authz::authorize(viewer, Subject::Software, Action::Read)?;
+        self.require_premium()?;
+        let _ = title_id;
+        // TODO: implement with datastore/blob store operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Uploads a software title icon (premium-only).
+    pub async fn put_software_title_icon(
+        &self,
+        viewer: &Viewer,
+        title_id: u32,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Software, Action::Write)?;
+        self.require_premium()?;
+        let _ = title_id;
+        // TODO: implement with datastore/blob store operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Lists app store apps (premium-only).
+    pub async fn get_app_store_apps(
+        &self,
+        viewer: &Viewer,
+        team_id: Option<u32>,
+        platform: Option<&str>,
+    ) -> ServiceResult<Vec<serde_json::Value>> {
+        authz::authorize(viewer, Subject::Software, Action::Read)?;
+        self.require_premium()?;
+        let _ = (team_id, platform);
+        // TODO: implement with datastore operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Adds an app store app (premium-only).
+    pub async fn add_app_store_app(
+        &self,
+        viewer: &Viewer,
+        app_store_id: &str,
+        team_id: Option<u32>,
+        platform: Option<&str>,
+        self_service: bool,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Software, Action::Write)?;
+        self.require_premium()?;
+        let _ = (app_store_id, team_id, platform, self_service);
+        // TODO: implement with datastore operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Updates an app store app (premium-only).
+    pub async fn update_app_store_app(
+        &self,
+        viewer: &Viewer,
+        title_id: u32,
+        team_id: Option<u32>,
+        self_service: Option<bool>,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Software, Action::Write)?;
+        self.require_premium()?;
+        let _ = (title_id, team_id, self_service);
+        // TODO: implement with datastore operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Adds a Fleet-maintained app (premium-only).
+    pub async fn add_fleet_maintained_app_installer(
+        &self,
+        viewer: &Viewer,
+        fleet_maintained_app_id: Option<u64>,
+        team_id: Option<u32>,
+        self_service: bool,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Software, Action::Write)?;
+        self.require_premium()?;
+        let _ = (fleet_maintained_app_id, team_id, self_service);
+        // TODO: implement with datastore operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Batch associates app store apps (premium-only).
+    pub async fn batch_associate_app_store_apps(
+        &self,
+        viewer: &Viewer,
+        app_store_apps: &[serde_json::Value],
+        team_id: Option<u32>,
+        dry_run: bool,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Software, Action::Write)?;
+        self.require_premium()?;
+        let _ = (app_store_apps, team_id, dry_run);
+        // TODO: implement with datastore operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Creates an Android web app (premium-only).
+    pub async fn create_android_web_app(
+        &self,
+        viewer: &Viewer,
+        data: &serde_json::Value,
+    ) -> ServiceResult<()> {
+        authz::authorize(viewer, Subject::Software, Action::Write)?;
+        self.require_premium()?;
+        let _ = data;
+        // TODO: implement with datastore operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Downloads a software installer via token (premium-only).
+    pub async fn download_software_installer(
+        &self,
+        viewer: &Viewer,
+        title_id: u32,
+        token: &str,
+    ) -> ServiceResult<Vec<u8>> {
+        authz::authorize(viewer, Subject::Software, Action::Read)?;
+        self.require_premium()?;
+        let _ = (title_id, token);
+        // TODO: implement with datastore/blob store operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Downloads an in-house app package (premium-only).
+    pub async fn get_in_house_app_package(
+        &self,
+        viewer: &Viewer,
+        title_id: u32,
+    ) -> ServiceResult<Vec<u8>> {
+        authz::authorize(viewer, Subject::Software, Action::Read)?;
+        self.require_premium()?;
+        let _ = title_id;
+        // TODO: implement with datastore/blob store operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Returns an in-house app manifest (premium-only).
+    pub async fn get_in_house_app_manifest(
+        &self,
+        viewer: &Viewer,
+        title_id: u32,
+    ) -> ServiceResult<serde_json::Value> {
+        authz::authorize(viewer, Subject::Software, Action::Read)?;
+        self.require_premium()?;
+        let _ = title_id;
+        // TODO: implement with datastore operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
 }

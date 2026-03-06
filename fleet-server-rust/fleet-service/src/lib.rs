@@ -149,6 +149,41 @@ impl Viewer {
     }
 }
 
+/// License tier for the Fleet server.
+///
+/// Matches Go's `fleet.LicenseTier` — "free" runs the community edition,
+/// while "premium" unlocks MDM write operations, software management,
+/// and other enterprise features.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LicenseTier {
+    Free,
+    Premium,
+}
+
+/// License information for the running Fleet server instance.
+///
+/// Corresponds to Go's `fleet.LicenseInfo` in `server/fleet/license.go`.
+#[derive(Debug, Clone)]
+pub struct LicenseInfo {
+    pub tier: LicenseTier,
+    pub organization: String,
+    pub device_count: u32,
+    pub expiration: chrono::DateTime<chrono::Utc>,
+    pub note: String,
+}
+
+impl Default for LicenseInfo {
+    fn default() -> Self {
+        Self {
+            tier: LicenseTier::Free,
+            organization: String::new(),
+            device_count: 0,
+            expiration: chrono::Utc::now(),
+            note: String::new(),
+        }
+    }
+}
+
 /// Configuration for the Fleet service, matching the Go FleetConfig.
 #[derive(Debug, Clone)]
 pub struct FleetServiceConfig {
@@ -157,6 +192,7 @@ pub struct FleetServiceConfig {
     pub osquery: OsqueryConfig,
     pub auth: AuthConfig,
     pub app: AppServiceConfig,
+    pub license: LicenseInfo,
 }
 
 impl Default for FleetServiceConfig {
@@ -167,6 +203,7 @@ impl Default for FleetServiceConfig {
             osquery: OsqueryConfig::default(),
             auth: AuthConfig::default(),
             app: AppServiceConfig::default(),
+            license: LicenseInfo::default(),
         }
     }
 }

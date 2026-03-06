@@ -591,8 +591,10 @@ pub async fn get_scim_details(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    encode_service_error(&fleet_service::ServiceError::MissingLicense)
+    match state.service.get_scim_details(&viewer).await {
+        Ok(details) => fleet_ok("scim_details", serde_json::to_value(&details).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/conditional-access/microsoft
@@ -763,8 +765,10 @@ pub async fn request_certificate(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id, &body);
-    encode_service_error(&fleet_service::ServiceError::MissingLicense)
+    match state.service.request_certificate(&viewer, id as u32, &body.data).await {
+        Ok(result) => fleet_ok("certificate", serde_json::to_value(&result).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/spec/certificate_authorities

@@ -10,7 +10,6 @@ use axum::{
 };
 use serde::Deserialize;
 
-use fleet_service::ServiceError;
 
 use crate::response::{encode_service_error, fleet_ok, FleetResponse};
 use crate::AppState;
@@ -253,12 +252,8 @@ pub async fn get_device_software_icon(
     State(state): State<AppState>,
     Path((token, software_title_id)): Path<(String, u64)>,
 ) -> FleetResponse {
-    match state.service.authenticate_device(&token).await {
-        Ok(_host) => {
-            let _ = software_title_id;
-            // Premium-only: serve icon from blob store
-            encode_service_error(&ServiceError::MissingLicense)
-        }
+    match state.service.get_device_software_icon(&token, software_title_id).await {
+        Ok(icon_bytes) => fleet_ok("icon", serde_json::json!(icon_bytes)),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -267,10 +262,10 @@ pub async fn get_device_software_icon(
 pub async fn trigger_linux_disk_encryption_escrow(
     State(state): State<AppState>,
     Path(token): Path<String>,
-    Json(_body): Json<TriggerLinuxDiskEncryptionEscrowBody>,
+    Json(body): Json<TriggerLinuxDiskEncryptionEscrowBody>,
 ) -> FleetResponse {
-    match state.service.authenticate_device(&token).await {
-        Ok(_host) => encode_service_error(&ServiceError::MissingLicense),
+    match state.service.trigger_linux_disk_encryption_escrow(&token, &body.data).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -279,10 +274,10 @@ pub async fn trigger_linux_disk_encryption_escrow(
 pub async fn bypass_conditional_access(
     State(state): State<AppState>,
     Path(token): Path<String>,
-    Json(_body): Json<BypassConditionalAccessBody>,
+    Json(body): Json<BypassConditionalAccessBody>,
 ) -> FleetResponse {
-    match state.service.authenticate_device(&token).await {
-        Ok(_host) => encode_service_error(&ServiceError::MissingLicense),
+    match state.service.bypass_conditional_access(&token, &body.data).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -292,8 +287,8 @@ pub async fn get_device_mdm_manual_enroll_profile(
     State(state): State<AppState>,
     Path(token): Path<String>,
 ) -> FleetResponse {
-    match state.service.authenticate_device(&token).await {
-        Ok(_host) => encode_service_error(&ServiceError::MissingLicense),
+    match state.service.get_device_mdm_manual_enroll_profile(&token).await {
+        Ok(profile_bytes) => fleet_ok("profile", serde_json::json!(profile_bytes)),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -301,10 +296,10 @@ pub async fn get_device_mdm_manual_enroll_profile(
 /// GET /api/_version_/fleet/device/{token}/software/commands/{command_uuid}/results
 pub async fn get_device_mdm_command_results(
     State(state): State<AppState>,
-    Path((token, _command_uuid)): Path<(String, String)>,
+    Path((token, command_uuid)): Path<(String, String)>,
 ) -> FleetResponse {
-    match state.service.authenticate_device(&token).await {
-        Ok(_host) => encode_service_error(&ServiceError::MissingLicense),
+    match state.service.get_device_mdm_command_results(&token, &command_uuid).await {
+        Ok(results) => fleet_ok("results", serde_json::to_value(&results).unwrap_or_default()),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -312,10 +307,10 @@ pub async fn get_device_mdm_command_results(
 /// POST /api/_version_/fleet/device/{token}/configuration_profiles/{profile_uuid}/resend
 pub async fn resend_device_configuration_profile(
     State(state): State<AppState>,
-    Path((token, _profile_uuid)): Path<(String, String)>,
+    Path((token, profile_uuid)): Path<(String, String)>,
 ) -> FleetResponse {
-    match state.service.authenticate_device(&token).await {
-        Ok(_host) => encode_service_error(&ServiceError::MissingLicense),
+    match state.service.resend_device_configuration_profile(&token, &profile_uuid).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -324,10 +319,10 @@ pub async fn resend_device_configuration_profile(
 pub async fn migrate_mdm_device(
     State(state): State<AppState>,
     Path(token): Path<String>,
-    Json(_body): Json<DeviceMigrateMDMBody>,
+    Json(body): Json<DeviceMigrateMDMBody>,
 ) -> FleetResponse {
-    match state.service.authenticate_device(&token).await {
-        Ok(_host) => encode_service_error(&ServiceError::MissingLicense),
+    match state.service.migrate_mdm_device(&token, &body.data).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
         Err(e) => encode_service_error(&e),
     }
 }

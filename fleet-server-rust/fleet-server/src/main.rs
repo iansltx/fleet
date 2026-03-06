@@ -237,6 +237,7 @@ async fn run_serve(
         app: fleet_service::AppServiceConfig {
             token_key_size: cfg.app.token_key_size,
         },
+        license: fleet_service::LicenseInfo::default(),
     };
 
     let ds = Arc::new(ds);

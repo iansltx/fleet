@@ -194,6 +194,33 @@ impl FleetService {
         info!(count = secrets.len(), "secret variables upserted");
         Ok(())
     }
+
+    // ---- Premium-gated app config methods ----
+
+    /// Gets SCIM integration details (premium-only).
+    pub async fn get_scim_details(
+        &self,
+        viewer: &Viewer,
+    ) -> ServiceResult<serde_json::Value> {
+        authz::authorize(viewer, Subject::AppConfig, Action::Read)?;
+        self.require_premium()?;
+        // TODO: implement with datastore operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Requests a certificate from a certificate authority (premium-only).
+    pub async fn request_certificate(
+        &self,
+        viewer: &Viewer,
+        ca_id: u32,
+        data: &serde_json::Value,
+    ) -> ServiceResult<serde_json::Value> {
+        authz::authorize(viewer, Subject::AppConfig, Action::Write)?;
+        self.require_premium()?;
+        let _ = (ca_id, data);
+        // TODO: implement with certificate authority integration
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
 }
 
 /// Obfuscates sensitive fields in the app configuration for API responses.

@@ -9,7 +9,7 @@ use serde::Deserialize;
 use crate::middleware::auth::AuthenticatedUser;
 use crate::response::{fleet_error, fleet_ok, encode_service_error, FleetResponse};
 use crate::AppState;
-use fleet_service::ServiceError;
+
 
 // ---------------------------------------------------------------------------
 // Request / response types
@@ -311,9 +311,10 @@ pub async fn get_software_installer(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, title_id);
-    // Premium-only: download installer binary from blob store
-    encode_service_error(&ServiceError::MissingLicense)
+    match state.service.get_software_installer(&viewer, title_id as u32).await {
+        Ok(data) => fleet_ok("installer", serde_json::json!(data)),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/software/titles/{title_id}/package/token
@@ -326,19 +327,26 @@ pub async fn get_software_installer_token(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, title_id);
-    // Premium-only: generate a download token for software installer
-    encode_service_error(&ServiceError::MissingLicense)
+    match state.service.get_software_installer_token(&viewer, title_id as u32).await {
+        Ok(token) => fleet_ok("token", serde_json::json!(token)),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/software/package
 pub async fn upload_software_installer(
-    State(_state): State<AppState>,
-    _auth: AuthenticatedUser,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
     _multipart: axum::extract::Multipart,
 ) -> FleetResponse {
-    // Premium-only
-    encode_service_error(&ServiceError::MissingLicense)
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.upload_software_installer(&viewer).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// PATCH /api/_version_/fleet/software/titles/{id}/name
@@ -360,13 +368,19 @@ pub async fn update_software_name(
 
 /// PATCH /api/_version_/fleet/software/titles/{id}/package
 pub async fn update_software_installer(
-    State(_state): State<AppState>,
-    _auth: AuthenticatedUser,
-    Path(_id): Path<u64>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(id): Path<u64>,
     _multipart: axum::extract::Multipart,
 ) -> FleetResponse {
-    // Premium-only
-    encode_service_error(&ServiceError::MissingLicense)
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.update_software_installer(&viewer, id as u32).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// DELETE /api/_version_/fleet/software/titles/{title_id}/available_for_install
@@ -405,28 +419,34 @@ pub async fn get_software_install_results(
 pub async fn batch_set_software_installers(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<BatchSetSoftwareInstallersBody>,
+    Json(body): Json<BatchSetSoftwareInstallersBody>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    encode_service_error(&ServiceError::MissingLicense)
+    let team_id = body.team_id.map(|v| v as u32);
+    let dry_run = body.dry_run.unwrap_or(false);
+    match state.service.batch_set_software_installers(&viewer, &body.software, team_id, dry_run).await {
+        Ok(request_uuid) => fleet_ok("request_uuid", serde_json::json!(request_uuid)),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/software/batch/{request_uuid}
 pub async fn batch_set_software_installers_result(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_request_uuid): Path<String>,
+    Path(request_uuid): Path<String>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    encode_service_error(&ServiceError::MissingLicense)
+    match state.service.batch_set_software_installers_result(&viewer, &request_uuid).await {
+        Ok(result) => fleet_ok("result", serde_json::to_value(&result).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/software/titles/{title_id}/icon
@@ -439,20 +459,27 @@ pub async fn get_software_title_icon(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, title_id);
-    // Premium-only: fetch icon from blob store
-    encode_service_error(&ServiceError::MissingLicense)
+    match state.service.get_software_title_icon(&viewer, title_id as u32).await {
+        Ok(data) => fleet_ok("icon", serde_json::json!(data)),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// PUT /api/_version_/fleet/software/titles/{title_id}/icon
 pub async fn put_software_title_icon(
-    State(_state): State<AppState>,
-    _auth: AuthenticatedUser,
-    Path(_title_id): Path<u64>,
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    Path(title_id): Path<u64>,
     _multipart: axum::extract::Multipart,
 ) -> FleetResponse {
-    // Premium-only
-    encode_service_error(&ServiceError::MissingLicense)
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.put_software_title_icon(&viewer, title_id as u32).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// DELETE /api/_version_/fleet/software/titles/{title_id}/icon
@@ -475,57 +502,73 @@ pub async fn delete_software_title_icon(
 pub async fn get_app_store_apps(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Query(_params): Query<GetAppStoreAppsParams>,
+    Query(params): Query<GetAppStoreAppsParams>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    encode_service_error(&ServiceError::MissingLicense)
+    let team_id = params.team_id.map(|v| v as u32);
+    let platform = params.platform.as_deref();
+    match state.service.get_app_store_apps(&viewer, team_id, platform).await {
+        Ok(apps) => fleet_ok("app_store_apps", serde_json::to_value(&apps).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/software/app_store_apps
 pub async fn add_app_store_app(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<AddAppStoreAppBody>,
+    Json(body): Json<AddAppStoreAppBody>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    encode_service_error(&ServiceError::MissingLicense)
+    let team_id = body.team_id.map(|v| v as u32);
+    let platform = body.platform.as_deref();
+    let self_service = body.self_service.unwrap_or(false);
+    match state.service.add_app_store_app(&viewer, &body.app_store_id, team_id, platform, self_service).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// PATCH /api/_version_/fleet/software/titles/{title_id}/app_store_app
 pub async fn update_app_store_app(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_title_id): Path<u64>,
-    Json(_body): Json<UpdateAppStoreAppBody>,
+    Path(title_id): Path<u64>,
+    Json(body): Json<UpdateAppStoreAppBody>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    encode_service_error(&ServiceError::MissingLicense)
+    let team_id = body.team_id.map(|v| v as u32);
+    match state.service.update_app_store_app(&viewer, title_id as u32, team_id, body.self_service).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/software/fleet_maintained_apps
 pub async fn add_fleet_maintained_app(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<AddFleetMaintainedAppBody>,
+    Json(body): Json<AddFleetMaintainedAppBody>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    encode_service_error(&ServiceError::MissingLicense)
+    let team_id = body.team_id.map(|v| v as u32);
+    let self_service = body.self_service.unwrap_or(false);
+    match state.service.add_fleet_maintained_app_installer(&viewer, body.fleet_maintained_app_id, team_id, self_service).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/software/fleet_maintained_apps
@@ -568,28 +611,34 @@ pub async fn get_fleet_maintained_app(
 pub async fn batch_associate_app_store_apps(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<BatchAssociateAppStoreAppsBody>,
+    Json(body): Json<BatchAssociateAppStoreAppsBody>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    encode_service_error(&ServiceError::MissingLicense)
+    let team_id = body.team_id.map(|v| v as u32);
+    let dry_run = body.dry_run.unwrap_or(false);
+    match state.service.batch_associate_app_store_apps(&viewer, &body.app_store_apps, team_id, dry_run).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/software/web_apps
 pub async fn create_android_web_app(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Json(_body): Json<CreateAndroidWebAppBody>,
+    Json(body): Json<CreateAndroidWebAppBody>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    encode_service_error(&ServiceError::MissingLicense)
+    match state.service.create_android_web_app(&viewer, &body.data).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/vulnerabilities
@@ -639,9 +688,10 @@ pub async fn download_software_installer(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, title_id, &token);
-    // Premium-only: download installer via token
-    encode_service_error(&ServiceError::MissingLicense)
+    match state.service.download_software_installer(&viewer, title_id as u32, &token).await {
+        Ok(data) => fleet_ok("installer", serde_json::json!(data)),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/software/titles/{title_id}/in_house_app
@@ -654,9 +704,10 @@ pub async fn get_in_house_app_package(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, title_id);
-    // Premium-only: download in-house app package from blob store
-    encode_service_error(&ServiceError::MissingLicense)
+    match state.service.get_in_house_app_package(&viewer, title_id as u32).await {
+        Ok(data) => fleet_ok("package", serde_json::json!(data)),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/software/titles/{title_id}/in_house_app/manifest
@@ -669,7 +720,8 @@ pub async fn get_in_house_app_manifest(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, title_id);
-    // Premium-only: return in-house app manifest
-    encode_service_error(&ServiceError::MissingLicense)
+    match state.service.get_in_house_app_manifest(&viewer, title_id as u32).await {
+        Ok(manifest) => fleet_ok("manifest", serde_json::to_value(&manifest).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }

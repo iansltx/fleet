@@ -225,6 +225,21 @@ impl FleetService {
         }))
     }
 
+    // ---- Premium-gated orbit methods ----
+
+    /// Downloads a software installer for an Orbit agent (premium-only).
+    pub async fn orbit_download_software_installer(
+        &self,
+        orbit_node_key: &str,
+        install_uuid: &str,
+    ) -> ServiceResult<Vec<u8>> {
+        let _host = self.authenticate_orbit(orbit_node_key).await?;
+        self.require_premium()?;
+        let _ = install_uuid;
+        // TODO: implement with blob store operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
     /// Updates certificate status from a device/orbit agent.
     pub async fn update_certificate_status(
         &self,

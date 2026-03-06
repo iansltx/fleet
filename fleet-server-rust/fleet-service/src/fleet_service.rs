@@ -492,4 +492,19 @@ impl FleetService {
     pub fn config(&self) -> &FleetServiceConfig {
         &self.config
     }
+
+    /// Returns true if the server is running with a premium license.
+    pub fn is_premium(&self) -> bool {
+        self.config.license.tier == crate::LicenseTier::Premium
+    }
+
+    /// Checks that the server has a premium license, returning
+    /// `ServiceError::MissingLicense` if it does not.
+    pub fn require_premium(&self) -> ServiceResult<()> {
+        if self.is_premium() {
+            Ok(())
+        } else {
+            Err(crate::ServiceError::MissingLicense)
+        }
+    }
 }

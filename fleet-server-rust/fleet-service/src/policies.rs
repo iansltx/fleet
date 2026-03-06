@@ -229,6 +229,23 @@ impl FleetService {
         }
         Ok(())
     }
+
+    // ---- Premium-gated policy methods ----
+
+    /// Autofills policy details using AI (premium-only).
+    pub async fn autofill_policies(
+        &self,
+        viewer: &Viewer,
+        query: Option<&str>,
+        name: Option<&str>,
+        description: Option<&str>,
+    ) -> ServiceResult<serde_json::Value> {
+        authz::authorize(viewer, Subject::Policy, Action::Write)?;
+        self.require_premium()?;
+        let _ = (query, name, description);
+        // TODO: implement with AI service integration
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
 }
 
 /// Spec representation of a policy for declarative management.

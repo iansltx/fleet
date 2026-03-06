@@ -221,4 +221,95 @@ impl FleetService {
             "profiles": [],
         }))
     }
+
+    // ---- Premium-gated device methods ----
+
+    /// Gets a software title icon for a device (premium-only).
+    pub async fn get_device_software_icon(
+        &self,
+        token: &str,
+        software_title_id: u64,
+    ) -> ServiceResult<Vec<u8>> {
+        let _host = self.authenticate_device(token).await?;
+        self.require_premium()?;
+        let _ = software_title_id;
+        // TODO: implement with blob store operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Triggers Linux disk encryption escrow for a device (premium-only).
+    pub async fn trigger_linux_disk_encryption_escrow(
+        &self,
+        token: &str,
+        data: &serde_json::Value,
+    ) -> ServiceResult<()> {
+        let _host = self.authenticate_device(token).await?;
+        self.require_premium()?;
+        let _ = data;
+        // TODO: implement with datastore operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Bypasses conditional access for a device (premium-only).
+    pub async fn bypass_conditional_access(
+        &self,
+        token: &str,
+        data: &serde_json::Value,
+    ) -> ServiceResult<()> {
+        let _host = self.authenticate_device(token).await?;
+        self.require_premium()?;
+        let _ = data;
+        // TODO: implement with datastore operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Gets the MDM manual enrollment profile for a device (premium-only).
+    pub async fn get_device_mdm_manual_enroll_profile(
+        &self,
+        token: &str,
+    ) -> ServiceResult<Vec<u8>> {
+        let _host = self.authenticate_device(token).await?;
+        self.require_premium()?;
+        // TODO: implement with MDM profile generation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Gets MDM command results for a device (premium-only).
+    pub async fn get_device_mdm_command_results(
+        &self,
+        token: &str,
+        command_uuid: &str,
+    ) -> ServiceResult<serde_json::Value> {
+        let _host = self.authenticate_device(token).await?;
+        self.require_premium()?;
+        let _ = command_uuid;
+        // TODO: implement with datastore operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Resends a configuration profile to a device (premium-only).
+    pub async fn resend_device_configuration_profile(
+        &self,
+        token: &str,
+        profile_uuid: &str,
+    ) -> ServiceResult<()> {
+        let _host = self.authenticate_device(token).await?;
+        self.require_premium()?;
+        let _ = profile_uuid;
+        // TODO: implement with datastore operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
+
+    /// Migrates a device's MDM enrollment (premium-only).
+    pub async fn migrate_mdm_device(
+        &self,
+        token: &str,
+        data: &serde_json::Value,
+    ) -> ServiceResult<()> {
+        let _host = self.authenticate_device(token).await?;
+        self.require_premium()?;
+        let _ = data;
+        // TODO: implement with MDM migration operation
+        Err(crate::ServiceError::Internal("not yet implemented".to_string()))
+    }
 }

@@ -775,8 +775,10 @@ pub async fn lock_host(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id);
-    encode_service_error(&fleet_service::ServiceError::MissingLicense)
+    match state.service.lock_host(&viewer, id as u32).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/hosts/{id}/unlock
@@ -789,8 +791,10 @@ pub async fn unlock_host(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id);
-    encode_service_error(&fleet_service::ServiceError::MissingLicense)
+    match state.service.unlock_host(&viewer, id as u32).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/hosts/{id}/wipe
@@ -803,8 +807,10 @@ pub async fn wipe_host(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, id);
-    encode_service_error(&fleet_service::ServiceError::MissingLicense)
+    match state.service.wipe_host(&viewer, id as u32).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/targets
