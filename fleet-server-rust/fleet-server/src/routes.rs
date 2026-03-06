@@ -68,8 +68,6 @@ fn v1_routes() -> Router<crate::AppState> {
         .route("/api/v1/fleet/users/{id}/require_password_reset", post(handlers::users::require_password_reset))
         .route("/api/v1/fleet/users/{id}/sessions", get(handlers::users::get_user_sessions))
         .route("/api/v1/fleet/users/{id}/sessions", delete(handlers::users::delete_user_sessions))
-        .route("/api/v1/fleet/users/{id}/settings", get(handlers::users::get_user_settings))
-        .route("/api/v1/fleet/users/{id}/settings", post(handlers::users::save_user_settings))
         .route("/api/v1/fleet/change_password", post(handlers::users::change_password))
         .route("/api/v1/fleet/email/change/{token}", get(handlers::users::change_email))
         // Targets
@@ -270,7 +268,6 @@ fn v1_routes() -> Router<crate::AppState> {
         .route("/api/v1/fleet/scripts", post(handlers::scripts::create_script))
         .route("/api/v1/fleet/scripts", get(handlers::scripts::list_scripts))
         .route("/api/v1/fleet/scripts/{script_id}", get(handlers::scripts::get_script))
-        .route("/api/v1/fleet/scripts/{script_id}/content", get(handlers::scripts::get_script_content))
         .route("/api/v1/fleet/scripts/{script_id}", patch(handlers::scripts::update_script))
         .route("/api/v1/fleet/scripts/{script_id}", delete(handlers::scripts::delete_script))
         .route("/api/v1/fleet/scripts/batch", post(handlers::scripts::batch_set_scripts))

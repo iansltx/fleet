@@ -280,22 +280,6 @@ pub async fn get_script(
     }
 }
 
-/// GET /api/_version_/fleet/scripts/{script_id}/content
-pub async fn get_script_content(
-    State(state): State<AppState>,
-    auth: AuthenticatedUser,
-    Path(script_id): Path<u64>,
-) -> FleetResponse {
-    let viewer = match auth.viewer(&state).await {
-        Ok(v) => v,
-        Err(e) => return fleet_error(e.0, e.1),
-    };
-    match state.service.get_script_contents(&viewer, script_id as u32).await {
-        Ok(contents) => fleet_ok("script_contents", serde_json::json!(contents)),
-        Err(e) => encode_service_error(&e),
-    }
-}
-
 /// PATCH /api/_version_/fleet/scripts/{script_id}
 pub async fn update_script(
     State(state): State<AppState>,
