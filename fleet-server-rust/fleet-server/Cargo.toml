@@ -56,6 +56,9 @@ native-tls = { workspace = true }
 tokio-native-tls = { workspace = true }
 url = { workspace = true }
 
+# HTTP client
+reqwest = { workspace = true }
+
 # Error handling
 anyhow = { workspace = true }
 thiserror = { workspace = true }

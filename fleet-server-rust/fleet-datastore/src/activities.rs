@@ -164,4 +164,107 @@ impl MysqlDatastore {
         query.execute(self.pool()).await?;
         Ok(())
     }
+
+    /// Unblocks hosts whose upcoming activity queue is stuck (no active entry).
+    /// Matches Go's `UnblockHostsUpcomingActivityQueue`.
+    ///
+    /// Finds hosts that have upcoming activities but none with activated_at set,
+    /// then activates the next activity for each.
+    pub async fn unblock_hosts_upcoming_activity_queue(&self, max_hosts: u32) -> Result<u32> {
+        let blocked_host_ids: Vec<(u32,)> = sqlx::query_as(
+            r#"
+            SELECT DISTINCT inactive_ua.host_id
+            FROM upcoming_activities inactive_ua
+            LEFT OUTER JOIN upcoming_activities active_ua
+                ON active_ua.host_id = inactive_ua.host_id
+                AND active_ua.activated_at IS NOT NULL
+            WHERE active_ua.host_id IS NULL
+                AND inactive_ua.activated_at IS NULL
+            LIMIT ?
+            "#,
+        )
+        .bind(max_hosts)
+        .fetch_all(self.pool())
+        .await?;
+
+        if blocked_host_ids.is_empty() {
+            return Ok(0);
+        }
+
+        let count = blocked_host_ids.len() as u32;
+
+        // Activate the next upcoming activity for each blocked host
+        for (host_id,) in &blocked_host_ids {
+            self.activate_next_upcoming_activity(*host_id).await?;
+        }
+
+        Ok(count)
+    }
+
+    /// Activates the next upcoming activity for a host by setting activated_at
+    /// on the highest-priority, oldest pending activity.
+    /// Matches Go's `activateNextUpcomingActivity`.
+    async fn activate_next_upcoming_activity(&self, host_id: u32) -> Result<()> {
+        sqlx::query(
+            r#"
+            UPDATE upcoming_activities
+            SET activated_at = NOW()
+            WHERE host_id = ?
+                AND activated_at IS NULL
+            ORDER BY priority DESC, created_at ASC
+            LIMIT 1
+            "#,
+        )
+        .bind(host_id)
+        .execute(self.pool())
+        .await?;
+
+        Ok(())
+    }
+
+    /// Marks batch activities as completed when all targeted hosts have results.
+    /// Matches Go's `MarkActivitiesAsCompleted` in `server/datastore/mysql/scripts.go`.
+    pub async fn mark_activities_as_completed(&self) -> Result<u64> {
+        let result = sqlx::query(
+            r#"
+            UPDATE batch_activities AS ba
+            JOIN (
+                SELECT
+                    ba2.id AS batch_id,
+                    COUNT(bahr.host_id) AS num_targeted,
+                    COUNT(bahr.error) AS num_incompatible,
+                    COUNT(IF(hsr.exit_code = 0, 1, NULL)) AS num_ran,
+                    COUNT(IF(hsr.exit_code <> 0, 1, NULL)) AS num_errored,
+                    COUNT(IF(
+                        (hsr.canceled = 1 AND hsr.exit_code IS NULL) OR
+                        (hsr.host_id IS NULL AND bahr.error IS NULL AND ba2.canceled = 1),
+                        1, NULL
+                    )) AS num_canceled
+                FROM batch_activities AS ba2
+                LEFT JOIN batch_activity_host_results AS bahr
+                    ON ba2.execution_id = bahr.batch_execution_id
+                LEFT JOIN host_script_results AS hsr
+                    ON bahr.host_execution_id = hsr.execution_id
+                WHERE ba2.status = 'started'
+                GROUP BY ba2.id
+                HAVING (num_incompatible + num_ran + num_errored + num_canceled) >= num_targeted
+            ) AS agg
+                ON agg.batch_id = ba.id
+            SET
+                ba.status = 'finished',
+                ba.finished_at = NOW(),
+                ba.num_targeted = agg.num_targeted,
+                ba.num_incompatible = agg.num_incompatible,
+                ba.num_ran = agg.num_ran,
+                ba.num_errored = agg.num_errored,
+                ba.num_canceled = agg.num_canceled,
+                ba.num_pending = 0
+            WHERE ba.status = 'started'
+            "#,
+        )
+        .execute(self.pool())
+        .await?;
+
+        Ok(result.rows_affected())
+    }
 }

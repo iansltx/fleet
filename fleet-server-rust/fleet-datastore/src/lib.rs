@@ -15,6 +15,7 @@ pub mod enroll;
 pub mod error;
 pub mod hosts;
 pub mod invites;
+pub mod jobs;
 pub mod labels;
 pub mod mdm;
 pub mod mysql;

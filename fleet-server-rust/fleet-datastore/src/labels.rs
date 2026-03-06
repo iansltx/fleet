@@ -219,4 +219,115 @@ impl MysqlDatastore {
         .fetch_all(self.pool())
         .await?)
     }
+
+    /// Updates label membership for host vitals labels.
+    /// Matches Go's `cronHostVitalsLabelMembership` + `UpdateLabelMembershipByHostCriteria`.
+    ///
+    /// For each label with label_membership_type = 2 (HostVitals), re-evaluates
+    /// membership based on the label's host vitals criteria query.
+    ///
+    /// The Go implementation parses JSON criteria from the label's `query` field
+    /// and dynamically builds SQL based on the vital type (platform, username, etc.).
+    /// This Rust implementation executes the same pattern: for each host vitals label,
+    /// it inserts matching hosts and removes non-matching ones.
+    pub async fn update_host_vitals_label_membership(&self) -> Result<u32> {
+        // label_membership_type = 2 is LabelMembershipTypeHostVitals
+        let labels: Vec<LabelRow> = sqlx::query_as::<_, LabelRow>(
+            "SELECT * FROM labels WHERE label_membership_type = 2 ORDER BY id",
+        )
+        .fetch_all(self.pool())
+        .await?;
+
+        let mut updated = 0u32;
+
+        for label in &labels {
+            // Parse the host vitals criteria from the label's query field.
+            // The query field contains JSON like {"vital":"platform","value":"darwin"}
+            // or {"vital":"username","value":"admin"}.
+            let criteria: serde_json::Value = match serde_json::from_str(&label.query) {
+                Ok(v) => v,
+                Err(e) => {
+                    tracing::warn!(label_id = label.id, error = %e, "failed to parse host vitals criteria");
+                    continue;
+                }
+            };
+
+            let vital = criteria.get("vital").and_then(|v| v.as_str()).unwrap_or("");
+            let value = criteria.get("value").and_then(|v| v.as_str()).unwrap_or("");
+
+            if vital.is_empty() || value.is_empty() {
+                tracing::warn!(label_id = label.id, "empty vital or value in host vitals criteria");
+                continue;
+            }
+
+            // Build the candidate query based on the vital type.
+            // Matches Go's CalculateHostVitalsQuery patterns.
+            let (candidate_sql, team_clause) = match vital {
+                "platform" => (
+                    format!(
+                        "SELECT {} AS label_id, hosts.id AS host_id FROM {{hosts}} WHERE hosts.platform = ?",
+                        label.id
+                    ),
+                    true,
+                ),
+                "username" => (
+                    format!(
+                        "SELECT {} AS label_id, hosts.id AS host_id FROM {{hosts}} \
+                         JOIN host_users hu ON hu.host_id = hosts.id WHERE hu.username = ?",
+                        label.id
+                    ),
+                    true,
+                ),
+                _ => {
+                    tracing::warn!(label_id = label.id, vital = vital, "unsupported host vital type");
+                    continue;
+                }
+            };
+
+            // Apply team scoping if the label has a team_id
+            let candidate_sql = if team_clause {
+                if let Some(tid) = label.team_id {
+                    candidate_sql.replace(
+                        "{hosts}",
+                        &format!(
+                            "hosts JOIN (SELECT {} team_id) label_team ON label_team.team_id = hosts.team_id",
+                            tid
+                        ),
+                    )
+                } else {
+                    candidate_sql.replace("{hosts}", "hosts")
+                }
+            } else {
+                candidate_sql.replace("{hosts}", "hosts")
+            };
+
+            // Insert new members
+            let insert_sql = format!(
+                "INSERT INTO label_membership (label_id, host_id) \
+                 SELECT candidate.label_id, candidate.host_id FROM ({}) AS candidate \
+                 ON DUPLICATE KEY UPDATE host_id = label_membership.host_id",
+                candidate_sql
+            );
+            sqlx::query(&insert_sql)
+                .bind(value)
+                .execute(self.pool())
+                .await?;
+
+            // Remove stale members
+            let delete_sql = format!(
+                "DELETE FROM label_membership WHERE label_id = {} \
+                 AND NOT EXISTS (SELECT 1 FROM ({}) AS candidate \
+                 WHERE candidate.host_id = label_membership.host_id)",
+                label.id, candidate_sql
+            );
+            sqlx::query(&delete_sql)
+                .bind(value)
+                .execute(self.pool())
+                .await?;
+
+            updated += 1;
+        }
+
+        Ok(updated)
+    }
 }

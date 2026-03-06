@@ -588,4 +588,21 @@ impl MysqlDatastore {
             None => Ok((vec![], chrono::Utc::now())),
         }
     }
+
+    /// Returns the total host count and the count of hosts not seen for `days_count` days.
+    /// Matches Go's `TotalAndUnseenHostsSince`.
+    pub async fn total_and_unseen_hosts_since(&self, days_count: i32) -> Result<(i64, i64)> {
+        let (total,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM hosts")
+            .fetch_one(self.pool())
+            .await?;
+
+        let (unseen,): (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) FROM hosts WHERE seen_time < DATE_SUB(NOW(), INTERVAL ? DAY)",
+        )
+        .bind(days_count)
+        .fetch_one(self.pool())
+        .await?;
+
+        Ok((total, unseen))
+    }
 }
