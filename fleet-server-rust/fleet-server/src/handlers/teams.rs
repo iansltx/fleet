@@ -239,9 +239,25 @@ pub async fn list_team_users(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &params;
     match state.service.list_team_users(&viewer, id as u32).await {
-        Ok(users) => fleet_ok("users", serde_json::to_value(&users).unwrap_or_default()),
+        Ok(users) => {
+            let page = params.page.unwrap_or(0) as usize;
+            let per_page = params.per_page.unwrap_or(20) as usize;
+            let start = page * per_page;
+            let all = serde_json::to_value(&users).unwrap_or_default();
+            let paginated = match &all {
+                serde_json::Value::Array(arr) => {
+                    let end = (start + per_page).min(arr.len());
+                    if start < arr.len() {
+                        serde_json::Value::Array(arr[start..end].to_vec())
+                    } else {
+                        serde_json::Value::Array(vec![])
+                    }
+                }
+                other => other.clone(),
+            };
+            fleet_ok("users", paginated)
+        }
         Err(e) => encode_service_error(&e),
     }
 }

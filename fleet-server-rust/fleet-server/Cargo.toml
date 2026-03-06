@@ -50,6 +50,11 @@ prometheus = { workspace = true }
 # Encoding
 base64 = { workspace = true }
 
+# TLS
+native-tls = { workspace = true }
+tokio-native-tls = { workspace = true }
+url = { workspace = true }
+
 # Error handling
 anyhow = { workspace = true }
 thiserror = { workspace = true }

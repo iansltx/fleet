@@ -47,7 +47,7 @@ pub struct ApplyEnrollSecretSpecBody {
 
 #[derive(Debug, Deserialize)]
 pub struct TranslateBody {
-    pub list: Vec<serde_json::Value>,
+    pub list: Vec<fleet_service::translate::TranslatePayload>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -141,9 +141,93 @@ pub async fn trigger(
 }
 
 /// GET /api/_version_/fleet/config/certificate
+///
+/// Returns the PEM-encoded TLS certificate chain for the configured server URL.
+/// The leaf certificate is omitted since osqueryd does not need it to establish
+/// a secure connection. If the server is not using TLS or the connection fails,
+/// an empty string is returned.
 pub async fn get_certificate(State(state): State<AppState>) -> FleetResponse {
-    let _ = &state;
-    fleet_ok("certificate_chain", serde_json::json!(""))
+    let server_url = &state.service.config().server.server_url;
+    match fetch_certificate_chain(server_url).await {
+        Ok(chain) => fleet_ok("certificate_chain", serde_json::json!(chain)),
+        Err(e) => {
+            tracing::warn!(error = %e, server_url = %server_url, "failed to fetch TLS certificate chain");
+            fleet_ok("certificate_chain", serde_json::json!(""))
+        }
+    }
+}
+
+/// Connects to the given server URL via TLS and returns the PEM-encoded
+/// certificate chain, omitting the leaf certificate (matching Go behavior).
+async fn fetch_certificate_chain(server_url: &str) -> Result<String, anyhow::Error> {
+    let parsed = url::Url::parse(server_url)?;
+    let hostname = parsed.host_str().unwrap_or("localhost").to_string();
+    let port = parsed.port().unwrap_or(if parsed.scheme() == "http" { 80 } else { 443 });
+    let hostport = format!("{}:{}", hostname, port);
+
+    // Try secure first, then fall back to insecure (self-signed) -- mirrors Go.
+    let peer_certs = match connect_tls(&hostport, &hostname, false).await {
+        Ok(certs) => certs,
+        Err(_) => connect_tls(&hostport, &hostname, true).await?,
+    };
+
+    if peer_certs.is_empty() {
+        return Ok(String::new());
+    }
+
+    // Build PEM chain, skipping the leaf certificate (the one whose CN or SAN
+    // matches the hostname). When there is only one certificate we keep it.
+    let mut pem_chain = String::new();
+    for cert in &peer_certs {
+        if peer_certs.len() > 1 && is_leaf_for_hostname(cert, &hostname) {
+            continue;
+        }
+        pem_chain.push_str(&pem_encode_certificate(&cert.to_der()?));
+    }
+    Ok(pem_chain)
+}
+
+/// Establish a TLS connection and return the peer certificate chain.
+async fn connect_tls(
+    hostport: &str,
+    hostname: &str,
+    accept_invalid: bool,
+) -> Result<Vec<native_tls::Certificate>, anyhow::Error> {
+    let tcp = tokio::net::TcpStream::connect(hostport).await?;
+
+    let mut builder = native_tls::TlsConnector::builder();
+    if accept_invalid {
+        builder.danger_accept_invalid_certs(true);
+        builder.danger_accept_invalid_hostnames(true);
+    }
+    let connector = builder.build()?;
+    let connector = tokio_native_tls::TlsConnector::from(connector);
+    let tls_stream = connector.connect(hostname, tcp).await?;
+
+    // Extract the peer certificate chain from the underlying native-tls stream.
+    let native_stream = tls_stream.get_ref();
+    let peer_certs = native_stream
+        .peer_certificate_chain()
+        .unwrap_or_default()
+        .unwrap_or_default();
+
+    Ok(peer_certs)
+}
+
+/// Check whether a certificate is the leaf for the given hostname by inspecting
+/// the DER-encoded subject for the hostname string. This is a lightweight heuristic
+/// (the Go code uses x509.Certificate.VerifyHostname).
+fn is_leaf_for_hostname(cert: &native_tls::Certificate, hostname: &str) -> bool {
+    // Convert to DER and search for the hostname bytes in the subject/SAN fields.
+    if let Ok(der) = cert.to_der() {
+        // A simple heuristic: the leaf cert usually contains the hostname in its
+        // subject CN or Subject Alternative Name extension encoded as ASCII in DER.
+        let hostname_bytes = hostname.as_bytes();
+        der.windows(hostname_bytes.len())
+            .any(|w| w == hostname_bytes)
+    } else {
+        false
+    }
 }
 
 /// GET /api/_version_/fleet/config
@@ -257,11 +341,17 @@ pub async fn version(State(state): State<AppState>) -> FleetResponse {
 /// POST /api/_version_/fleet/translate
 pub async fn translate(
     State(state): State<AppState>,
+    auth: AuthenticatedUser,
     Json(body): Json<TranslateBody>,
 ) -> FleetResponse {
-    let _ = &state;
-    // Identity translation: return input queries unchanged
-    fleet_ok("list", serde_json::to_value(&body.list).unwrap_or_default())
+    let viewer = match auth.viewer(&state).await {
+        Ok(v) => v,
+        Err(e) => return fleet_error(e.0, e.1),
+    };
+    match state.service.translate_identifiers(&viewer, body.list).await {
+        Ok(list) => fleet_ok("list", serde_json::to_value(&list).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/certificates
@@ -445,9 +535,18 @@ pub async fn list_secret_variables(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &params;
     match state.service.list_secret_variables(&viewer).await {
-        Ok(vars) => fleet_ok("secret_variables", serde_json::to_value(&vars).unwrap_or_default()),
+        Ok(vars) => {
+            let page = params.page.unwrap_or(0) as usize;
+            let per_page = params.per_page.unwrap_or(20) as usize;
+            let start = page * per_page;
+            let end = (start + per_page).min(vars.len());
+            let paginated = if start < vars.len() { &vars[start..end] } else { &[] as &[_] };
+            fleet_ok("", serde_json::json!({
+                "secret_variables": paginated,
+                "count": vars.len(),
+            }))
+        }
         Err(e) => encode_service_error(&e),
     }
 }

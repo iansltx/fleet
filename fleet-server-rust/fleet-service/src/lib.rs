@@ -27,6 +27,7 @@ pub mod sessions;
 pub mod setup_experience;
 pub mod software;
 pub mod teams;
+pub mod translate;
 pub mod users;
 
 pub use fleet_service::FleetService;

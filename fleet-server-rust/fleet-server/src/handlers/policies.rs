@@ -266,8 +266,31 @@ pub async fn reset_automation(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &body);
-    // Validated and authorized; reset automation is a no-op if no automations are configured
+
+    // Validate that referenced teams exist.
+    if let Some(ref team_ids) = body.team_ids {
+        for &tid in team_ids {
+            if let Err(e) = state.service.get_team(&viewer, tid as u32).await {
+                return encode_service_error(&e);
+            }
+        }
+    }
+
+    // Validate that referenced policies exist.
+    if let Some(ref policy_ids) = body.policy_ids {
+        for &pid in policy_ids {
+            if let Err(e) = state.service.get_policy(&viewer, pid as u32).await {
+                return encode_service_error(&e);
+            }
+        }
+    }
+
+    tracing::info!(
+        team_ids = ?body.team_ids,
+        policy_ids = ?body.policy_ids,
+        "reset_automation requested (automation iteration increment is not yet implemented in Rust server)"
+    );
+
     fleet_ok("", serde_json::json!({}))
 }
 
