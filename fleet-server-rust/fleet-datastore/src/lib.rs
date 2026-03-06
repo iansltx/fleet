@@ -15,6 +15,7 @@ pub mod error;
 pub mod hosts;
 pub mod invites;
 pub mod labels;
+pub mod mdm;
 pub mod mysql;
 pub mod packs;
 pub mod policies;

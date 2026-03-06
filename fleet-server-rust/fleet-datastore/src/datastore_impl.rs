@@ -446,6 +446,61 @@ fn vuln_row_to_type(row: crate::software::VulnerabilityRow) -> fleet_types::vuln
     }
 }
 
+fn mdm_profile_row_to_type(row: crate::mdm::MDMConfigProfileRow) -> fleet_types::mdm::MDMConfigProfilePayload {
+    fleet_types::mdm::MDMConfigProfilePayload {
+        profile_uuid: row.profile_uuid,
+        team_id: row.team_id,
+        name: row.name,
+        platform: row.platform,
+        identifier: row.identifier,
+        scope: row.scope,
+        checksum: row.checksum,
+        created_at: row.created_at,
+        uploaded_at: row.uploaded_at,
+        labels_include_all: Vec::new(),
+        labels_include_any: Vec::new(),
+        labels_exclude_any: Vec::new(),
+    }
+}
+
+fn mdm_command_row_to_type(row: crate::mdm::MDMCommandRow) -> fleet_types::mdm::MDMCommand {
+    fleet_types::mdm::MDMCommand {
+        host_uuid: row.host_uuid,
+        command_uuid: row.command_uuid,
+        updated_at: row.updated_at,
+        request_type: row.request_type,
+        status: row.status,
+        hostname: row.hostname,
+        team_id: row.team_id,
+    }
+}
+
+fn mdm_command_result_row_to_type(row: crate::mdm::MDMCommandResultRow) -> fleet_types::mdm::MDMCommandResult {
+    fleet_types::mdm::MDMCommandResult {
+        host_uuid: row.host_uuid,
+        command_uuid: row.command_uuid,
+        status: row.status,
+        updated_at: row.updated_at,
+        request_type: row.request_type,
+        result: row.result,
+        hostname: String::new(),
+        payload: row.payload,
+    }
+}
+
+fn host_mdm_profile_row_to_type(row: crate::mdm::HostMDMProfileRow) -> fleet_types::mdm::HostMDMProfile {
+    fleet_types::mdm::HostMDMProfile {
+        profile_uuid: row.profile_uuid,
+        name: row.name,
+        status: Some(row.status),
+        operation_type: row.operation_type,
+        detail: row.detail,
+        platform: String::new(),
+        scope: row.scope,
+        managed_local_account: row.managed_local_account,
+    }
+}
+
 /// Enriches a slice of Software with CVE data from the software_cve table.
 async fn enrich_software_with_cves(ds: &MysqlDatastore, software: &mut [fleet_types::Software]) {
     let ids: Vec<u32> = software.iter().map(|s| s.id).collect();
@@ -2744,5 +2799,152 @@ impl Datastore for MysqlDatastore {
         MysqlDatastore::hosts_ids_for_targets(self, &targets.hosts, &targets.labels, &targets.teams)
             .await
             .map_err(ServiceError::from)
+    }
+
+    // ---- MDM ----
+
+    async fn list_mdm_config_profiles(
+        &self,
+        team_id: Option<u32>,
+        page: u32,
+        per_page: u32,
+    ) -> ServiceResult<Vec<fleet_types::mdm::MDMConfigProfilePayload>> {
+        let rows = MysqlDatastore::list_mdm_config_profiles(self, team_id, page, per_page)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(mdm_profile_row_to_type).collect())
+    }
+
+    async fn get_mdm_config_profile(
+        &self,
+        profile_uuid: &str,
+    ) -> ServiceResult<fleet_types::mdm::MDMConfigProfilePayload> {
+        let row = MysqlDatastore::get_mdm_config_profile(self, profile_uuid)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(mdm_profile_row_to_type(row))
+    }
+
+    async fn delete_mdm_config_profile(&self, profile_uuid: &str) -> ServiceResult<()> {
+        MysqlDatastore::delete_mdm_config_profile(self, profile_uuid)
+            .await
+            .map_err(ServiceError::from)
+    }
+
+    async fn get_mdm_profiles_summary(
+        &self,
+        team_id: Option<u32>,
+    ) -> ServiceResult<fleet_types::mdm::MDMProfilesSummary> {
+        let rows = MysqlDatastore::get_mdm_profiles_summary(self, team_id)
+            .await
+            .map_err(ServiceError::from)?;
+        let mut summary = fleet_types::mdm::MDMProfilesSummary::default();
+        for row in rows {
+            match row.status.as_str() {
+                "verified" => summary.verified = row.count,
+                "verifying" => summary.verifying = row.count,
+                "pending" => summary.pending = row.count,
+                "failed" => summary.failed = row.count,
+                _ => {}
+            }
+        }
+        Ok(summary)
+    }
+
+    async fn list_mdm_commands(
+        &self,
+        page: u32,
+        per_page: u32,
+    ) -> ServiceResult<Vec<fleet_types::mdm::MDMCommand>> {
+        let rows = MysqlDatastore::list_mdm_commands(self, page, per_page)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(mdm_command_row_to_type).collect())
+    }
+
+    async fn get_mdm_command_results(
+        &self,
+        command_uuid: &str,
+    ) -> ServiceResult<Vec<fleet_types::mdm::MDMCommandResult>> {
+        let rows = MysqlDatastore::get_mdm_command_results(self, command_uuid)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(mdm_command_result_row_to_type).collect())
+    }
+
+    async fn get_host_mdm_profiles(
+        &self,
+        host_uuid: &str,
+    ) -> ServiceResult<Vec<fleet_types::mdm::HostMDMProfile>> {
+        let rows = MysqlDatastore::get_host_mdm_profiles(self, host_uuid)
+            .await
+            .map_err(ServiceError::from)?;
+        Ok(rows.into_iter().map(host_mdm_profile_row_to_type).collect())
+    }
+
+    async fn get_mdm_disk_encryption_summary(
+        &self,
+        team_id: Option<u32>,
+    ) -> ServiceResult<fleet_types::mdm::MDMDiskEncryptionSummary> {
+        let rows = MysqlDatastore::get_mdm_disk_encryption_summary(self, team_id)
+            .await
+            .map_err(ServiceError::from)?;
+        let mut summary = fleet_types::mdm::MDMDiskEncryptionSummary::default();
+        for row in rows {
+            match row.status.as_str() {
+                "verified" => summary.verified.macos = row.count,
+                "verifying" => summary.verifying.macos = row.count,
+                "action_required" => summary.action_required.macos = row.count,
+                "enforcing" => summary.enforcing.macos = row.count,
+                "failed" => summary.failed.macos = row.count,
+                "removing_enforcement" => summary.removing_enforcement.macos = row.count,
+                _ => {}
+            }
+        }
+        Ok(summary)
+    }
+
+    async fn get_mdm_apple_filevault_summary(
+        &self,
+        team_id: Option<u32>,
+    ) -> ServiceResult<fleet_types::mdm::MDMAppleFileVaultSummary> {
+        let rows = MysqlDatastore::get_mdm_apple_filevault_summary(self, team_id)
+            .await
+            .map_err(ServiceError::from)?;
+        let mut summary = fleet_types::mdm::MDMAppleFileVaultSummary::default();
+        for row in rows {
+            match row.status.as_str() {
+                "verified" => summary.verified = row.count,
+                "verifying" => summary.verifying = row.count,
+                "action_required" => summary.action_required = row.count,
+                "enforcing" => summary.enforcing = row.count,
+                "failed" => summary.failed = row.count,
+                "removing_enforcement" => summary.removing_enforcement = row.count,
+                _ => {}
+            }
+        }
+        Ok(summary)
+    }
+
+    async fn get_mdm_config_profile_status(
+        &self,
+        profile_uuid: &str,
+        page: u32,
+        per_page: u32,
+    ) -> ServiceResult<fleet_types::mdm::MDMConfigProfileStatus> {
+        let rows = MysqlDatastore::get_mdm_config_profile_status(self, profile_uuid, page, per_page)
+            .await
+            .map_err(ServiceError::from)?;
+        let mut status = fleet_types::mdm::MDMConfigProfileStatus::default();
+        for row in rows {
+            match row.status.as_str() {
+                "verified" => status.verified = row.count,
+                "verifying" => status.verifying = row.count,
+                "pending" => status.pending = row.count,
+                "failed" => status.failed = row.count,
+                _ => {}
+            }
+        }
+        Ok(status)
     }
 }

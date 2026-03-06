@@ -44,6 +44,7 @@ pub enum Subject {
     Carve,
     Software,
     Script,
+    Mdm,
 }
 
 /// The known Fleet roles, matching Go constants.
@@ -122,7 +123,7 @@ fn is_global_role_authorized(role: &str, subject: Subject, action: Action) -> bo
         roles::OBSERVER => match subject {
             Subject::Host | Subject::Label | Subject::Query | Subject::Pack
             | Subject::Policy | Subject::Team | Subject::Target
-            | Subject::Software | Subject::Activity => {
+            | Subject::Software | Subject::Activity | Subject::Mdm => {
                 matches!(action, Action::Read | Action::List)
             }
             Subject::AppConfig => matches!(action, Action::Read),
@@ -133,7 +134,7 @@ fn is_global_role_authorized(role: &str, subject: Subject, action: Action) -> bo
         roles::OBSERVER_PLUS => match subject {
             Subject::Host | Subject::Label | Subject::Query | Subject::Pack
             | Subject::Policy | Subject::Team | Subject::Target
-            | Subject::Software | Subject::Activity => {
+            | Subject::Software | Subject::Activity | Subject::Mdm => {
                 matches!(action, Action::Read | Action::List | Action::Run)
             }
             Subject::AppConfig => matches!(action, Action::Read),

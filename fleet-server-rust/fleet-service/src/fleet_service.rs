@@ -305,6 +305,50 @@ pub trait Datastore: Send + Sync + 'static {
     ) -> ServiceResult<Vec<fleet_types::software::FleetMaintainedApp>>;
     async fn get_fleet_maintained_app(&self, id: u32) -> ServiceResult<fleet_types::software::FleetMaintainedApp>;
 
+    // ---- MDM ----
+    async fn list_mdm_config_profiles(
+        &self,
+        team_id: Option<u32>,
+        page: u32,
+        per_page: u32,
+    ) -> ServiceResult<Vec<fleet_types::mdm::MDMConfigProfilePayload>>;
+    async fn get_mdm_config_profile(
+        &self,
+        profile_uuid: &str,
+    ) -> ServiceResult<fleet_types::mdm::MDMConfigProfilePayload>;
+    async fn delete_mdm_config_profile(&self, profile_uuid: &str) -> ServiceResult<()>;
+    async fn get_mdm_profiles_summary(
+        &self,
+        team_id: Option<u32>,
+    ) -> ServiceResult<fleet_types::mdm::MDMProfilesSummary>;
+    async fn list_mdm_commands(
+        &self,
+        page: u32,
+        per_page: u32,
+    ) -> ServiceResult<Vec<fleet_types::mdm::MDMCommand>>;
+    async fn get_mdm_command_results(
+        &self,
+        command_uuid: &str,
+    ) -> ServiceResult<Vec<fleet_types::mdm::MDMCommandResult>>;
+    async fn get_host_mdm_profiles(
+        &self,
+        host_uuid: &str,
+    ) -> ServiceResult<Vec<fleet_types::mdm::HostMDMProfile>>;
+    async fn get_mdm_disk_encryption_summary(
+        &self,
+        team_id: Option<u32>,
+    ) -> ServiceResult<fleet_types::mdm::MDMDiskEncryptionSummary>;
+    async fn get_mdm_apple_filevault_summary(
+        &self,
+        team_id: Option<u32>,
+    ) -> ServiceResult<fleet_types::mdm::MDMAppleFileVaultSummary>;
+    async fn get_mdm_config_profile_status(
+        &self,
+        profile_uuid: &str,
+        page: u32,
+        per_page: u32,
+    ) -> ServiceResult<fleet_types::mdm::MDMConfigProfileStatus>;
+
     // ---- Utilities ----
     async fn list_packs_for_host(&self, host_id: u32) -> ServiceResult<Vec<fleet_types::Pack>>;
     async fn list_software_titles(&self, team_id: Option<u32>, limit: u32, offset: u32) -> ServiceResult<Vec<fleet_types::Software>>;

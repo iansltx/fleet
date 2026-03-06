@@ -15,6 +15,7 @@ pub mod error;
 pub mod host;
 pub mod invite;
 pub mod label;
+pub mod mdm;
 pub mod osquery;
 pub mod pack;
 pub mod policy;

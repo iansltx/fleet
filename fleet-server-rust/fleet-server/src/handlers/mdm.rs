@@ -10,7 +10,7 @@ use axum::http::StatusCode;
 use serde::Deserialize;
 
 use crate::middleware::auth::AuthenticatedUser;
-use crate::response::{fleet_error, FleetResponse};
+use crate::response::{encode_service_error, fleet_error, fleet_ok, FleetResponse};
 use crate::AppState;
 
 // ---------------------------------------------------------------------------
@@ -230,8 +230,10 @@ pub async fn get_mdm_apple_command_results(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &params);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    match state.service.get_mdm_command_results(&viewer, &params.command_uuid).await {
+        Ok(results) => fleet_ok("results", serde_json::to_value(&results).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/mdm/apple/commands (deprecated)
@@ -244,8 +246,12 @@ pub async fn list_mdm_apple_commands(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &params);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    let page = params.page.unwrap_or(0) as u32;
+    let per_page = params.per_page.unwrap_or(20) as u32;
+    match state.service.list_mdm_commands(&viewer, page, per_page).await {
+        Ok(commands) => fleet_ok("commands", serde_json::to_value(&commands).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -262,8 +268,12 @@ pub async fn get_mdm_apple_config_profile(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &profile_id);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    // Legacy endpoint used numeric IDs; convert to UUID format
+    let profile_uuid = format!("a{}", profile_id);
+    match state.service.get_mdm_config_profile(&viewer, &profile_uuid).await {
+        Ok(profile) => fleet_ok("profile", serde_json::to_value(&profile).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// DELETE /api/_version_/fleet/mdm/apple/profiles/{profile_id} (deprecated)
@@ -276,8 +286,11 @@ pub async fn delete_mdm_apple_config_profile(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &profile_id);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    let profile_uuid = format!("a{}", profile_id);
+    match state.service.delete_mdm_config_profile(&viewer, &profile_uuid).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/mdm/apple/profiles (deprecated)
@@ -303,8 +316,13 @@ pub async fn list_mdm_apple_config_profiles(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &params);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    let team_id = params.team_id.map(|id| id as u32);
+    let page = params.page.unwrap_or(0) as u32;
+    let per_page = params.per_page.unwrap_or(20) as u32;
+    match state.service.list_mdm_config_profiles(&viewer, team_id, page, per_page).await {
+        Ok(profiles) => fleet_ok("profiles", serde_json::to_value(&profiles).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/mdm/apple/filevault/summary (deprecated)
@@ -317,8 +335,11 @@ pub async fn get_mdm_apple_filevault_summary(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &params);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    let team_id = params.team_id.map(|id| id as u32);
+    match state.service.get_mdm_apple_filevault_summary(&viewer, team_id).await {
+        Ok(summary) => fleet_ok("", serde_json::to_value(&summary).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/mdm/apple/profiles/summary (deprecated)
@@ -331,8 +352,11 @@ pub async fn get_mdm_apple_profiles_summary(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &params);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    let team_id = params.team_id.map(|id| id as u32);
+    match state.service.get_mdm_apple_profiles_summary(&viewer, team_id).await {
+        Ok(summary) => fleet_ok("", serde_json::to_value(&summary).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -590,8 +614,16 @@ pub async fn get_host_profiles(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &id);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    // Need host UUID - look up the host first
+    match state.service.get_host(&viewer, id as u32).await {
+        Ok(host_detail) => {
+            match state.service.get_host_mdm_profiles(&viewer, &host_detail.host.uuid).await {
+                Ok(profiles) => fleet_ok("profiles", serde_json::to_value(&profiles).unwrap_or_default()),
+                Err(e) => encode_service_error(&e),
+            }
+        }
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/mdm/apple (deprecated)
@@ -733,8 +765,10 @@ pub async fn get_mdm_command_results(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &params);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    match state.service.get_mdm_command_results(&viewer, &params.command_uuid).await {
+        Ok(results) => fleet_ok("results", serde_json::to_value(&results).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/mdm/commands (deprecated)
@@ -748,8 +782,12 @@ pub async fn list_mdm_commands(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &params);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    let page = params.page.unwrap_or(0) as u32;
+    let per_page = params.per_page.unwrap_or(20) as u32;
+    match state.service.list_mdm_commands(&viewer, page, per_page).await {
+        Ok(commands) => fleet_ok("commands", serde_json::to_value(&commands).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// PATCH /api/_version_/fleet/mdm/hosts/{id}/unenroll (deprecated)
@@ -782,8 +820,11 @@ pub async fn get_mdm_disk_encryption_summary(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &params);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    let team_id = params.team_id.map(|id| id as u32);
+    match state.service.get_mdm_disk_encryption_summary(&viewer, team_id).await {
+        Ok(summary) => fleet_ok("", serde_json::to_value(&summary).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/mdm/hosts/{id}/encryption_key (deprecated)
@@ -844,8 +885,11 @@ pub async fn get_mdm_profiles_summary(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &params);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    let team_id = params.team_id.map(|id| id as u32);
+    match state.service.get_mdm_profiles_summary(&viewer, team_id).await {
+        Ok(summary) => fleet_ok("", serde_json::to_value(&summary).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -863,8 +907,10 @@ pub async fn get_mdm_config_profile(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &profile_uuid);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    match state.service.get_mdm_config_profile(&viewer, &profile_uuid).await {
+        Ok(profile) => fleet_ok("profile", serde_json::to_value(&profile).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// DELETE /api/_version_/fleet/mdm/profiles/{profile_uuid} (deprecated)
@@ -878,8 +924,10 @@ pub async fn delete_mdm_config_profile(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &profile_uuid);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    match state.service.delete_mdm_config_profile(&viewer, &profile_uuid).await {
+        Ok(()) => fleet_ok("", serde_json::json!({})),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// GET /api/_version_/fleet/mdm/profiles (deprecated)
@@ -893,8 +941,13 @@ pub async fn list_mdm_config_profiles(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &params);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    let team_id = params.team_id.map(|id| id as u32);
+    let page = params.page.unwrap_or(0) as u32;
+    let per_page = params.per_page.unwrap_or(20) as u32;
+    match state.service.list_mdm_config_profiles(&viewer, team_id, page, per_page).await {
+        Ok(profiles) => fleet_ok("profiles", serde_json::to_value(&profiles).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 /// POST /api/_version_/fleet/mdm/profiles (deprecated)
@@ -965,8 +1018,12 @@ pub async fn get_mdm_config_profile_status(
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = (&viewer, &profile_uuid, &params);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    let page = params.page.unwrap_or(0) as u32;
+    let per_page = params.per_page.unwrap_or(20) as u32;
+    match state.service.get_mdm_config_profile_status(&viewer, &profile_uuid, page, per_page).await {
+        Ok(status) => fleet_ok("", serde_json::to_value(&status).unwrap_or_default()),
+        Err(e) => encode_service_error(&e),
+    }
 }
 
 // ---------------------------------------------------------------------------

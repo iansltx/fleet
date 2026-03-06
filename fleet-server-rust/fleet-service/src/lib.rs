@@ -16,6 +16,7 @@ pub mod hosts;
 pub mod invites;
 pub mod labels;
 pub mod live_query;
+pub mod mdm;
 pub mod orbit;
 pub mod osquery;
 pub mod packs;
