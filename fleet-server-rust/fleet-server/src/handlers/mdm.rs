@@ -6,7 +6,6 @@
 //! backwards compatibility.
 
 use axum::extract::{Json, Path, Query, State};
-use axum::http::StatusCode;
 use serde::Deserialize;
 
 use crate::middleware::auth::AuthenticatedUser;
@@ -199,7 +198,7 @@ pub async fn update_mdm_apple_setup(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 // ---------------------------------------------------------------------------
@@ -217,7 +216,7 @@ pub async fn enqueue_mdm_apple_command(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &body);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/mdm/apple/commandresults (deprecated)
@@ -303,7 +302,7 @@ pub async fn new_mdm_apple_config_profile(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/mdm/apple/profiles (deprecated)
@@ -374,7 +373,7 @@ pub async fn create_mdm_apple_setup_assistant(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/mdm/apple/enrollment_profile
@@ -388,7 +387,7 @@ pub async fn get_mdm_apple_setup_assistant(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// DELETE /api/_version_/fleet/mdm/apple/enrollment_profile
@@ -402,7 +401,7 @@ pub async fn delete_mdm_apple_setup_assistant(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 // ---------------------------------------------------------------------------
@@ -419,7 +418,7 @@ pub async fn upload_apple_installer(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/mdm/apple/installers/{installer_id}
@@ -433,7 +432,7 @@ pub async fn get_apple_installer(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &installer_id);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// DELETE /api/_version_/fleet/mdm/apple/installers/{installer_id}
@@ -447,7 +446,7 @@ pub async fn delete_apple_installer(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &installer_id);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/mdm/apple/installers
@@ -460,7 +459,7 @@ pub async fn list_mdm_apple_installers(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/mdm/apple/devices
@@ -473,7 +472,7 @@ pub async fn list_mdm_apple_devices(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 // ---------------------------------------------------------------------------
@@ -491,7 +490,7 @@ pub async fn get_manual_enrollment_profile(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 // ---------------------------------------------------------------------------
@@ -510,7 +509,7 @@ pub async fn upload_bootstrap_package(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/mdm/bootstrap/{fleet_id}/metadata
@@ -526,7 +525,7 @@ pub async fn bootstrap_package_metadata(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &fleet_id);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// DELETE /api/_version_/fleet/mdm/bootstrap/{fleet_id}
@@ -542,7 +541,7 @@ pub async fn delete_bootstrap_package(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &fleet_id);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/mdm/bootstrap/summary
@@ -558,7 +557,7 @@ pub async fn get_bootstrap_package_summary(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &params);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/mdm/bootstrap (unauthenticated download)
@@ -568,7 +567,7 @@ pub async fn download_bootstrap_package(
     State(state): State<AppState>,
 ) -> FleetResponse {
     let _ = &state;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 // ---------------------------------------------------------------------------
@@ -586,7 +585,7 @@ pub async fn device_lock(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &id);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// POST /api/_version_/fleet/mdm/hosts/{id}/wipe
@@ -600,7 +599,7 @@ pub async fn device_wipe(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &id);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/mdm/hosts/{id}/profiles (deprecated)
@@ -637,7 +636,7 @@ pub async fn get_apple_mdm(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 // ---------------------------------------------------------------------------
@@ -657,7 +656,7 @@ pub async fn create_mdm_eula(
     };
     // Stub: MDM operations deferred
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/mdm/setup/eula/metadata
@@ -672,7 +671,7 @@ pub async fn get_mdm_eula_metadata(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// DELETE /api/_version_/fleet/mdm/setup/eula/{token}
@@ -688,7 +687,7 @@ pub async fn delete_mdm_eula(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &token);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/mdm/setup/eula/{token} (unauthenticated)
@@ -700,7 +699,7 @@ pub async fn get_mdm_eula(
 ) -> FleetResponse {
     // Stub: MDM operations deferred
     let _ = (&state, &token);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 // ---------------------------------------------------------------------------
@@ -718,7 +717,7 @@ pub async fn preassign_mdm_apple_profile(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &body);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// POST /api/_version_/fleet/mdm/apple/profiles/match
@@ -732,7 +731,7 @@ pub async fn match_mdm_apple_preassignment(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &body);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 // ---------------------------------------------------------------------------
@@ -751,7 +750,7 @@ pub async fn run_mdm_command(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &body);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/mdm/commandresults (deprecated)
@@ -802,7 +801,7 @@ pub async fn mdm_unenroll(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &id);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 // ---------------------------------------------------------------------------
@@ -839,7 +838,7 @@ pub async fn get_host_encryption_key(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &id);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// PATCH /api/_version_/fleet/mdm/apple/settings (deprecated)
@@ -853,7 +852,7 @@ pub async fn update_mdm_apple_settings(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &body);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// POST /api/_version_/fleet/disk_encryption
@@ -867,7 +866,7 @@ pub async fn update_disk_encryption(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &body);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 // ---------------------------------------------------------------------------
@@ -961,7 +960,7 @@ pub async fn new_mdm_config_profile(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// POST /api/_version_/fleet/configuration_profiles/batch
@@ -975,7 +974,7 @@ pub async fn batch_modify_mdm_config_profiles(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &body);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// POST /api/_version_/fleet/hosts/{host_id}/configuration_profiles/resend/{profile_uuid} (deprecated)
@@ -990,7 +989,7 @@ pub async fn resend_host_mdm_profile(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &host_id, &profile_uuid);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// POST /api/_version_/fleet/configuration_profiles/resend/batch
@@ -1004,7 +1003,7 @@ pub async fn batch_resend_mdm_profile_to_hosts(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &body);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/configuration_profiles/{profile_uuid}/status
@@ -1041,7 +1040,7 @@ pub async fn request_mdm_apple_csr(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &body);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/mdm/apple/request_csr
@@ -1054,7 +1053,7 @@ pub async fn get_mdm_apple_csr(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// POST /api/_version_/fleet/mdm/apple/dep/key_pair (deprecated)
@@ -1067,7 +1066,7 @@ pub async fn new_mdm_apple_dep_key_pair(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/mdm/apple/abm_public_key
@@ -1080,7 +1079,7 @@ pub async fn generate_abm_key_pair(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// POST /api/_version_/fleet/mdm/apple/apns_certificate
@@ -1094,7 +1093,7 @@ pub async fn upload_mdm_apple_apns_cert(
     };
     // Stub: multipart upload deferred
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// DELETE /api/_version_/fleet/mdm/apple/apns_certificate
@@ -1107,7 +1106,7 @@ pub async fn delete_mdm_apple_apns_cert(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 // ---------------------------------------------------------------------------
@@ -1125,7 +1124,7 @@ pub async fn upload_abm_token(
     };
     // Stub: multipart upload deferred
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// DELETE /api/_version_/fleet/abm_tokens/{id}
@@ -1139,7 +1138,7 @@ pub async fn delete_abm_token(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &id);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/abm_tokens
@@ -1152,7 +1151,7 @@ pub async fn list_abm_tokens(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/abm_tokens/count
@@ -1165,7 +1164,7 @@ pub async fn count_abm_tokens(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// PATCH /api/_version_/fleet/abm_tokens/{id}/fleets
@@ -1180,7 +1179,7 @@ pub async fn update_abm_token_teams(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &id, &body);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// PATCH /api/_version_/fleet/abm_tokens/{id}/renew
@@ -1194,7 +1193,7 @@ pub async fn renew_abm_token(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &id);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 // ---------------------------------------------------------------------------
@@ -1211,7 +1210,7 @@ pub async fn get_vpp_tokens(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// POST /api/_version_/fleet/vpp_tokens
@@ -1225,7 +1224,7 @@ pub async fn upload_vpp_token(
     };
     // Stub: multipart upload deferred
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// PATCH /api/_version_/fleet/vpp_tokens/{id}/fleets
@@ -1240,7 +1239,7 @@ pub async fn patch_vpp_tokens_teams(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &id, &body);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// PATCH /api/_version_/fleet/vpp_tokens/{id}/renew
@@ -1254,7 +1253,7 @@ pub async fn patch_vpp_token_renew(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &id);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// DELETE /api/_version_/fleet/vpp_tokens/{id}
@@ -1268,7 +1267,7 @@ pub async fn delete_vpp_token(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &id);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 // ---------------------------------------------------------------------------
@@ -1286,7 +1285,7 @@ pub async fn get_apple_bm(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 // ---------------------------------------------------------------------------
@@ -1304,7 +1303,7 @@ pub async fn batch_set_mdm_apple_profiles(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &body);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// POST /api/_version_/fleet/mdm/profiles/batch
@@ -1318,7 +1317,7 @@ pub async fn batch_set_mdm_profiles(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &body);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 // ---------------------------------------------------------------------------
@@ -1331,7 +1330,7 @@ pub async fn initiate_mdm_sso(
     Json(body): Json<InitiateMDMSSOBody>,
 ) -> FleetResponse {
     let _ = (&state, &body);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// POST /api/_version_/fleet/mdm/sso/callback
@@ -1340,7 +1339,7 @@ pub async fn callback_mdm_sso(
     Json(body): Json<CallbackMDMSSOBody>,
 ) -> FleetResponse {
     let _ = (&state, &body);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 // ---------------------------------------------------------------------------
@@ -1352,7 +1351,7 @@ pub async fn mdm_apple_ota(
     State(state): State<AppState>,
 ) -> FleetResponse {
     let _ = &state;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/enrollment_profiles/ota
@@ -1361,5 +1360,5 @@ pub async fn get_ota_profile(
 ) -> FleetResponse {
     let _ = &state;
     // Stub: mobileconfig binary deferred
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM operations require Apple/Windows MDM infrastructure")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }

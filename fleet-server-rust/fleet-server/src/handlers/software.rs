@@ -10,6 +10,7 @@ use serde::Deserialize;
 use crate::middleware::auth::AuthenticatedUser;
 use crate::response::{fleet_error, fleet_ok, encode_service_error, FleetResponse};
 use crate::AppState;
+use fleet_service::ServiceError;
 
 // ---------------------------------------------------------------------------
 // Request / response types
@@ -528,7 +529,7 @@ pub async fn batch_set_software_installers(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "batch software operations require job queue infrastructure")
+    encode_service_error(&ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/software/batch/{request_uuid}
@@ -542,7 +543,7 @@ pub async fn batch_set_software_installers_result(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "batch software operations require job queue infrastructure")
+    encode_service_error(&ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/software/titles/{title_id}/icon
@@ -621,7 +622,7 @@ pub async fn get_app_store_apps(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "app store integration not yet implemented")
+    encode_service_error(&ServiceError::MissingLicense)
 }
 
 /// POST /api/_version_/fleet/software/app_store_apps
@@ -635,7 +636,7 @@ pub async fn add_app_store_app(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "app store integration not yet implemented")
+    encode_service_error(&ServiceError::MissingLicense)
 }
 
 /// PATCH /api/_version_/fleet/software/titles/{title_id}/app_store_app
@@ -650,7 +651,7 @@ pub async fn update_app_store_app(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "app store integration not yet implemented")
+    encode_service_error(&ServiceError::MissingLicense)
 }
 
 /// POST /api/_version_/fleet/software/fleet_maintained_apps
@@ -664,7 +665,7 @@ pub async fn add_fleet_maintained_app(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "fleet maintained app creation not yet implemented")
+    encode_service_error(&ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/software/fleet_maintained_apps
@@ -714,7 +715,7 @@ pub async fn batch_associate_app_store_apps(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "app store integration not yet implemented")
+    encode_service_error(&ServiceError::MissingLicense)
 }
 
 /// POST /api/_version_/fleet/software/web_apps
@@ -728,7 +729,7 @@ pub async fn create_android_web_app(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "Android web app creation not yet implemented")
+    encode_service_error(&ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/vulnerabilities

@@ -3,7 +3,6 @@
 //! Handles global and team policy CRUD, specs, and automations.
 
 use axum::extract::{Json, Path, Query, State};
-use axum::http::StatusCode;
 use serde::Deserialize;
 
 use crate::middleware::auth::AuthenticatedUser;
@@ -449,5 +448,5 @@ pub async fn autofill_policies(
         Err(e) => return fleet_error(e.0, e.1),
     };
     let _ = (&viewer, &body);
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "policy autofill requires AI service integration")
+    encode_service_error(&fleet_service::ServiceError::MissingLicense)
 }

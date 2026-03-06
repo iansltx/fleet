@@ -10,6 +10,8 @@ use axum::{
 };
 use serde::Deserialize;
 
+use fleet_service::ServiceError;
+
 use crate::response::{encode_service_error, fleet_error, fleet_ok, FleetResponse};
 use crate::AppState;
 
@@ -264,7 +266,7 @@ pub async fn trigger_linux_disk_encryption_escrow(
     Json(_body): Json<TriggerLinuxDiskEncryptionEscrowBody>,
 ) -> FleetResponse {
     match state.service.authenticate_device(&token).await {
-        Ok(_host) => fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM disk encryption requires MDM infrastructure"),
+        Ok(_host) => encode_service_error(&ServiceError::MissingLicense),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -276,7 +278,7 @@ pub async fn bypass_conditional_access(
     Json(_body): Json<BypassConditionalAccessBody>,
 ) -> FleetResponse {
     match state.service.authenticate_device(&token).await {
-        Ok(_host) => fleet_error(StatusCode::NOT_IMPLEMENTED, "conditional access requires external integration"),
+        Ok(_host) => encode_service_error(&ServiceError::MissingLicense),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -287,7 +289,7 @@ pub async fn get_device_mdm_manual_enroll_profile(
     Path(token): Path<String>,
 ) -> FleetResponse {
     match state.service.authenticate_device(&token).await {
-        Ok(_host) => fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM enrollment profiles require MDM infrastructure"),
+        Ok(_host) => encode_service_error(&ServiceError::MissingLicense),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -298,7 +300,7 @@ pub async fn get_device_mdm_command_results(
     Path((token, _command_uuid)): Path<(String, String)>,
 ) -> FleetResponse {
     match state.service.authenticate_device(&token).await {
-        Ok(_host) => fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM command results require MDM infrastructure"),
+        Ok(_host) => encode_service_error(&ServiceError::MissingLicense),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -309,7 +311,7 @@ pub async fn resend_device_configuration_profile(
     Path((token, _profile_uuid)): Path<(String, String)>,
 ) -> FleetResponse {
     match state.service.authenticate_device(&token).await {
-        Ok(_host) => fleet_error(StatusCode::NOT_IMPLEMENTED, "configuration profiles require MDM infrastructure"),
+        Ok(_host) => encode_service_error(&ServiceError::MissingLicense),
         Err(e) => encode_service_error(&e),
     }
 }
@@ -321,7 +323,7 @@ pub async fn migrate_mdm_device(
     Json(_body): Json<DeviceMigrateMDMBody>,
 ) -> FleetResponse {
     match state.service.authenticate_device(&token).await {
-        Ok(_host) => fleet_error(StatusCode::NOT_IMPLEMENTED, "MDM migration requires MDM infrastructure"),
+        Ok(_host) => encode_service_error(&ServiceError::MissingLicense),
         Err(e) => encode_service_error(&e),
     }
 }
