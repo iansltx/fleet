@@ -149,8 +149,8 @@ fn init_logging(cfg: &config::FleetConfig) {
 async fn run_serve(
     cfg: config::FleetConfig,
     _debug: bool,
-    _dev_license: bool,
-    _dev_expired_license: bool,
+    dev_license: bool,
+    dev_expired_license: bool,
 ) -> anyhow::Result<()> {
     if !cfg.logging.disable_banner {
         print_banner();
@@ -237,7 +237,27 @@ async fn run_serve(
         app: fleet_service::AppServiceConfig {
             token_key_size: cfg.app.token_key_size,
         },
-        license: fleet_service::LicenseInfo::default(),
+        license: if dev_license || dev_expired_license {
+            let expiration = if dev_expired_license {
+                chrono::Utc::now() - chrono::Duration::hours(1)
+            } else {
+                chrono::Utc::now() + chrono::Duration::days(365)
+            };
+            tracing::info!(
+                tier = "premium",
+                expired = dev_expired_license,
+                "Using dev license"
+            );
+            fleet_service::LicenseInfo {
+                tier: fleet_service::LicenseTier::Premium,
+                organization: "development".to_string(),
+                device_count: 100,
+                expiration,
+                note: "Development license".to_string(),
+            }
+        } else {
+            fleet_service::LicenseInfo::default()
+        },
     };
 
     let ds = Arc::new(ds);
