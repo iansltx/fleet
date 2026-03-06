@@ -72,6 +72,14 @@ pub enum FleetError {
     #[error("permission error: {message}")]
     PermissionError { message: String },
 
+    #[error("payload too large")]
+    PayloadTooLarge {
+        internal: Option<String>,
+    },
+
+    #[error("missing authorization check")]
+    CheckMissing,
+
     #[error("OTA forbidden")]
     OTAForbidden {
         internal: Option<String>,
@@ -116,7 +124,7 @@ impl FleetError {
             FleetError::AuthRequired { .. } => 401,
             FleetError::AuthHeaderRequired { .. } => 401,
             FleetError::Forbidden { .. } => 403,
-            FleetError::PasswordResetRequired => 403,
+            FleetError::PasswordResetRequired => 401,
             FleetError::MissingLicense => 402,
             FleetError::MDMNotConfigured => 400,
             FleetError::WindowsMDMNotConfigured => 400,
@@ -124,6 +132,8 @@ impl FleetError {
             FleetError::NotConfigured => 422,
             FleetError::GatewayError { code, .. } => *code,
             FleetError::PermissionError { .. } => 403,
+            FleetError::PayloadTooLarge { .. } => 413,
+            FleetError::CheckMissing => 403,
             FleetError::OTAForbidden { .. } => 403,
             FleetError::Conflict { .. } => 409,
             FleetError::BadRequest { .. } => 400,
@@ -139,6 +149,45 @@ impl FleetError {
     pub fn is_client_error(&self) -> bool {
         let code = self.status_code();
         (400..500).contains(&code)
+    }
+
+    /// Returns the internal error message, if any (Go: `ErrWithInternal`).
+    pub fn internal_message(&self) -> Option<&str> {
+        match self {
+            FleetError::AuthFailed { internal } => Some(internal.as_str()),
+            FleetError::AuthRequired { internal } => Some(internal.as_str()),
+            FleetError::AuthHeaderRequired { internal } => Some(internal.as_str()),
+            FleetError::BadRequest { internal, .. } => internal.as_deref(),
+            FleetError::OTAForbidden { internal } => internal.as_deref(),
+            FleetError::PayloadTooLarge { internal } => internal.as_deref(),
+            FleetError::CheckMissing => Some("Missing authorization check"),
+            _ => None,
+        }
+    }
+
+    /// Returns true if this is a "not found" error (Go: `IsNotFound()`).
+    pub fn is_not_found(&self) -> bool {
+        matches!(self, FleetError::NotFound { .. })
+    }
+
+    /// Returns true if this is an "already exists" error (Go: `IsExists()`).
+    pub fn is_already_exists(&self) -> bool {
+        matches!(self, FleetError::AlreadyExists { .. })
+    }
+
+    /// Returns true if this is a foreign key constraint error.
+    pub fn is_foreign_key(&self) -> bool {
+        match self {
+            FleetError::Database(msg) => {
+                msg.contains("foreign key constraint") || msg.contains("FOREIGN KEY")
+            }
+            _ => false,
+        }
+    }
+
+    /// Returns the Retry-After header value in seconds, if applicable (Go: `ErrWithRetryAfter`).
+    pub fn retry_after(&self) -> Option<u32> {
+        None
     }
 }
 
@@ -175,6 +224,15 @@ impl InvalidArgumentError {
 
     pub fn has_errors(&self) -> bool {
         !self.errors.is_empty()
+    }
+
+    /// Create a FleetError with a custom HTTP status code (Go: `invalidArgWithStatusError`).
+    /// Default status for InvalidArgument is 422; use this to override (e.g. 400).
+    pub fn with_status(self, status_code: u16) -> FleetError {
+        FleetError::UserMessage {
+            message: self.to_string(),
+            status_code,
+        }
     }
 
     /// Returns the invalid arguments as a list of name/reason maps,
@@ -365,3 +423,15 @@ pub const FILTER_TITLES_BY_PLATFORM_NEEDS_TEAM_ID_ERR_MSG: &str =
 // Windows MDM premium command error message
 pub const WINDOWS_MDM_REQUIRES_PREMIUM_CMD_MESSAGE: &str =
     "Missing or invalid license. Wipe command is available in Fleet Premium only.";
+
+// Software conflict error message (Go: CantAddSoftwareConflictMessage)
+pub const CANT_ADD_SOFTWARE_CONFLICT_MESSAGE: &str =
+    "Couldn't add. Software is already included on the %s team. To add the software to this team, first remove it from the %s team.";
+
+// NDES SCEP variables error message (Go: NDESSCEPVariablesMissingErrMsg)
+pub const NDES_SCEP_VARIABLES_MISSING_ERR_MSG: &str =
+    "Couldn't add. NDES SCEP proxy variables are missing from the SCEP payload.";
+
+// SCEP renewal error message (Go: SCEPRenewalIDWithoutURLChallengeErrMsg)
+pub const SCEP_RENEWAL_ID_WITHOUT_URL_CHALLENGE_ERR_MSG: &str =
+    "Couldn't add. SCEP renewal ID is set but URL challenge is not configured.";

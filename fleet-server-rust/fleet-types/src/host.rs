@@ -332,6 +332,9 @@ pub struct HostDetail {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_mdm_checked_in_at: Option<DateTime<Utc>>,
+
+    #[serde(default)]
+    pub conditional_access_bypassed: bool,
 }
 
 /// HostSummary contains the counts for the dashboard host summary.

@@ -49,6 +49,7 @@ impl FleetService {
             end_users: Vec::new(),
             last_mdm_enrolled_at: None,
             last_mdm_checked_in_at: None,
+            conditional_access_bypassed: false,
         })
     }
 

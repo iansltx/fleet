@@ -16,6 +16,8 @@ pub mod host;
 pub mod invite;
 pub mod label;
 pub mod mdm;
+pub mod optjson;
+pub use optjson::{OptBool, OptInt, OptJson, OptSlice, OptString};
 pub mod osquery;
 pub mod pack;
 pub mod policy;
