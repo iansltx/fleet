@@ -453,10 +453,33 @@ async fn run_prepare_db(cfg: &config::FleetConfig, _no_prompt: bool) -> anyhow::
         sql_mode: cfg.mysql.sql_mode.clone(),
     };
 
-    let _ds = fleet_datastore::MysqlDatastore::new(ds_config).await
+    let ds = fleet_datastore::MysqlDatastore::new(ds_config).await
         .map_err(|e| anyhow::anyhow!("Failed to connect to MySQL: {}", e))?;
 
-    // TODO: Run schema migrations using the datastore
+    // Load schema SQL from the Go server's schema.sql file.
+    // This is the authoritative schema definition shared between Go and Rust.
+    let schema_path = std::path::Path::new("server/datastore/mysql/schema.sql");
+    let schema_sql = if schema_path.exists() {
+        std::fs::read_to_string(schema_path)
+            .map_err(|e| anyhow::anyhow!("Failed to read schema.sql: {}", e))?
+    } else {
+        // Try relative to the fleet-server-rust directory
+        let alt_path = std::path::Path::new("../server/datastore/mysql/schema.sql");
+        if alt_path.exists() {
+            std::fs::read_to_string(alt_path)
+                .map_err(|e| anyhow::anyhow!("Failed to read schema.sql: {}", e))?
+        } else {
+            return Err(anyhow::anyhow!(
+                "schema.sql not found at {} or {}. Run from the fleet repository root.",
+                schema_path.display(),
+                alt_path.display(),
+            ));
+        }
+    };
+
+    ds.migrate(&schema_sql).await
+        .map_err(|e| anyhow::anyhow!("Migration failed: {}", e))?;
+
     tracing::info!("Database migrations completed.");
     Ok(())
 }
