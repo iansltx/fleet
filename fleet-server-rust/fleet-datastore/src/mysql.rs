@@ -145,64 +145,6 @@ impl MysqlDatastore {
     pub fn pool(&self) -> &MySqlPool {
         &self.pool
     }
-
-    /// Run database migrations.
-    ///
-    /// Creates a `fleet_migrations` tracking table and applies the schema
-    /// from the Go server's schema.sql if not already applied. This is a
-    /// simplified approach that applies the full schema at once rather than
-    /// running individual Go goose migration files.
-    ///
-    /// For production, consider using sqlx's migration system with individual
-    /// SQL files extracted from the Go migrations.
-    pub async fn migrate(&self, schema_sql: &str) -> Result<()> {
-        use sqlx::Executor;
-
-        // Create migration tracking table if it doesn't exist
-        self.pool
-            .execute(
-                "CREATE TABLE IF NOT EXISTS fleet_migrations (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    version VARCHAR(255) NOT NULL UNIQUE,
-                    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
-            )
-            .await?;
-
-        // Check if schema has been applied
-        let row: Option<(i64,)> = sqlx::query_as(
-            "SELECT COUNT(*) FROM fleet_migrations WHERE version = 'initial_schema'"
-        )
-        .fetch_optional(&self.pool)
-        .await?;
-
-        if row.map(|r| r.0).unwrap_or(0) > 0 {
-            tracing::info!("Database schema already applied, skipping migration");
-            return Ok(());
-        }
-
-        tracing::info!("Applying database schema...");
-
-        // Split schema into individual statements and execute each
-        // The schema uses semicolons as statement delimiters
-        for statement in schema_sql.split(';') {
-            let stmt = statement.trim();
-            if stmt.is_empty() || stmt.starts_with("--") || stmt.starts_with("/*!") {
-                continue;
-            }
-            if let Err(e) = self.pool.execute(stmt).await {
-                tracing::warn!(error = %e, "Migration statement failed (may be expected for conditional DDL)");
-            }
-        }
-
-        // Record migration
-        sqlx::query("INSERT INTO fleet_migrations (version) VALUES ('initial_schema')")
-            .execute(&self.pool)
-            .await?;
-
-        tracing::info!("Database schema applied successfully");
-        Ok(())
-    }
 }
 
 /// Parse a Go-style address "host:port" or just "host" into (host, port).
