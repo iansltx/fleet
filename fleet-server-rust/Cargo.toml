@@ -2,6 +2,7 @@
 members = [
     "fleet-types",
     "fleet-datastore",
+    "fleet-blobstore",
     "fleet-redis",
     "fleet-service",
     "fleet-server",

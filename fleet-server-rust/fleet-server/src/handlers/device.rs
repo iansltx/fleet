@@ -12,7 +12,7 @@ use serde::Deserialize;
 
 use fleet_service::ServiceError;
 
-use crate::response::{encode_service_error, fleet_error, fleet_ok, FleetResponse};
+use crate::response::{encode_service_error, fleet_ok, FleetResponse};
 use crate::AppState;
 
 // ---------------------------------------------------------------------------
@@ -251,10 +251,14 @@ pub async fn get_device_setup_experience_status(
 /// GET /api/_version_/fleet/device/{token}/software/titles/{software_title_id}/icon
 pub async fn get_device_software_icon(
     State(state): State<AppState>,
-    Path((token, _software_title_id)): Path<(String, u64)>,
+    Path((token, software_title_id)): Path<(String, u64)>,
 ) -> FleetResponse {
     match state.service.authenticate_device(&token).await {
-        Ok(_host) => fleet_error(StatusCode::NOT_IMPLEMENTED, "icon downloads require blob storage"),
+        Ok(_host) => {
+            let _ = software_title_id;
+            // Premium-only: serve icon from blob store
+            encode_service_error(&ServiceError::MissingLicense)
+        }
         Err(e) => encode_service_error(&e),
     }
 }

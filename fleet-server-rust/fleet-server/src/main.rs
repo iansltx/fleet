@@ -17,6 +17,7 @@ use tracing_subscriber::{fmt, EnvFilter};
 
 use fleet_service::FleetService;
 use fleet_redis::{RedisLiveQuery, RedisQueryResults, RedisPool, RedisConfig as RedisPoolConfig};
+use fleet_types::blobstore::BlobStore;
 
 /// Shared application state passed to all handlers via axum's State extractor.
 ///
@@ -27,6 +28,12 @@ pub struct AppState {
     pub service: Arc<FleetService>,
     pub live_query: Arc<RedisLiveQuery>,
     pub query_results: Arc<RedisQueryResults>,
+    /// Blob store for software installers.
+    pub installer_store: Arc<dyn BlobStore>,
+    /// Blob store for software title icons.
+    pub icon_store: Arc<dyn BlobStore>,
+    /// Blob store for MDM bootstrap packages.
+    pub bootstrap_package_store: Arc<dyn BlobStore>,
 }
 
 /// Fleet server - osquery management and orchestration.
@@ -199,6 +206,9 @@ async fn run_serve(
             .map_err(|e| anyhow::anyhow!("Failed to create query results pubsub: {}", e))?
     );
 
+    // Initialize blob stores (S3 or filesystem)
+    let (installer_store, icon_store, bootstrap_package_store) = init_blob_stores(&cfg).await?;
+
     // Build FleetService
     let svc_config = fleet_service::FleetServiceConfig {
         server: fleet_service::ServerConfig {
@@ -232,6 +242,9 @@ async fn run_serve(
         service: Arc::new(svc),
         live_query,
         query_results,
+        installer_store,
+        icon_store,
+        bootstrap_package_store,
     };
 
     // Build the axum application with all routes
@@ -248,6 +261,77 @@ async fn run_serve(
 
     tracing::info!("Fleet server stopped");
     Ok(())
+}
+
+/// Initialize blob stores based on configuration.
+///
+/// If S3 software_installers_bucket is configured, uses S3; otherwise falls
+/// back to local filesystem storage under `/tmp/fleet/`.
+async fn init_blob_stores(
+    cfg: &config::FleetConfig,
+) -> anyhow::Result<(Arc<dyn BlobStore>, Arc<dyn BlobStore>, Arc<dyn BlobStore>)> {
+    if !cfg.s3.software_installers_bucket.is_empty() {
+        let s3_cfg = fleet_blobstore::s3::S3Config {
+            bucket: cfg.s3.software_installers_bucket.clone(),
+            prefix: if cfg.s3.software_installers_prefix.is_empty() {
+                cfg.s3.prefix.clone()
+            } else {
+                cfg.s3.software_installers_prefix.clone()
+            },
+            region: if cfg.s3.software_installers_region.is_empty() {
+                cfg.s3.region.clone()
+            } else {
+                cfg.s3.software_installers_region.clone()
+            },
+            endpoint_url: {
+                let ep = if cfg.s3.software_installers_endpoint_url.is_empty() {
+                    &cfg.s3.endpoint_url
+                } else {
+                    &cfg.s3.software_installers_endpoint_url
+                };
+                if ep.is_empty() { None } else { Some(ep.clone()) }
+            },
+            access_key_id: {
+                let k = if cfg.s3.software_installers_access_key_id.is_empty() {
+                    &cfg.s3.access_key_id
+                } else {
+                    &cfg.s3.software_installers_access_key_id
+                };
+                if k.is_empty() { None } else { Some(k.clone()) }
+            },
+            secret_access_key: {
+                let k = if cfg.s3.software_installers_secret_access_key.is_empty() {
+                    &cfg.s3.secret_access_key
+                } else {
+                    &cfg.s3.software_installers_secret_access_key
+                };
+                if k.is_empty() { None } else { Some(k.clone()) }
+            },
+            force_path_style: cfg.s3.software_installers_force_s3_path_style || cfg.s3.force_s3_path_style,
+            disable_ssl: cfg.s3.software_installers_disable_ssl || cfg.s3.disable_ssl,
+        };
+
+        let installer_store = fleet_blobstore::S3BlobStore::new(&s3_cfg, "software-installers").await
+            .map_err(|e| anyhow::anyhow!("Failed to init S3 installer store: {}", e))?;
+        let icon_store = fleet_blobstore::S3BlobStore::new(&s3_cfg, "software-title-icons").await
+            .map_err(|e| anyhow::anyhow!("Failed to init S3 icon store: {}", e))?;
+        let bootstrap_store = fleet_blobstore::S3BlobStore::new(&s3_cfg, "bootstrap-packages").await
+            .map_err(|e| anyhow::anyhow!("Failed to init S3 bootstrap store: {}", e))?;
+
+        tracing::info!(bucket = %s3_cfg.bucket, "Using S3 blob storage");
+        Ok((Arc::new(installer_store), Arc::new(icon_store), Arc::new(bootstrap_store)))
+    } else {
+        let base_dir = "/tmp/fleet";
+        let installer_store = fleet_blobstore::FilesystemBlobStore::new(base_dir, "software-installers")
+            .map_err(|e| anyhow::anyhow!("Failed to init filesystem installer store: {}", e))?;
+        let icon_store = fleet_blobstore::FilesystemBlobStore::new(base_dir, "software-title-icons")
+            .map_err(|e| anyhow::anyhow!("Failed to init filesystem icon store: {}", e))?;
+        let bootstrap_store = fleet_blobstore::FilesystemBlobStore::new(base_dir, "bootstrap-packages")
+            .map_err(|e| anyhow::anyhow!("Failed to init filesystem bootstrap store: {}", e))?;
+
+        tracing::info!(path = %base_dir, "Using filesystem blob storage");
+        Ok((Arc::new(installer_store), Arc::new(icon_store), Arc::new(bootstrap_store)))
+    }
 }
 
 /// Run database migrations.

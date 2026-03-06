@@ -306,28 +306,30 @@ pub async fn uninstall_software_title(
 pub async fn get_software_installer(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_title_id): Path<u64>,
-) -> FleetResponse {
+    Path(title_id): Path<u64>,
+) -> impl axum::response::IntoResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "binary downloads require blob storage integration")
+    let _ = (&viewer, title_id);
+    // Premium-only: download installer binary from blob store
+    encode_service_error(&ServiceError::MissingLicense)
 }
 
 /// POST /api/_version_/fleet/software/titles/{title_id}/package/token
 pub async fn get_software_installer_token(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_title_id): Path<u64>,
+    Path(title_id): Path<u64>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "binary downloads require blob storage integration")
+    let _ = (&viewer, title_id);
+    // Premium-only: generate a download token for software installer
+    encode_service_error(&ServiceError::MissingLicense)
 }
 
 /// POST /api/_version_/fleet/software/package
@@ -550,14 +552,15 @@ pub async fn batch_set_software_installers_result(
 pub async fn get_software_title_icon(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_title_id): Path<u64>,
+    Path(title_id): Path<u64>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "binary downloads require blob storage integration")
+    let _ = (&viewer, title_id);
+    // Premium-only: fetch icon from blob store
+    encode_service_error(&ServiceError::MissingLicense)
 }
 
 /// PUT /api/_version_/fleet/software/titles/{title_id}/icon
@@ -773,40 +776,43 @@ pub async fn get_vulnerability(
 pub async fn download_software_installer(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path((_title_id, _token)): Path<(u64, String)>,
+    Path((title_id, token)): Path<(u64, String)>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "binary downloads require blob storage integration")
+    let _ = (&viewer, title_id, &token);
+    // Premium-only: download installer via token
+    encode_service_error(&ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/software/titles/{title_id}/in_house_app
 pub async fn get_in_house_app_package(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_title_id): Path<u64>,
+    Path(title_id): Path<u64>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "binary downloads require blob storage integration")
+    let _ = (&viewer, title_id);
+    // Premium-only: download in-house app package from blob store
+    encode_service_error(&ServiceError::MissingLicense)
 }
 
 /// GET /api/_version_/fleet/software/titles/{title_id}/in_house_app/manifest
 pub async fn get_in_house_app_manifest(
     State(state): State<AppState>,
     auth: AuthenticatedUser,
-    Path(_title_id): Path<u64>,
+    Path(title_id): Path<u64>,
 ) -> FleetResponse {
     let viewer = match auth.viewer(&state).await {
         Ok(v) => v,
         Err(e) => return fleet_error(e.0, e.1),
     };
-    let _ = &viewer;
-    fleet_error(StatusCode::NOT_IMPLEMENTED, "binary downloads require blob storage integration")
+    let _ = (&viewer, title_id);
+    // Premium-only: return in-house app manifest
+    encode_service_error(&ServiceError::MissingLicense)
 }

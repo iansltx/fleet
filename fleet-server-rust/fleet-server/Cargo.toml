@@ -14,6 +14,7 @@ fleet-types = { path = "../fleet-types" }
 fleet-datastore = { path = "../fleet-datastore" }
 fleet-redis = { path = "../fleet-redis" }
 fleet-service = { path = "../fleet-service" }
+fleet-blobstore = { path = "../fleet-blobstore" }
 
 # Web framework
 axum = { workspace = true }

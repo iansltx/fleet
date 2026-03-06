@@ -10,7 +10,9 @@ use axum::{
 };
 use serde::Deserialize;
 
-use crate::response::{encode_service_error, fleet_error, fleet_ok, FleetResponse};
+use fleet_service::ServiceError;
+
+use crate::response::{encode_service_error, fleet_ok, FleetResponse};
 use crate::AppState;
 
 // ---------------------------------------------------------------------------
@@ -247,7 +249,10 @@ pub async fn orbit_download_software_installer(
     Json(body): Json<OrbitDownloadSoftwareInstallerBody>,
 ) -> FleetResponse {
     match state.service.authenticate_orbit(&body.orbit_node_key).await {
-        Ok(_host) => fleet_error(StatusCode::NOT_IMPLEMENTED, "installer downloads require blob storage"),
+        Ok(_host) => {
+            // Premium-only: download installer binary from blob store
+            encode_service_error(&ServiceError::MissingLicense)
+        }
         Err(e) => encode_service_error(&e),
     }
 }

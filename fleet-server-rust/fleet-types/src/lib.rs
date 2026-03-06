@@ -5,6 +5,7 @@
 //! the Go types for JSON API responses.
 
 pub mod activity;
+pub mod blobstore;
 pub mod campaign;
 pub mod carve;
 pub mod certificate;
