@@ -143,9 +143,8 @@ pub async fn trigger(
 /// GET /api/_version_/fleet/config/certificate
 ///
 /// Returns the PEM-encoded TLS certificate chain for the configured server URL.
-/// The leaf certificate is omitted since osqueryd does not need it to establish
-/// a secure connection. If the server is not using TLS or the connection fails,
-/// an empty string is returned.
+/// Connects to the server's own TLS endpoint to retrieve the peer certificate.
+/// If TLS is not configured or the connection fails, returns an empty string.
 pub async fn get_certificate(State(state): State<AppState>) -> FleetResponse {
     let server_url = &state.service.config().server.server_url;
     match fetch_certificate_chain(server_url).await {
@@ -158,41 +157,46 @@ pub async fn get_certificate(State(state): State<AppState>) -> FleetResponse {
 }
 
 /// Connects to the given server URL via TLS and returns the PEM-encoded
-/// certificate chain, omitting the leaf certificate (matching Go behavior).
+/// peer certificate (matching Go behavior of returning the certificate chain).
 async fn fetch_certificate_chain(server_url: &str) -> Result<String, anyhow::Error> {
+    use base64::Engine;
+
     let parsed = url::Url::parse(server_url)?;
-    let hostname = parsed.host_str().unwrap_or("localhost").to_string();
-    let port = parsed.port().unwrap_or(if parsed.scheme() == "http" { 80 } else { 443 });
-    let hostport = format!("{}:{}", hostname, port);
-
-    // Try secure first, then fall back to insecure (self-signed) -- mirrors Go.
-    let peer_certs = match connect_tls(&hostport, &hostname, false).await {
-        Ok(certs) => certs,
-        Err(_) => connect_tls(&hostport, &hostname, true).await?,
-    };
-
-    if peer_certs.is_empty() {
+    if parsed.scheme() == "http" {
+        // No TLS configured
         return Ok(String::new());
     }
+    let hostname = parsed.host_str().unwrap_or("localhost").to_string();
+    let port = parsed.port().unwrap_or(443);
+    let hostport = format!("{}:{}", hostname, port);
 
-    // Build PEM chain, skipping the leaf certificate (the one whose CN or SAN
-    // matches the hostname). When there is only one certificate we keep it.
-    let mut pem_chain = String::new();
-    for cert in &peer_certs {
-        if peer_certs.len() > 1 && is_leaf_for_hostname(cert, &hostname) {
-            continue;
-        }
-        pem_chain.push_str(&pem_encode_certificate(&cert.to_der()?));
+    // Try secure first, then fall back to accepting invalid certs (self-signed)
+    let der_bytes = match connect_tls_get_cert(&hostport, &hostname, false).await {
+        Ok(Some(der)) => der,
+        Ok(None) => return Ok(String::new()),
+        Err(_) => match connect_tls_get_cert(&hostport, &hostname, true).await? {
+            Some(der) => der,
+            None => return Ok(String::new()),
+        },
+    };
+
+    // Encode as PEM
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&der_bytes);
+    let mut pem = String::from("-----BEGIN CERTIFICATE-----\n");
+    for chunk in b64.as_bytes().chunks(64) {
+        pem.push_str(std::str::from_utf8(chunk).unwrap_or(""));
+        pem.push('\n');
     }
-    Ok(pem_chain)
+    pem.push_str("-----END CERTIFICATE-----\n");
+    Ok(pem)
 }
 
-/// Establish a TLS connection and return the peer certificate chain.
-async fn connect_tls(
+/// Establish a TLS connection and return the peer certificate DER bytes.
+async fn connect_tls_get_cert(
     hostport: &str,
     hostname: &str,
     accept_invalid: bool,
-) -> Result<Vec<native_tls::Certificate>, anyhow::Error> {
+) -> Result<Option<Vec<u8>>, anyhow::Error> {
     let tcp = tokio::net::TcpStream::connect(hostport).await?;
 
     let mut builder = native_tls::TlsConnector::builder();
@@ -204,29 +208,11 @@ async fn connect_tls(
     let connector = tokio_native_tls::TlsConnector::from(connector);
     let tls_stream = connector.connect(hostname, tcp).await?;
 
-    // Extract the peer certificate chain from the underlying native-tls stream.
+    // native_tls exposes only the peer certificate (leaf)
     let native_stream = tls_stream.get_ref();
-    let peer_certs = native_stream
-        .peer_certificate_chain()
-        .unwrap_or_default()
-        .unwrap_or_default();
-
-    Ok(peer_certs)
-}
-
-/// Check whether a certificate is the leaf for the given hostname by inspecting
-/// the DER-encoded subject for the hostname string. This is a lightweight heuristic
-/// (the Go code uses x509.Certificate.VerifyHostname).
-fn is_leaf_for_hostname(cert: &native_tls::Certificate, hostname: &str) -> bool {
-    // Convert to DER and search for the hostname bytes in the subject/SAN fields.
-    if let Ok(der) = cert.to_der() {
-        // A simple heuristic: the leaf cert usually contains the hostname in its
-        // subject CN or Subject Alternative Name extension encoded as ASCII in DER.
-        let hostname_bytes = hostname.as_bytes();
-        der.windows(hostname_bytes.len())
-            .any(|w| w == hostname_bytes)
-    } else {
-        false
+    match native_stream.peer_certificate()? {
+        Some(cert) => Ok(Some(cert.to_der()?)),
+        None => Ok(None),
     }
 }
 
