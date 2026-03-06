@@ -239,10 +239,11 @@ async fn run_serve(
         },
     };
 
-    let svc = fleet_service::FleetService::new(Arc::new(ds), svc_config);
+    let ds = Arc::new(ds);
+    let svc = fleet_service::FleetService::new(ds.clone(), svc_config);
     // Initialize cron scheduler with default jobs
     let cron_scheduler = Arc::new(fleet_service::cron::CronScheduler::new());
-    register_cron_jobs(&cron_scheduler).await;
+    register_cron_jobs(&cron_scheduler, ds).await;
 
     let state = AppState {
         service: Arc::new(svc),
@@ -276,80 +277,238 @@ async fn run_serve(
 /// Register default cron jobs with the scheduler.
 ///
 /// Each job runs periodically and can be triggered ad-hoc via the trigger API.
-/// Jobs are lightweight stubs for now; actual implementations will query the
-/// datastore and perform cleanup, aggregation, etc.
-async fn register_cron_jobs(scheduler: &fleet_service::cron::CronScheduler) {
+/// The jobs mirror Go's cron schedule registrations in `cmd/fleet/serve.go`.
+async fn register_cron_jobs(
+    scheduler: &fleet_service::cron::CronScheduler,
+    ds: Arc<fleet_datastore::MysqlDatastore>,
+) {
     use fleet_service::cron::{CronJob, schedule_names};
 
-    // Cleanups + aggregation: runs every hour
-    scheduler.register(CronJob {
-        name: schedule_names::CLEANUPS_THEN_AGGREGATION.to_string(),
-        interval: std::time::Duration::from_secs(3600),
-        func: Box::new(|| Box::pin(async {
-            tracing::info!("Running cleanups_then_aggregation");
-            // TODO: Implement host cleanup, distributed query cleanup,
-            // label membership aggregation, etc.
-            Ok(())
-        })),
-    }).await;
+    // Cleanups + aggregation: runs every hour (matches Go's newCleanupsAndAggregationSchedule)
+    {
+        let ds = ds.clone();
+        scheduler.register(CronJob {
+            name: schedule_names::CLEANUPS_THEN_AGGREGATION.to_string(),
+            interval: std::time::Duration::from_secs(3600),
+            func: Box::new(move || {
+                let ds = ds.clone();
+                Box::pin(async move {
+                    let now = chrono::Utc::now();
+                    let mut errors = Vec::new();
 
-    // Frequent cleanups: runs every 15 minutes
-    scheduler.register(CronJob {
-        name: schedule_names::FREQUENT_CLEANUPS.to_string(),
-        interval: std::time::Duration::from_secs(900),
-        func: Box::new(|| Box::pin(async {
-            tracing::info!("Running frequent_cleanups");
-            // TODO: Implement expired session cleanup, stale host removal, etc.
-            Ok(())
-        })),
-    }).await;
+                    // Cleanup jobs (run first, matching Go ordering)
+                    match ds.cleanup_distributed_query_campaigns(now).await {
+                        Ok(n) => if n > 0 { tracing::info!(count = n, "expired distributed query campaigns"); },
+                        Err(e) => errors.push(format!("distributed_query_campaigns: {e}")),
+                    }
 
-    // Usage statistics: runs every 24 hours
+                    let cleanup_cutoff = now - chrono::Duration::hours(1);
+                    match ds.cleanup_completed_campaign_targets(cleanup_cutoff).await {
+                        Ok(n) => if n > 0 { tracing::info!(deleted = n, "cleaned up campaign targets"); },
+                        Err(e) => errors.push(format!("campaign_targets: {e}")),
+                    }
+
+                    match ds.cleanup_incoming_hosts(now).await {
+                        Ok(ids) => if !ids.is_empty() { tracing::info!(count = ids.len(), "cleaned up incoming hosts"); },
+                        Err(e) => errors.push(format!("incoming_hosts: {e}")),
+                    }
+
+                    match ds.cleanup_carves(now).await {
+                        Ok(n) => if n > 0 { tracing::info!(expired = n, "cleaned up carves"); },
+                        Err(e) => errors.push(format!("carves: {e}")),
+                    }
+
+                    match ds.cleanup_policy_membership(now).await {
+                        Ok(n) => if n > 0 { tracing::info!(removed = n, "cleaned up stale policy membership"); },
+                        Err(e) => errors.push(format!("policy_membership: {e}")),
+                    }
+
+                    if let Err(e) = ds.cleanup_host_operating_systems().await {
+                        errors.push(format!("host_operating_systems: {e}"));
+                    }
+
+                    if let Err(e) = ds.cleanup_expired_password_reset_requests().await {
+                        errors.push(format!("password_reset_requests: {e}"));
+                    }
+
+                    // Query results cleanup (discard-related)
+                    match ds.are_query_reports_disabled().await {
+                        Ok(true) => {
+                            if let Err(e) = ds.cleanup_global_discard_query_results().await {
+                                errors.push(format!("global_discard_query_results: {e}"));
+                            }
+                        }
+                        Ok(false) => {}
+                        Err(e) => errors.push(format!("query_reports_check: {e}")),
+                    }
+
+                    if let Err(e) = ds.cleanup_discarded_query_results().await {
+                        errors.push(format!("discarded_query_results: {e}"));
+                    }
+
+                    if let Err(e) = ds.cleanup_unused_script_contents().await {
+                        errors.push(format!("unused_script_contents: {e}"));
+                    }
+
+                    // Aggregation jobs (run after cleanups, matching Go ordering)
+                    if let Err(e) = ds.update_query_aggregated_stats().await {
+                        errors.push(format!("query_aggregated_stats: {e}"));
+                    }
+
+                    if let Err(e) = ds.update_host_policy_counts().await {
+                        errors.push(format!("host_policy_counts: {e}"));
+                    }
+
+                    if let Err(e) = ds.generate_aggregated_munki_and_mdm().await {
+                        errors.push(format!("aggregated_munki_mdm: {e}"));
+                    }
+
+                    // Cron stats cleanup (Go runs this independently but we include it here)
+                    if let Err(e) = ds.cleanup_cron_stats().await {
+                        errors.push(format!("cron_stats: {e}"));
+                    }
+
+                    if errors.is_empty() {
+                        Ok(())
+                    } else {
+                        Err(errors.join("; "))
+                    }
+                })
+            }),
+        }).await;
+    }
+
+    // Frequent cleanups: runs every 15 minutes (matches Go's newFrequentCleanupsSchedule)
+    {
+        let ds = ds.clone();
+        scheduler.register(CronJob {
+            name: schedule_names::FREQUENT_CLEANUPS.to_string(),
+            interval: std::time::Duration::from_secs(900),
+            func: Box::new(move || {
+                let ds = ds.clone();
+                Box::pin(async move {
+                    // Clean up sessions idle for more than 4 hours (default session duration)
+                    let session_max_idle = 4 * 60 * 60;
+                    match ds.cleanup_expired_sessions(session_max_idle).await {
+                        Ok(n) => if n > 0 { tracing::info!(expired = n, "cleaned up expired sessions"); },
+                        Err(e) => return Err(format!("session_cleanup: {e}")),
+                    }
+
+                    Ok(())
+                })
+            }),
+        }).await;
+    }
+
+    // Usage statistics: runs every hour (matches Go's newUsageStatisticsSchedule)
     scheduler.register(CronJob {
         name: schedule_names::USAGE_STATISTICS.to_string(),
-        interval: std::time::Duration::from_secs(86400),
+        interval: std::time::Duration::from_secs(3600),
         func: Box::new(|| Box::pin(async {
-            tracing::info!("Running usage_statistics");
+            // Usage statistics collection requires external HTTP call to fleetdm.com;
+            // the actual implementation depends on app config (analytics enabled) and
+            // license type.
+            tracing::debug!("Usage statistics check (no-op in free tier)");
             Ok(())
         })),
     }).await;
 
-    // Vulnerabilities: runs every hour
+    // Vulnerabilities: runs every hour (matches Go's newVulnerabilitiesSchedule)
     scheduler.register(CronJob {
         name: schedule_names::VULNERABILITIES.to_string(),
         interval: std::time::Duration::from_secs(3600),
         func: Box::new(|| Box::pin(async {
-            tracing::info!("Running vulnerabilities scan");
+            // Vulnerability scanning requires NVD/OVAL/MSRC databases and CPE matching;
+            // this is a complex subsystem that depends on external data feeds.
+            tracing::debug!("Vulnerability scan (not yet implemented)");
             Ok(())
         })),
     }).await;
 
-    // Automations: runs every hour
+    // Automations: runs on configurable interval (default 24h, matches Go's newAutomationsSchedule)
     scheduler.register(CronJob {
         name: schedule_names::AUTOMATIONS.to_string(),
-        interval: std::time::Duration::from_secs(3600),
+        interval: std::time::Duration::from_secs(86400),
         func: Box::new(|| Box::pin(async {
-            tracing::info!("Running automations");
+            // Automations (host status webhooks, failing policy webhooks) depend on
+            // webhook configuration and integration setup.
+            tracing::debug!("Automations check (not yet implemented)");
             Ok(())
         })),
     }).await;
 
-    // Integrations worker: runs every 10 minutes
+    // Integrations worker: runs every minute (matches Go's newWorkerIntegrationsSchedule)
     scheduler.register(CronJob {
         name: schedule_names::INTEGRATIONS.to_string(),
-        interval: std::time::Duration::from_secs(600),
+        interval: std::time::Duration::from_secs(60),
         func: Box::new(|| Box::pin(async {
-            tracing::info!("Running integrations worker");
+            // Worker integrations (Jira, Zendesk, MDM commands) process queued jobs.
+            tracing::debug!("Integrations worker (not yet implemented)");
             Ok(())
         })),
     }).await;
 
-    // Query results cleanup: runs every minute
+    // Query results cleanup: runs every minute (matches Go's newQueryResultsCleanupSchedule)
+    {
+        let ds = ds.clone();
+        scheduler.register(CronJob {
+            name: schedule_names::QUERY_RESULTS_CLEANUP.to_string(),
+            interval: std::time::Duration::from_secs(60),
+            func: Box::new(move || {
+                let ds = ds.clone();
+                Box::pin(async move {
+                    let max_rows = ds.get_query_report_cap().await
+                        .map_err(|e| format!("get_query_report_cap: {e}"))?;
+
+                    let counts = ds.cleanup_excess_query_result_rows(max_rows).await
+                        .map_err(|e| format!("cleanup_excess_query_result_rows: {e}"))?;
+
+                    if !counts.is_empty() {
+                        tracing::debug!(queries_cleaned = counts.len(), "cleaned up excess query result rows");
+                    }
+
+                    Ok(())
+                })
+            }),
+        }).await;
+    }
+
+    // Upcoming activities maintenance: runs every 15 minutes
     scheduler.register(CronJob {
-        name: schedule_names::QUERY_RESULTS_CLEANUP.to_string(),
+        name: schedule_names::UPCOMING_ACTIVITIES_MAINTENANCE.to_string(),
+        interval: std::time::Duration::from_secs(900),
+        func: Box::new(|| Box::pin(async {
+            tracing::debug!("Upcoming activities maintenance (not yet implemented)");
+            Ok(())
+        })),
+    }).await;
+
+    // Host vitals label membership: runs every 15 minutes
+    scheduler.register(CronJob {
+        name: schedule_names::HOST_VITALS_LABEL_MEMBERSHIP.to_string(),
+        interval: std::time::Duration::from_secs(900),
+        func: Box::new(|| Box::pin(async {
+            tracing::debug!("Host vitals label membership (not yet implemented)");
+            Ok(())
+        })),
+    }).await;
+
+    // Batch activity completion checker: runs every minute
+    scheduler.register(CronJob {
+        name: schedule_names::BATCH_ACTIVITY_COMPLETION_CHECKER.to_string(),
         interval: std::time::Duration::from_secs(60),
         func: Box::new(|| Box::pin(async {
-            tracing::debug!("Running query_results_cleanup");
+            tracing::debug!("Batch activity completion checker (not yet implemented)");
+            Ok(())
+        })),
+    }).await;
+
+    // Scheduled batch activities: runs every minute
+    scheduler.register(CronJob {
+        name: schedule_names::SCHEDULED_BATCH_ACTIVITIES.to_string(),
+        interval: std::time::Duration::from_secs(60),
+        func: Box::new(|| Box::pin(async {
+            tracing::debug!("Scheduled batch activities (not yet implemented)");
             Ok(())
         })),
     }).await;

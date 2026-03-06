@@ -209,7 +209,8 @@ pub enum CronTriggerError {
     ScheduleStopped,
 }
 
-/// Well-known cron schedule names matching Go constants.
+/// Well-known cron schedule names matching Go constants in
+/// `server/fleet/cron_schedules.go`.
 pub mod schedule_names {
     pub const CLEANUPS_THEN_AGGREGATION: &str = "cleanups_then_aggregation";
     pub const FREQUENT_CLEANUPS: &str = "frequent_cleanups";
@@ -219,4 +220,8 @@ pub mod schedule_names {
     pub const INTEGRATIONS: &str = "integrations";
     pub const ACTIVITIES_STREAMING: &str = "activities_streaming";
     pub const QUERY_RESULTS_CLEANUP: &str = "query_results_cleanup";
+    pub const UPCOMING_ACTIVITIES_MAINTENANCE: &str = "upcoming_activities_maintenance";
+    pub const HOST_VITALS_LABEL_MEMBERSHIP: &str = "host_vitals_label_membership";
+    pub const BATCH_ACTIVITY_COMPLETION_CHECKER: &str = "batch_activity_completion_checker";
+    pub const SCHEDULED_BATCH_ACTIVITIES: &str = "scheduled_batch_activities";
 }
