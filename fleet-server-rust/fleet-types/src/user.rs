@@ -92,6 +92,45 @@ impl User {
         }
         self.admin_forced_password_reset
     }
+
+    /// Returns the authorization type string for this entity.
+    pub fn authz_type(&self) -> &'static str {
+        "user"
+    }
+
+    /// Returns the team IDs for all teams the user has any role in.
+    pub fn team_ids_with_any_role(&self) -> Vec<u32> {
+        self.teams.iter().map(|t| t.team.id).collect()
+    }
+
+    /// Returns true if the user has a global role (any value).
+    pub fn has_any_global_role(&self) -> bool {
+        self.global_role.is_some()
+    }
+
+    /// Returns true if the user belongs to at least one team.
+    pub fn has_any_team_role(&self) -> bool {
+        !self.teams.is_empty()
+    }
+
+    /// Returns true if the user has any role in the team with the given ID.
+    pub fn has_any_role_in_team(&self, id: u32) -> bool {
+        self.teams.iter().any(|t| t.team.id == id)
+    }
+
+    /// Returns a map of team IDs for which the given predicate returns true.
+    pub fn team_membership<F>(&self, pred: F) -> std::collections::HashMap<u32, bool>
+    where
+        F: Fn(&UserTeam) -> bool,
+    {
+        let mut result = std::collections::HashMap::new();
+        for t in &self.teams {
+            if pred(t) {
+                result.insert(t.team.id, true);
+            }
+        }
+        result
+    }
 }
 
 /// UserPayload is the payload for creating/modifying a user.

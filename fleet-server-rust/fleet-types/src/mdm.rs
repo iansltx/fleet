@@ -1716,3 +1716,731 @@ pub struct MDMLinuxDiskEncryptionSummary {
     pub action_required: u32,
     pub failed: u32,
 }
+
+// ===========================================================================
+// Microsoft MDM SOAP protocol types (from microsoft_mdm.go)
+// ===========================================================================
+
+/// SoapResponse is the SOAP Envelope Response type for MS-MDE2 responses from the server.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SoapResponse {
+    #[serde(rename = "XMLNSS")]
+    pub xmlns_s: String,
+    #[serde(rename = "XMLNSA")]
+    pub xmlns_a: String,
+    #[serde(rename = "XMLNSU", skip_serializing_if = "Option::is_none")]
+    pub xmlns_u: Option<String>,
+    pub header: ResponseHeader,
+    pub body: BodyResponse,
+}
+
+/// SoapRequest is the SOAP Envelope Request type for MS-MDE2 requests to the server.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SoapRequest {
+    #[serde(rename = "XMLNSS")]
+    pub xmlns_s: String,
+    #[serde(rename = "XMLNSA")]
+    pub xmlns_a: String,
+    #[serde(rename = "XMLNSU", skip_serializing_if = "Option::is_none")]
+    pub xmlns_u: Option<String>,
+    #[serde(rename = "XMLNSWsse", skip_serializing_if = "Option::is_none")]
+    pub xmlns_wsse: Option<String>,
+    #[serde(rename = "XMLNSWST", skip_serializing_if = "Option::is_none")]
+    pub xmlns_wst: Option<String>,
+    #[serde(rename = "XMLNSAC", skip_serializing_if = "Option::is_none")]
+    pub xmlns_ac: Option<String>,
+    pub header: RequestHeader,
+    pub body: BodyRequest,
+    /// Raw XML bytes, stored alongside the decoded fields for convenience.
+    #[serde(skip)]
+    pub raw: Vec<u8>,
+}
+
+/// ResponseHeader is the header for MDM responses from the server.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResponseHeader {
+    pub action: Action,
+    pub relates_to: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub activity_id: Option<ActivityId>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub security: Option<WsSecurity>,
+}
+
+/// RequestHeader is the header for MDM requests to the server.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RequestHeader {
+    pub action: Action,
+    pub message_id: String,
+    pub reply_to: ReplyTo,
+    pub to: To,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub security: Option<TokenSecurity>,
+}
+
+/// BodyResponse is the body of the MDM SOAP response message.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BodyResponse {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub xsd: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub xsi: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub discover_response: Option<DiscoverResponse>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub get_policies_response: Option<GetPoliciesResponse>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_security_token_response_collection: Option<RequestSecurityTokenResponseCollection>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub soap_fault: Option<SoapFault>,
+}
+
+/// BodyRequest is the body of the MDM SOAP request message.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BodyRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub xsi: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub xsd: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub discover: Option<Discover>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub get_policies: Option<GetPolicies>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request_security_token: Option<RequestSecurityToken>,
+}
+
+/// Action is the SOAP action header field.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Action {
+    pub content: String,
+    pub must_understand: String,
+}
+
+/// ActivityId is a unique identifier for the activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityId {
+    pub content: String,
+    pub correlation_id: String,
+    #[serde(rename = "xmlns")]
+    pub xmlns: String,
+}
+
+/// Timestamp for certificate authentication.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Timestamp {
+    pub id: String,
+    pub created: String,
+    pub expires: String,
+}
+
+/// WsSecurity is the security token container.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WsSecurity {
+    #[serde(rename = "xmlns")]
+    pub xmlns: String,
+    pub must_understand: String,
+    pub timestamp: Timestamp,
+}
+
+/// HeaderBinarySecurityToken is the security token container for encoded security sensitive data.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HeaderBinarySecurityToken {
+    pub content: String,
+    #[serde(rename = "ValueType")]
+    pub value: String,
+    #[serde(rename = "EncodingType")]
+    pub encoding: String,
+}
+
+/// TokenSecurity is the security token container for BinarySecurityToken.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TokenSecurity {
+    pub must_understand: String,
+    pub security: HeaderBinarySecurityToken,
+}
+
+/// To is the target endpoint header field.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct To {
+    pub content: String,
+    pub must_understand: String,
+}
+
+/// ReplyTo is the message correlation header field.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReplyTo {
+    pub address: String,
+}
+
+// ===========================================================================
+// Discover MS-MDE2 message types (from microsoft_mdm.go)
+// ===========================================================================
+
+/// Discover MS-MDE2 message request type.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Discover {
+    #[serde(rename = "xmlns")]
+    pub xmlns: String,
+    pub request: DiscoverRequest,
+}
+
+/// AuthPolicies contains the authentication policies.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AuthPolicies {
+    pub auth_policy: Vec<String>,
+}
+
+/// DiscoverRequest contains the discovery request parameters.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DiscoverRequest {
+    #[serde(rename = "xmlns")]
+    pub xmlns: String,
+    pub email_address: String,
+    pub request_version: String,
+    pub device_type: String,
+    pub application_version: String,
+    #[serde(rename = "OSEdition")]
+    pub os_edition: String,
+    pub auth_policies: AuthPolicies,
+}
+
+/// DiscoverResponse MS-MDE2 message response type.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DiscoverResponse {
+    #[serde(rename = "xmlns")]
+    pub xmlns: String,
+    pub discover_result: DiscoverResult,
+}
+
+/// DiscoverResult contains the discovery response data.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DiscoverResult {
+    pub auth_policy: String,
+    pub enrollment_version: String,
+    pub enrollment_policy_service_url: String,
+    pub enrollment_service_url: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auth_service_url: Option<String>,
+}
+
+// ===========================================================================
+// GetPolicies MS-MDE2 message types (from microsoft_mdm.go)
+// ===========================================================================
+
+/// GetPolicies MS-MDE2 message request type.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GetPolicies {
+    #[serde(rename = "xmlns")]
+    pub xmlns: String,
+    pub client: Client,
+    pub request_filter: RequestFilter,
+}
+
+/// ClientContent holds a content string and xsi attribute.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClientContent {
+    pub content: String,
+    pub xsi: String,
+}
+
+/// Client contains the client information for GetPolicies.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Client {
+    pub last_update: ClientContent,
+    pub preferred_language: ClientContent,
+}
+
+/// RequestFilter for the GetPolicies request.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RequestFilter {
+    pub xsi: String,
+}
+
+/// GetPoliciesResponse MS-MDE2 message response type.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GetPoliciesResponse {
+    #[serde(rename = "xmlns")]
+    pub xmlns: String,
+    pub response: PolicyResponse,
+    #[serde(rename = "oIDs")]
+    pub oids: OIDs,
+}
+
+/// ContentAttr holds content and xsi/xmlns attributes.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContentAttr {
+    pub content: String,
+    pub xsi: String,
+    #[serde(rename = "xmlns")]
+    pub xmlns: String,
+}
+
+/// GenericAttr holds a single xsi attribute.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GenericAttr {
+    pub xsi: String,
+}
+
+/// CertificateValidity specifies validity period for certificates.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CertificateValidity {
+    pub validity_period_seconds: String,
+    pub renewal_period_seconds: String,
+}
+
+/// Permission specifies enrollment permissions.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Permission {
+    pub enroll: String,
+    pub auto_enroll: String,
+}
+
+/// ProviderAttr holds a provider content string.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProviderAttr {
+    pub content: String,
+}
+
+/// PrivateKeyAttributes specifies the private key attributes.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PrivateKeyAttributes {
+    pub minimal_key_length: String,
+    pub key_spec: GenericAttr,
+    pub key_usage_property: GenericAttr,
+    pub permissions: GenericAttr,
+    pub algorithm_oid_reference: GenericAttr,
+    pub crypto_providers: Vec<ProviderAttr>,
+}
+
+/// Revision specifies policy revision.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Revision {
+    pub major_revision: String,
+    pub minor_revision: String,
+}
+
+/// Attributes specifies the policy attributes.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PolicyAttributes {
+    pub common_name: String,
+    pub policy_schema: String,
+    pub certificate_validity: CertificateValidity,
+    pub permission: Permission,
+    pub private_key_attributes: PrivateKeyAttributes,
+    pub revision: Revision,
+    pub superseded_policies: GenericAttr,
+    pub private_key_flags: GenericAttr,
+    pub subject_name_flags: GenericAttr,
+    pub enrollment_flags: GenericAttr,
+    pub general_flags: GenericAttr,
+    pub hash_algorithm_oid_reference: String,
+    pub ra_requirements: GenericAttr,
+    pub key_archival_attributes: GenericAttr,
+    pub extensions: GenericAttr,
+}
+
+/// GPPolicy represents a group policy object.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GPPolicy {
+    pub policy_oid_reference: String,
+    pub cas: GenericAttr,
+    pub attributes: PolicyAttributes,
+}
+
+/// Policies contains the policies in the response.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Policies {
+    pub policy: GPPolicy,
+}
+
+/// PolicyResponse is the response element of GetPoliciesResponse.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PolicyResponse {
+    pub policy_id: String,
+    pub policy_friendly_name: ContentAttr,
+    pub next_update_hours: ContentAttr,
+    pub policies_not_changed: ContentAttr,
+    pub policies: Policies,
+}
+
+/// OID represents an object identifier.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OID {
+    pub value: String,
+    pub group: String,
+    pub oid_reference_id: String,
+    pub default_name: String,
+}
+
+/// OIDs contains a list of object identifiers.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OIDs {
+    pub content: String,
+    pub oid: Vec<OID>,
+}
+
+// ===========================================================================
+// RequestSecurityToken MS-MDE2 message types (from microsoft_mdm.go)
+// ===========================================================================
+
+/// RequestSecurityToken MS-MDE2 message request type.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RequestSecurityToken {
+    pub token_type: String,
+    pub request_type: String,
+    pub binary_security_token: BinarySecurityToken,
+    pub additional_context: AdditionalContext,
+    #[serde(skip)]
+    pub map_context_items: Option<HashMap<String, ContextItem>>,
+}
+
+/// BinarySecurityToken contains the base64 encoded security token.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BinarySecurityToken {
+    pub content: String,
+    #[serde(rename = "xmlns", skip_serializing_if = "Option::is_none")]
+    pub xmlns: Option<String>,
+    #[serde(rename = "ValueType")]
+    pub value_type: String,
+    #[serde(rename = "EncodingType")]
+    pub encoding_type: String,
+}
+
+/// ContextItem represents a single context item in AdditionalContext.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContextItem {
+    pub name: String,
+    pub value: String,
+}
+
+/// AdditionalContext contains context items for RequestSecurityToken.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AdditionalContext {
+    #[serde(rename = "xmlns")]
+    pub xmlns: String,
+    pub context_items: Vec<ContextItem>,
+}
+
+// ===========================================================================
+// RequestSecurityTokenResponseCollection MS-MDE2 types (from microsoft_mdm.go)
+// ===========================================================================
+
+/// RequestSecurityTokenResponseCollection MS-MDE2 message response type.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RequestSecurityTokenResponseCollection {
+    #[serde(rename = "xmlns")]
+    pub xmlns: String,
+    pub request_security_token_response: RequestSecurityTokenResponse,
+}
+
+/// SecAttr holds content and xmlns attributes.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SecAttr {
+    pub content: String,
+    #[serde(rename = "xmlns")]
+    pub xmlns: String,
+}
+
+/// RequestedSecurityToken wraps a BinarySecurityToken.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RequestedSecurityToken {
+    pub binary_security_token: BinarySecurityToken,
+}
+
+/// RequestSecurityTokenResponse is the MS-MDE2 security token response.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RequestSecurityTokenResponse {
+    pub token_type: String,
+    pub disposition_message: SecAttr,
+    pub requested_security_token: RequestedSecurityToken,
+    pub request_id: SecAttr,
+}
+
+// ===========================================================================
+// SoapFault MS-MDE2 message types (from microsoft_mdm.go)
+// ===========================================================================
+
+/// Subcode for SOAP fault.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Subcode {
+    pub value: String,
+}
+
+/// Code for SOAP fault.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Code {
+    pub value: String,
+    pub subcode: Subcode,
+}
+
+/// ReasonText for SOAP fault.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReasonText {
+    pub content: String,
+    pub lang: String,
+}
+
+/// Reason for SOAP fault.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Reason {
+    pub text: ReasonText,
+}
+
+/// SoapFault MS-MDE2 message response type.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SoapFault {
+    pub code: Code,
+    pub reason: Reason,
+    #[serde(skip)]
+    pub original_message_type: i32,
+}
+
+// ===========================================================================
+// WapProvisioningDoc (XML Provisioning Schema) types (from microsoft_mdm.go)
+// ===========================================================================
+
+/// Param represents a provisioning parameter.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Param {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub datatype: Option<String>,
+}
+
+/// Characteristic represents a provisioning characteristic.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Characteristic {
+    #[serde(rename = "type")]
+    pub characteristic_type: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub params: Vec<Param>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub characteristics: Vec<Characteristic>,
+}
+
+/// WapProvisioningDoc is the MS-MDE2 provisioning document.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WapProvisioningDoc {
+    pub version: String,
+    pub characteristics: Vec<Characteristic>,
+}
+
+// ===========================================================================
+// SyncML protocol types (from microsoft_mdm.go)
+// ===========================================================================
+
+/// SyncML represents a SyncML message used by MS-MDM.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncML {
+    #[serde(rename = "xmlns")]
+    pub xmlns: String,
+    pub sync_hdr: SyncHdr,
+    pub sync_body: SyncBody,
+    /// Raw XML bytes, stored alongside the decoded fields for convenience.
+    #[serde(skip)]
+    pub raw: Vec<u8>,
+}
+
+/// SyncHdr is the SyncML message header.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncHdr {
+    pub ver_dtd: String,
+    pub ver_proto: String,
+    pub session_id: String,
+    pub msg_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target: Option<LocURI>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<LocURI>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub meta: Option<MetaHdr>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cred: Option<CredHdr>,
+}
+
+/// MetaHdr is metadata for the SyncML header.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MetaHdr {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_msg_size: Option<String>,
+}
+
+/// CredHdr contains credential information for the SyncML header.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CredHdr {
+    pub meta: SyncMLMeta,
+    pub data: String,
+}
+
+/// SyncBody is the SyncML message body containing protocol commands.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncBody {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub final_elem: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub add: Vec<SyncMLCmd>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub alert: Vec<SyncMLCmd>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub atomic: Vec<SyncMLCmd>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub delete: Vec<SyncMLCmd>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub exec: Vec<SyncMLCmd>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub get: Vec<SyncMLCmd>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub replace: Vec<SyncMLCmd>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub results: Vec<SyncMLCmd>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub status: Vec<SyncMLCmd>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub raw: Vec<SyncMLCmd>,
+}
+
+/// ProtoCmdOperation represents a SyncML protocol command with its verb.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProtoCmdOperation {
+    pub verb: String,
+    pub cmd: SyncMLCmd,
+}
+
+/// CmdID holds the value of a CmdID.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CmdID {
+    pub value: String,
+    #[serde(skip)]
+    pub include_fleet_comment: bool,
+}
+
+/// SyncMLCmd represents a SyncML protocol command.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncMLCmd {
+    pub cmd_id: CmdID,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub msg_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cmd_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cmd: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub items: Vec<CmdItem>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chal: Option<SyncMLChallenge>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub replace_commands: Vec<SyncMLCmd>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub add_commands: Vec<SyncMLCmd>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub exec_commands: Vec<SyncMLCmd>,
+}
+
+/// SyncMLChallenge represents a SyncML authentication challenge.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncMLChallenge {
+    pub meta: ChallengeMeta,
+}
+
+/// ChallengeMeta contains metadata for a SyncML challenge.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChallengeMeta {
+    #[serde(flatten)]
+    pub meta: SyncMLMeta,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_nonce: Option<MetaAttr>,
+}
+
+/// CmdItem represents an item within a SyncML command.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CmdItem {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub meta: Option<SyncMLMeta>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data: Option<RawXmlData>,
+}
+
+/// RawXmlData represents raw XML data content.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RawXmlData {
+    pub content: String,
+}
+
+/// SyncMLMeta represents metadata for a SyncML command item.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncMLMeta {
+    #[serde(rename = "Type", skip_serializing_if = "Option::is_none")]
+    pub meta_type: Option<MetaAttr>,
+    #[serde(rename = "Format", skip_serializing_if = "Option::is_none")]
+    pub format: Option<MetaAttr>,
+}
+
+/// MetaAttr represents a metadata attribute with xmlns and content.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MetaAttr {
+    #[serde(rename = "xmlns")]
+    pub xmlns: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content: Option<String>,
+}
+
+/// LocURI represents a SyncML location URI.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LocURI {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loc_uri: Option<String>,
+}
+
+/// EnrichedSyncML wraps a SyncML message with indexed command references.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EnrichedSyncML {
+    pub sync_ml: SyncML,
+    #[serde(default)]
+    pub cmd_ref_uuid_to_status: HashMap<String, SyncMLCmd>,
+    #[serde(default)]
+    pub cmd_ref_uuid_to_results: HashMap<String, SyncMLCmd>,
+    #[serde(default)]
+    pub cmd_ref_uuids: Vec<String>,
+}
+
+// ===========================================================================
+// Apple MDM additional types (from apple_mdm.go)
+// ===========================================================================
+
+/// MDMAppleAccountDrivenUserEnrollDeviceInfo is a minimal version of DeviceInfo
+/// sent on Account Driven User Enrollment requests.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MDMAppleAccountDrivenUserEnrollDeviceInfo {
+    #[serde(rename = "VERSION")]
+    pub version: String,
+    #[serde(rename = "PRODUCT")]
+    pub product: String,
+    #[serde(rename = "LANGUAGE", skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
+    #[serde(rename = "OS_VERSION", skip_serializing_if = "Option::is_none")]
+    pub os_version: Option<String>,
+    #[serde(
+        rename = "SOFTWARE_UPDATE_DEVICE_ID",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub software_update_device_id: Option<String>,
+    #[serde(
+        rename = "SUPPLEMENTAL_BUILD_VERSION",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub supplemental_build_version: Option<String>,
+}
+
+/// Windows MDM requires premium command message constant.
+pub const WINDOWS_MDM_REQUIRES_PREMIUM_CMD_MESSAGE: &str =
+    "Missing or invalid license. Wipe command is available in Fleet Premium only.";

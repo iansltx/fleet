@@ -15,12 +15,25 @@ pub const AUTH_TYPE_NAME_USERNAME_PASSWORD: &str = "authtype_username_password";
 pub const AUTH_TYPE_NAME_NONE: &str = "authtype_none";
 
 pub const APP_CONFIG_KIND: &str = "config";
+
+// Google Calendar API key field names.
+pub const GOOGLE_CALENDAR_EMAIL: &str = "client_email";
+pub const GOOGLE_CALENDAR_PRIVATE_KEY: &str = "private_key";
 pub const MASKED_PASSWORD: &str = "********";
 
 pub const DEFAULT_ORG_INFO_CONTACT_URL: &str = "https://fleetdm.com/company/contact";
 pub const DEFAULT_TRANSPARENCY_URL: &str = "https://fleetdm.com/transparency";
 pub const SECUREFRAME_TRANSPARENCY_URL: &str = "https://fleetdm.com/better?utm_content=secureframe";
 pub const DEFAULT_MAX_QUERY_REPORT_ROWS: i32 = 1000;
+pub const DEFAULT_PER_PAGE: u32 = 1_000_000;
+pub const PER_PAGE_UNLIMITED: u32 = 9_999_999;
+
+// ─── Enroll Secret constants ─────────────────────────────────────────────────
+
+pub const ENROLL_SECRET_KIND: &str = "enroll_secret";
+pub const ENROLL_SECRET_DEFAULT_LENGTH: usize = 24;
+/// Maximum number of enroll secrets that can be set per team, or globally.
+pub const MAX_ENROLL_SECRETS_COUNT: usize = 50;
 
 // ─── License constants ──────────────────────────────────────────────────────
 
@@ -978,4 +991,102 @@ pub struct ListQueryOptions {
     pub merge_inherited: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub platform: Option<String>,
+}
+
+// ─── EnrollSecret ───────────────────────────────────────────────────────────
+
+/// EnrollSecret contains information about an enroll secret used for osquery authentication.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EnrollSecret {
+    /// Secret is the actual secret key.
+    pub secret: String,
+    /// CreatedAt is the time this enroll secret was first added.
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    /// TeamID is the ID for the associated team. If None, this is a global enroll secret.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_id: Option<u32>,
+}
+
+impl EnrollSecret {
+    /// Returns true if this is a global (not team-specific) secret.
+    pub fn is_global_secret(&self) -> bool {
+        self.team_id.is_none()
+    }
+}
+
+/// EnrollSecretSpec is the fleetctl spec type for enroll secrets.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct EnrollSecretSpec {
+    pub secrets: Vec<EnrollSecret>,
+}
+
+// ─── Helper implementations ──────────────────────────────────────────────────
+
+impl LicenseInfo {
+    /// Returns true if the license has expired.
+    pub fn is_expired(&self) -> bool {
+        if let Some(exp) = self.expiration {
+            exp < chrono::Utc::now()
+        } else {
+            false
+        }
+    }
+}
+
+impl ListOptions {
+    /// Returns true if the list options are empty (all defaults).
+    pub fn is_empty(&self) -> bool {
+        *self == ListOptions::default()
+    }
+
+    /// Returns true if cursor-based pagination is being used.
+    pub fn uses_cursor_pagination(&self) -> bool {
+        !self.after.is_empty() && !self.order_key.is_empty()
+    }
+
+    /// Returns the effective per-page value, defaulting to DEFAULT_PER_PAGE if zero.
+    pub fn get_per_page(&self) -> u32 {
+        if self.per_page == 0 {
+            DEFAULT_PER_PAGE
+        } else {
+            self.per_page
+        }
+    }
+}
+
+impl ServerSettings {
+    /// Returns the effective query report cap, defaulting to DEFAULT_MAX_QUERY_REPORT_ROWS.
+    pub fn get_query_report_cap(&self) -> i32 {
+        if self.query_report_cap <= 0 {
+            DEFAULT_MAX_QUERY_REPORT_ROWS
+        } else {
+            self.query_report_cap
+        }
+    }
+}
+
+impl ConditionalAccessSettings {
+    /// Returns true if all Okta conditional access fields are configured.
+    pub fn okta_configured(&self) -> bool {
+        self.okta_idp_id
+            .as_ref()
+            .map_or(false, |v| !v.is_empty())
+            && self
+                .okta_assertion_consumer_service_url
+                .as_ref()
+                .map_or(false, |v| !v.is_empty())
+            && self
+                .okta_audience_uri
+                .as_ref()
+                .map_or(false, |v| !v.is_empty())
+            && self
+                .okta_certificate
+                .as_ref()
+                .map_or(false, |v| !v.is_empty())
+    }
+
+    /// Returns true if bypass is enabled (bypass_disabled is false or not set).
+    pub fn bypass_enabled(&self) -> bool {
+        !self.bypass_disabled
+    }
 }

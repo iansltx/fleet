@@ -191,3 +191,73 @@ pub struct PackSpecQuery {
 
 /// Pack kind constant.
 pub const PACK_KIND: &str = "pack";
+
+// ───────────────────────────────────────────────────────────────────────────
+// Validation helpers
+// ───────────────────────────────────────────────────────────────────────────
+
+/// Errors that can occur when verifying pack-related payloads.
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum PackValidationError {
+    #[error("pack name cannot be empty")]
+    EmptyName,
+    #[error(
+        "pack scheduled query interval must be an integer greater than 1 and less than 604800"
+    )]
+    InvalidInterval,
+}
+
+fn is_empty_string(s: &str) -> bool {
+    s.trim().is_empty()
+}
+
+impl Pack {
+    /// Returns the team ID if this is a team pack (type = "team-$ID"), or `None` otherwise.
+    pub fn team_pack_id(&self) -> Result<Option<u32>, std::num::ParseIntError> {
+        if !self.is_team_pack() {
+            return Ok(None);
+        }
+        let t = self
+            .pack_type
+            .as_ref()
+            .unwrap()
+            .strip_prefix("team-")
+            .unwrap();
+        t.parse::<u32>().map(Some)
+    }
+
+    /// Verify verifies the pack's fields are valid.
+    pub fn verify(&self) -> Result<(), PackValidationError> {
+        if is_empty_string(&self.name) {
+            return Err(PackValidationError::EmptyName);
+        }
+        Ok(())
+    }
+}
+
+impl PackPayload {
+    /// Verify verifies the pack payload's fields are valid.
+    pub fn verify(&self) -> Result<(), PackValidationError> {
+        if let Some(ref name) = self.name {
+            if is_empty_string(name) {
+                return Err(PackValidationError::EmptyName);
+            }
+        }
+        Ok(())
+    }
+}
+
+impl PackSpec {
+    /// Verify verifies the pack spec's fields are valid.
+    pub fn verify(&self) -> Result<(), PackValidationError> {
+        if is_empty_string(&self.name) {
+            return Err(PackValidationError::EmptyName);
+        }
+        for sq in &self.queries {
+            if sq.interval < 1 || sq.interval > MAX_SCHEDULED_QUERY_INTERVAL {
+                return Err(PackValidationError::InvalidInterval);
+            }
+        }
+        Ok(())
+    }
+}

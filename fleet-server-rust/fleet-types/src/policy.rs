@@ -233,3 +233,140 @@ pub const POLICY_NO_TEAM_ID: u32 = 0;
 pub const MAX_POLICY_AUTOMATION_RETRIES: u32 = 3;
 /// Policy kind constant.
 pub const POLICY_KIND: &str = "policy";
+
+// ───────────────────────────────────────────────────────────────────────────
+// Validation helpers
+// ───────────────────────────────────────────────────────────────────────────
+
+/// Errors that can occur when verifying policy-related payloads.
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum PolicyValidationError {
+    #[error("policy name cannot be empty")]
+    EmptyName,
+    #[error("policy query cannot be empty")]
+    EmptyQuery,
+    #[error("both fields \"queryID\" and \"query\" cannot be set")]
+    IdAndQuerySet,
+    #[error("invalid policy platform")]
+    InvalidPlatform,
+    #[error("policy cannot include both labels_include_any and labels_exclude_any")]
+    ConflictingLabels,
+}
+
+fn is_empty_string(s: &str) -> bool {
+    s.trim().is_empty()
+}
+
+/// Verify that a policy name is non-empty.
+pub fn verify_policy_name(name: &str) -> Result<(), PolicyValidationError> {
+    if is_empty_string(name) {
+        return Err(PolicyValidationError::EmptyName);
+    }
+    Ok(())
+}
+
+/// Verify that a policy query is non-empty.
+pub fn verify_policy_query(query: &str) -> Result<(), PolicyValidationError> {
+    if is_empty_string(query) {
+        return Err(PolicyValidationError::EmptyQuery);
+    }
+    Ok(())
+}
+
+/// Verify that a comma-separated platform string contains only valid platforms.
+pub fn verify_policy_platforms(platforms: &str) -> Result<(), PolicyValidationError> {
+    if platforms.is_empty() {
+        return Ok(());
+    }
+    for s in platforms.split(',') {
+        match s.trim() {
+            "windows" | "linux" | "darwin" | "chrome" => {}
+            _ => return Err(PolicyValidationError::InvalidPlatform),
+        }
+    }
+    Ok(())
+}
+
+impl PolicyPayload {
+    /// Verify verifies the policy payload is valid.
+    pub fn verify(&self) -> Result<(), PolicyValidationError> {
+        if self.query_id.is_some() {
+            if !self.query.is_empty() {
+                return Err(PolicyValidationError::IdAndQuerySet);
+            }
+        } else {
+            verify_policy_name(&self.name)?;
+            verify_policy_query(&self.query)?;
+        }
+        verify_policy_platforms(&self.platform)?;
+        if !self.labels_include_any.is_empty() && !self.labels_exclude_any.is_empty() {
+            return Err(PolicyValidationError::ConflictingLabels);
+        }
+        Ok(())
+    }
+}
+
+impl ModifyPolicyPayload {
+    /// Verify verifies the modify-policy payload is valid.
+    pub fn verify(&self) -> Result<(), PolicyValidationError> {
+        if let Some(ref name) = self.name {
+            verify_policy_name(name)?;
+        }
+        if let Some(ref query) = self.query {
+            verify_policy_query(query)?;
+        }
+        if let Some(ref platform) = self.platform {
+            verify_policy_platforms(platform)?;
+        }
+        Ok(())
+    }
+}
+
+impl PolicySpec {
+    /// Verify verifies the policy spec is valid.
+    pub fn verify(&self) -> Result<(), PolicyValidationError> {
+        verify_policy_name(&self.name)?;
+        verify_policy_query(&self.query)?;
+        verify_policy_platforms(&self.platform)?;
+        Ok(())
+    }
+}
+
+/// Returns the first duplicate policy spec name (within the same team), or `None`
+/// if there are no duplicates.
+pub fn first_duplicate_policy_spec_name(specs: &[PolicySpec]) -> Option<&str> {
+    let mut teams: std::collections::HashMap<&str, std::collections::HashSet<&str>> =
+        std::collections::HashMap::new();
+    for spec in specs {
+        let team_set = teams.entry(&spec.team).or_default();
+        if !team_set.insert(&spec.name) {
+            return Some(&spec.name);
+        }
+    }
+    None
+}
+
+/// FailingPolicySet holds sets of hosts that failed policy executions.
+pub trait FailingPolicySet: Send + Sync {
+    /// Lists all the policy sets.
+    fn list_sets(&self) -> Result<Vec<u32>, Box<dyn std::error::Error>>;
+    /// Adds the given host to the policy set.
+    fn add_host(
+        &self,
+        policy_id: u32,
+        host: PolicySetHost,
+    ) -> Result<(), Box<dyn std::error::Error>>;
+    /// Returns the list of hosts present in the policy set.
+    fn list_hosts(
+        &self,
+        policy_id: u32,
+    ) -> Result<Vec<PolicySetHost>, Box<dyn std::error::Error>>;
+    /// Removes the hosts from the policy set.
+    fn remove_hosts(
+        &self,
+        policy_id: u32,
+        hosts: &[PolicySetHost],
+    ) -> Result<(), Box<dyn std::error::Error>>;
+    /// Removes a policy set.
+    fn remove_set(&self, policy_id: u32) -> Result<(), Box<dyn std::error::Error>>;
+}

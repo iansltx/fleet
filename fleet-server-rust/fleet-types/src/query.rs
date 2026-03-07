@@ -220,3 +220,135 @@ pub struct ScheduledQueryResultRow {
 pub const LOGGING_SNAPSHOT: &str = "snapshot";
 pub const LOGGING_DIFFERENTIAL: &str = "differential";
 pub const LOGGING_DIFFERENTIAL_IGNORE_REMOVALS: &str = "differential_ignore_removals";
+
+// ───────────────────────────────────────────────────────────────────────────
+// Validation helpers
+// ───────────────────────────────────────────────────────────────────────────
+
+/// Errors that can occur when verifying query-related payloads.
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum QueryValidationError {
+    #[error("report name cannot be empty")]
+    EmptyName,
+    #[error("report's SQL query cannot be empty")]
+    EmptyQuery,
+    #[error(
+        "report's platform must be a comma-separated list of 'darwin', 'linux', 'windows', and/or 'chrome' in a single string"
+    )]
+    InvalidPlatform,
+    #[error("invalid logging value, must be one of 'snapshot', 'differential', 'differential_ignore_removals'")]
+    InvalidLogging,
+}
+
+fn is_empty_string(s: &str) -> bool {
+    s.trim().is_empty()
+}
+
+/// Verify that a query name is non-empty.
+pub fn verify_query_name(name: &str) -> Result<(), QueryValidationError> {
+    if is_empty_string(name) {
+        return Err(QueryValidationError::EmptyName);
+    }
+    Ok(())
+}
+
+/// Verify that a query SQL string is non-empty.
+pub fn verify_query_sql(query: &str) -> Result<(), QueryValidationError> {
+    if is_empty_string(query) {
+        return Err(QueryValidationError::EmptyQuery);
+    }
+    Ok(())
+}
+
+/// Verify that a logging value is one of the valid logging types.
+pub fn verify_logging(logging: &str) -> Result<(), QueryValidationError> {
+    match logging {
+        LOGGING_SNAPSHOT | LOGGING_DIFFERENTIAL | LOGGING_DIFFERENTIAL_IGNORE_REMOVALS => Ok(()),
+        _ => Err(QueryValidationError::InvalidLogging),
+    }
+}
+
+/// Verify that a comma-separated platform string contains only valid platforms.
+pub fn verify_query_platforms(platforms: &str) -> Result<(), QueryValidationError> {
+    if is_empty_string(platforms) {
+        return Ok(());
+    }
+    for platform in platforms.split(',') {
+        match platform.trim() {
+            "windows" | "linux" | "darwin" | "chrome" => {}
+            _ => return Err(QueryValidationError::InvalidPlatform),
+        }
+    }
+    Ok(())
+}
+
+impl QueryPayload {
+    /// Verify verifies the query payload is valid.
+    pub fn verify(&self) -> Result<(), QueryValidationError> {
+        if let Some(ref name) = self.name {
+            verify_query_name(name)?;
+        }
+        if let Some(ref query) = self.query {
+            verify_query_sql(query)?;
+        }
+        if let Some(ref logging) = self.logging {
+            verify_logging(logging)?;
+        }
+        if let Some(ref platform) = self.platform {
+            verify_query_platforms(platform)?;
+        }
+        Ok(())
+    }
+}
+
+impl Query {
+    /// Verify verifies the query fields are valid.
+    pub fn verify(&self) -> Result<(), QueryValidationError> {
+        verify_query_name(&self.name)?;
+        verify_query_sql(&self.query)?;
+        verify_logging(&self.logging)?;
+        verify_query_platforms(&self.platform)?;
+        Ok(())
+    }
+
+    /// Returns the string representation of the team ID, or an empty string if nil.
+    pub fn team_id_str(&self) -> String {
+        match self.team_id {
+            Some(id) => id.to_string(),
+            None => String::new(),
+        }
+    }
+
+    /// Returns `Some(true)` if the logging type is "snapshot", `None` otherwise.
+    pub fn get_snapshot(&self) -> Option<bool> {
+        match self.logging.as_str() {
+            "snapshot" => Some(true),
+            _ => None,
+        }
+    }
+
+    /// Returns `Some(true)` for "differential", `Some(false)` for
+    /// "differential_ignore_removals", `None` otherwise.
+    pub fn get_removed(&self) -> Option<bool> {
+        match self.logging.as_str() {
+            "differential" => Some(true),
+            "differential_ignore_removals" => Some(false),
+            _ => None,
+        }
+    }
+
+    /// Converts this query into a `QueryContent` suitable for osquery configuration.
+    pub fn to_query_content(&self) -> crate::osquery::QueryContent {
+        crate::osquery::QueryContent {
+            query: self.query.clone(),
+            description: String::new(),
+            interval: self.interval,
+            platform: Some(self.platform.clone()),
+            version: Some(self.min_osquery_version.clone()),
+            removed: self.get_removed(),
+            snapshot: self.get_snapshot(),
+            shard: None,
+            denylist: None,
+        }
+    }
+}

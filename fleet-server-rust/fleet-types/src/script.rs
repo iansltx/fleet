@@ -342,3 +342,67 @@ pub struct BatchActivityScriptJobArgs {
 }
 
 pub const BATCH_ACTIVITY_SCRIPTS_JOB_NAME: &str = "batch_scripts";
+
+// ─── Batch Execution Error Constants ─────────────────────────────────────────
+
+pub const BATCH_EXECUTE_INCOMPATIBLE_PLATFORM: &str = "incompatible-platform";
+pub const BATCH_EXECUTE_INCOMPATIBLE_FLEETD: &str = "incompatible-fleetd";
+pub const BATCH_EXECUTE_INVALID_HOST: &str = "invalid-host";
+
+// ─── Software Installer Payload ──────────────────────────────────────────────
+
+/// SoftwareInstallerPayload is the payload for creating/updating a software installer.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct SoftwareInstallerPayload {
+    #[serde(default)]
+    pub url: String,
+    #[serde(default)]
+    pub pre_install_query: String,
+    #[serde(default)]
+    pub install_script: String,
+    #[serde(default)]
+    pub uninstall_script: String,
+    #[serde(default)]
+    pub post_install_script: String,
+    #[serde(default)]
+    pub self_service: bool,
+    #[serde(skip)]
+    pub fleet_maintained: bool,
+    #[serde(skip)]
+    pub filename: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub install_during_setup: Option<bool>,
+    #[serde(default)]
+    pub labels_include_any: Vec<String>,
+    #[serde(default)]
+    pub labels_exclude_any: Vec<String>,
+    #[serde(default)]
+    pub sha256: String,
+    #[serde(default)]
+    pub categories: Vec<String>,
+    #[serde(default)]
+    pub display_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub slug: Option<String>,
+    #[serde(default)]
+    pub rollback_version: String,
+    #[serde(skip)]
+    pub icon_path: String,
+    #[serde(skip)]
+    pub icon_hash: String,
+}
+
+// ─── Script error message constants ──────────────────────────────────────────
+
+pub const RUN_SCRIPT_HOST_TIMEOUT_ERR_MSG: &str =
+    "Fleet hasn't heard from the host in over 1 minute. Fleet doesn't know if the script ran because the host went offline.";
+pub const RUN_SCRIPT_ALREADY_RUNNING_ERR_MSG: &str =
+    "A script is already running on this host. Please wait about 1 minute to let it finish.";
+pub const RUN_SCRIPT_ASYNC_SCRIPT_ENQUEUED_MSG: &str =
+    "Script is running or will run when the host comes online.";
+pub const RUN_SCRIPT_DISABLED_ERR_MSG: &str =
+    "Scripts are disabled for this host. To run scripts, deploy the fleetd agent with scripts enabled.";
+pub const RUN_SCRIPT_SAVED_MAX_LEN_ERR_MSG: &str =
+    "Script is too large. It's limited to 500,000 characters (approximately 10,000 lines).";
+pub const RUN_SCRIPT_UNSAVED_MAX_LEN_ERR_MSG: &str =
+    "Script is too large. It's limited to 10,000 characters (approximately 125 lines).";

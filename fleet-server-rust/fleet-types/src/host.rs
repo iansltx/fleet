@@ -984,3 +984,481 @@ pub struct HostResponse {
 
 /// Duration constants matching Go's host status logic.
 pub const ONLINE_INTERVAL_BUFFER: u32 = 60;
+
+/// NewDuration: if a host has been created within this period it's considered new (24 hours).
+pub const NEW_DURATION: chrono::Duration = chrono::Duration::hours(24);
+
+/// MIADuration: if a host hasn't communicated for this period it is considered MIA (30 days).
+pub const MIA_DURATION: chrono::Duration = chrono::Duration::days(30);
+
+/// Error message returned when a host identifier search yields no results.
+pub const HOST_IDENTIFIER_NOT_FOUND: &str = "Host doesn't exist. Make sure you provide a valid hostname, UUID, or serial number. Learn more about host identifiers: https://fleetdm.com/learn-more-about/host-identifiers";
+
+/// HostKind is the kind string used for hosts.
+pub const HOST_KIND: &str = "host";
+
+// ---------------------------------------------------------------------------
+// HostStatus impl
+// ---------------------------------------------------------------------------
+
+impl HostStatus {
+    /// Returns true if the status value is one of the known valid statuses.
+    pub fn is_valid(&self) -> bool {
+        matches!(
+            self,
+            HostStatus::Online
+                | HostStatus::Offline
+                | HostStatus::MIA
+                | HostStatus::New
+                | HostStatus::Missing
+        )
+    }
+}
+
+// ---------------------------------------------------------------------------
+// OSSettingsStatus impl
+// ---------------------------------------------------------------------------
+
+impl OSSettingsStatus {
+    /// Returns true if the status value is one of the known valid statuses.
+    pub fn is_valid(&self) -> bool {
+        matches!(
+            self,
+            OSSettingsStatus::Verified
+                | OSSettingsStatus::Verifying
+                | OSSettingsStatus::Pending
+                | OSSettingsStatus::Failed
+        )
+    }
+}
+
+// ---------------------------------------------------------------------------
+// DiskEncryptionStatus impl
+// ---------------------------------------------------------------------------
+
+impl DiskEncryptionStatus {
+    /// Returns true if the status value is one of the known valid statuses.
+    pub fn is_valid(&self) -> bool {
+        matches!(
+            self,
+            DiskEncryptionStatus::Verified
+                | DiskEncryptionStatus::Verifying
+                | DiskEncryptionStatus::ActionRequired
+                | DiskEncryptionStatus::Enforcing
+                | DiskEncryptionStatus::Failed
+                | DiskEncryptionStatus::RemovingEnforcement
+        )
+    }
+}
+
+// ---------------------------------------------------------------------------
+// MDMBootstrapPackageStatus impl
+// ---------------------------------------------------------------------------
+
+impl MDMBootstrapPackageStatus {
+    /// Returns true if the status value is one of the known valid statuses.
+    pub fn is_valid(&self) -> bool {
+        matches!(
+            self,
+            MDMBootstrapPackageStatus::Installed
+                | MDMBootstrapPackageStatus::Failed
+                | MDMBootstrapPackageStatus::Pending
+        )
+    }
+}
+
+// ---------------------------------------------------------------------------
+// BatchScriptExecutionStatus impl
+// ---------------------------------------------------------------------------
+
+impl BatchScriptExecutionStatus {
+    /// Returns true if the status value is one of the known valid statuses.
+    pub fn is_valid(&self) -> bool {
+        matches!(
+            self,
+            BatchScriptExecutionStatus::Ran
+                | BatchScriptExecutionStatus::Pending
+                | BatchScriptExecutionStatus::Errored
+                | BatchScriptExecutionStatus::Canceled
+                | BatchScriptExecutionStatus::Incompatible
+        )
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Host impl
+// ---------------------------------------------------------------------------
+
+impl Host {
+    /// Returns the display name for the host, matching Go's `Host.DisplayName()`.
+    pub fn display_name(&self) -> String {
+        host_display_name(
+            &self.computer_name,
+            &self.hostname,
+            &self.hardware_model,
+            &self.hardware_serial,
+        )
+    }
+
+    /// Returns the host's generic platform as supported by Fleet,
+    /// matching Go's `Host.FleetPlatform()`.
+    pub fn fleet_platform(&self) -> &str {
+        platform_from_host(&self.platform)
+    }
+
+    /// Calculates the online status of the host at the given time,
+    /// matching Go's `Host.Status()`.
+    pub fn status(&self, now: DateTime<Utc>) -> HostStatus {
+        let online_interval = std::cmp::min(self.distributed_interval, self.config_tls_refresh);
+        let online_interval = online_interval + ONLINE_INTERVAL_BUFFER;
+
+        let threshold = self.seen_time + chrono::Duration::seconds(online_interval as i64);
+        if threshold < now {
+            HostStatus::Offline
+        } else {
+            HostStatus::Online
+        }
+    }
+
+    /// Returns true if the host was created within `NEW_DURATION` of `now`,
+    /// matching Go's `Host.IsNew()`.
+    pub fn is_new(&self, now: DateTime<Utc>) -> bool {
+        let with_duration = self.created_at + NEW_DURATION;
+        with_duration >= now
+    }
+
+    /// Returns true if the host platform supports LUKS disk encryption,
+    /// matching Go's `Host.IsLUKSSupported()`.
+    pub fn is_luks_supported(&self) -> bool {
+        self.platform == "ubuntu"
+            || self.os_version.contains("Fedora")
+            || self.platform == "arch"
+            || self.platform == "archarm"
+            || self.platform == "manjaro"
+            || self.platform == "manjaro-arm"
+    }
+
+    /// Returns true if the host platform supports RPM packages.
+    pub fn platform_supports_rpm_packages(&self) -> bool {
+        HOST_RPM_PACKAGE_OSS.contains(&self.platform.as_str())
+    }
+
+    /// Returns true if the host platform supports DEB packages.
+    pub fn platform_supports_deb_packages(&self) -> bool {
+        HOST_DEB_PACKAGE_OSS.contains(&self.platform.as_str())
+    }
+
+    /// Returns whether the device runs osquery.
+    pub fn supports_osquery(&self) -> bool {
+        platform_supports_osquery(&self.platform)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Platform helper functions and constants
+// ---------------------------------------------------------------------------
+
+/// HostLinuxOSs are the possible linux values for Host.Platform.
+pub const HOST_LINUX_OSS: &[&str] = &[
+    "linux",
+    "ubuntu",
+    "debian",
+    "rhel",
+    "centos",
+    "sles",
+    "kali",
+    "gentoo",
+    "amzn",
+    "pop",
+    "arch",
+    "linuxmint",
+    "void",
+    "nixos",
+    "endeavouros",
+    "manjaro",
+    "manjaro-arm",
+    "opensuse-leap",
+    "opensuse-tumbleweed",
+    "tuxedo",
+    "neon",
+    "archarm",
+];
+
+/// Linux platforms that support DEB packages.
+pub const HOST_DEB_PACKAGE_OSS: &[&str] = &[
+    "linux", "ubuntu", "debian", "kali", "pop", "linuxmint", "tuxedo", "neon",
+];
+
+/// Linux platforms that support RPM packages.
+pub const HOST_RPM_PACKAGE_OSS: &[&str] = &[
+    "linux",
+    "rhel",
+    "centos",
+    "sles",
+    "amzn",
+    "opensuse-leap",
+    "opensuse-tumbleweed",
+];
+
+/// Linux platforms that support neither DEB nor RPM packages.
+pub const HOST_NEITHER_DEB_NOR_RPM_PACKAGE_OSS: &[&str] = &[
+    "arch",
+    "archarm",
+    "gentoo",
+    "void",
+    "nixos",
+    "endeavouros",
+    "manjaro",
+    "manjaro-arm",
+];
+
+/// Returns true if the platform is a known Linux variant.
+pub fn is_linux(host_platform: &str) -> bool {
+    HOST_LINUX_OSS.contains(&host_platform)
+}
+
+/// Returns true if the platform is an Apple platform (macOS, iOS, iPadOS).
+pub fn is_apple_platform(host_platform: &str) -> bool {
+    host_platform == "darwin" || host_platform == "ios" || host_platform == "ipados"
+}
+
+/// Returns true if the platform is macOS.
+pub fn is_macos_platform(host_platform: &str) -> bool {
+    host_platform == "darwin"
+}
+
+/// Returns true if the platform is iOS or iPadOS.
+pub fn is_apple_mobile_platform(host_platform: &str) -> bool {
+    host_platform == "ios" || host_platform == "ipados"
+}
+
+/// Returns true if the platform is Android.
+pub fn is_android_platform(host_platform: &str) -> bool {
+    host_platform == "android"
+}
+
+/// Returns true if the platform is Unix-like (Linux or macOS).
+pub fn is_unix_like(host_platform: &str) -> bool {
+    is_linux(host_platform) || host_platform == "darwin"
+}
+
+/// Returns true if osquery is supported on this platform.
+pub fn platform_supports_osquery(platform: &str) -> bool {
+    platform != "ios" && platform != "ipados" && platform != "android"
+}
+
+/// Converts a host platform string into the generic platform known by Fleet.
+/// Returns empty string if the platform is unknown.
+pub fn platform_from_host(host_platform: &str) -> &str {
+    if is_linux(host_platform) {
+        return "linux";
+    }
+    match host_platform {
+        "darwin" | "windows" | "CrOS" | "chrome" | "ios" | "ipados" | "android" => host_platform,
+        _ => "",
+    }
+}
+
+/// Returns the list of platforms corresponding to the (possibly generic) platform provided.
+/// For example, "linux" expands to all linux platform identifiers.
+pub fn expand_platform(platform: &str) -> Vec<String> {
+    if platform == "linux" {
+        HOST_LINUX_OSS.iter().map(|s| s.to_string()).collect()
+    } else {
+        vec![platform.to_string()]
+    }
+}
+
+/// Returns the display name for a host, matching Go's `HostDisplayName()`.
+pub fn host_display_name(
+    computer_name: &str,
+    hostname: &str,
+    hardware_model: &str,
+    hardware_serial: &str,
+) -> String {
+    if !computer_name.is_empty() {
+        computer_name.to_string()
+    } else if !hostname.is_empty() {
+        hostname.to_string()
+    } else if !hardware_model.is_empty() && !hardware_serial.is_empty() {
+        format!("{} ({})", hardware_model, hardware_serial)
+    } else {
+        String::new()
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Host certificate types (from Go host_certificates.go)
+// ---------------------------------------------------------------------------
+
+/// HostCertificateSource represents the source of a host certificate.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum HostCertificateSource {
+    #[serde(rename = "system")]
+    System,
+    #[serde(rename = "user")]
+    User,
+}
+
+impl HostCertificateSource {
+    /// Returns true if the source value is valid.
+    pub fn is_valid(&self) -> bool {
+        matches!(
+            self,
+            HostCertificateSource::System | HostCertificateSource::User
+        )
+    }
+}
+
+/// HostCertificateRecord is the database model for a host certificate,
+/// matching Go's `HostCertificateRecord`.
+#[derive(Debug, Clone)]
+pub struct HostCertificateRecord {
+    pub id: u32,
+    pub host_id: u32,
+    pub sha1_sum: Vec<u8>,
+    pub created_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
+    pub not_valid_after: DateTime<Utc>,
+    pub not_valid_before: DateTime<Utc>,
+    pub certificate_authority: bool,
+    pub common_name: String,
+    pub key_algorithm: String,
+    pub key_strength: i32,
+    pub key_usage: String,
+    pub serial: String,
+    pub signing_algorithm: String,
+    pub subject_country: String,
+    pub subject_org: String,
+    pub subject_org_unit: String,
+    pub subject_common_name: String,
+    pub issuer_country: String,
+    pub issuer_org: String,
+    pub issuer_org_unit: String,
+    pub issuer_common_name: String,
+    pub source: HostCertificateSource,
+    pub username: String,
+}
+
+impl HostCertificateRecord {
+    /// Converts this record into a `HostCertificatePayload` for API responses.
+    pub fn to_payload(&self) -> HostCertificatePayload {
+        HostCertificatePayload {
+            id: self.id,
+            not_valid_after: self.not_valid_after,
+            not_valid_before: self.not_valid_before,
+            certificate_authority: self.certificate_authority,
+            common_name: self.common_name.clone(),
+            key_algorithm: self.key_algorithm.clone(),
+            key_strength: self.key_strength,
+            key_usage: self.key_usage.clone(),
+            serial: self.serial.clone(),
+            signing_algorithm: self.signing_algorithm.clone(),
+            source: self.source.clone(),
+            username: self.username.clone(),
+            subject: Some(HostCertificateNameDetails {
+                common_name: self.subject_common_name.clone(),
+                country: self.subject_country.clone(),
+                organization: self.subject_org.clone(),
+                organizational_unit: self.subject_org_unit.clone(),
+            }),
+            issuer: Some(HostCertificateNameDetails {
+                common_name: self.issuer_common_name.clone(),
+                country: self.issuer_country.clone(),
+                organization: self.issuer_org.clone(),
+                organizational_unit: self.issuer_org_unit.clone(),
+            }),
+        }
+    }
+}
+
+/// HostCertificatePayload is the JSON model for API endpoints that return host certificates.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostCertificatePayload {
+    pub id: u32,
+    pub not_valid_after: DateTime<Utc>,
+    pub not_valid_before: DateTime<Utc>,
+    pub certificate_authority: bool,
+    pub common_name: String,
+    pub key_algorithm: String,
+    pub key_strength: i32,
+    pub key_usage: String,
+    pub serial: String,
+    pub signing_algorithm: String,
+    pub source: HostCertificateSource,
+    pub username: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subject: Option<HostCertificateNameDetails>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub issuer: Option<HostCertificateNameDetails>,
+}
+
+/// HostCertificateNameDetails contains the subject or issuer details of a certificate.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HostCertificateNameDetails {
+    pub common_name: String,
+    pub country: String,
+    pub organization: String,
+    pub organizational_unit: String,
+}
+
+// ---------------------------------------------------------------------------
+// HostListOptions impl
+// ---------------------------------------------------------------------------
+
+impl HostListOptions {
+    /// Returns true if no filters are set, matching Go's `HostListOptions.Empty()`.
+    pub fn empty(&self) -> bool {
+        self.list_options == ListOptions::default()
+            && !self.device_mapping
+            && self.additional_filters.is_empty()
+            && self.status_filter.is_none()
+            && self.team_filter.is_none()
+            && self.policy_id_filter.is_none()
+            && self.policy_response_filter.is_none()
+            && self.software_id_filter.is_none()
+            && self.software_version_id_filter.is_none()
+            && self.software_title_id_filter.is_none()
+            && self.software_status_filter.is_none()
+            && self.os_id_filter.is_none()
+            && self.os_name_filter.is_none()
+            && self.os_version_filter.is_none()
+            && !self.disable_issues
+            && self.macos_settings_filter.is_none()
+            && self.macos_settings_disk_encryption_filter.is_none()
+            && self.mdm_bootstrap_package_filter.is_none()
+            && self.mdm_id_filter.is_none()
+            && self.mdm_name_filter.is_none()
+            && self.mdm_enrollment_status_filter.is_none()
+            && self.munki_issue_id_filter.is_none()
+            && self.low_disk_space_filter.is_none()
+            && self.os_settings_filter.is_none()
+            && self.os_settings_disk_encryption_filter.is_none()
+            && self.profile_uuid_filter.is_none()
+            && self.profile_status_filter.is_none()
+    }
+}
+
+/// MDMNameFromServerURL returns the MDM solution name corresponding to the
+/// given server URL. If no match is found, it returns an empty string.
+pub fn mdm_name_from_server_url(server_url: &str) -> &'static str {
+    let lower = server_url.to_lowercase();
+    let checks: &[(&str, &str)] = &[
+        ("kandji", WELL_KNOWN_MDM_IRU),
+        ("iru.com", WELL_KNOWN_MDM_IRU),
+        ("jamf", WELL_KNOWN_MDM_JAMF),
+        ("jumpcloud", WELL_KNOWN_MDM_JUMPCLOUD),
+        ("airwatch", WELL_KNOWN_MDM_VMWARE),
+        ("awmdm", WELL_KNOWN_MDM_VMWARE),
+        ("microsoft", WELL_KNOWN_MDM_INTUNE),
+        ("simplemdm", WELL_KNOWN_MDM_SIMPLEMDM),
+        ("fleetdm", WELL_KNOWN_MDM_FLEET),
+        ("mosyle", WELL_KNOWN_MDM_MOSYLE),
+    ];
+    for (check, name) in checks {
+        if lower.contains(check) {
+            return name;
+        }
+    }
+    ""
+}

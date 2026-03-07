@@ -200,3 +200,81 @@ impl std::fmt::Display for MissingLabelError {
 }
 
 impl std::error::Error for MissingLabelError {}
+
+impl MissingLabelError {
+    /// Creates a new MissingLabelError, determining which label name was missing
+    /// based on the provided list of labels and the map of found labels.
+    pub fn new(
+        provided_labels: &[String],
+        found_labels: &std::collections::HashMap<String, u32>,
+    ) -> Self {
+        let not_found = provided_labels
+            .iter()
+            .find(|name| !found_labels.contains_key(name.as_str()))
+            .cloned()
+            .unwrap_or_default();
+        MissingLabelError {
+            message: "some or all the labels provided don't exist".to_string(),
+            missing_label_name: not_found,
+        }
+    }
+}
+
+/// Returns the set of label names reserved by Fleet.
+pub fn reserved_label_names() -> std::collections::HashSet<&'static str> {
+    [
+        BUILTIN_LABEL_ALL_HOSTS,
+        BUILTIN_LABEL_MACOS,
+        BUILTIN_LABEL_UBUNTU_LINUX,
+        BUILTIN_LABEL_CENTOS_LINUX,
+        BUILTIN_LABEL_WINDOWS,
+        BUILTIN_LABEL_RED_HAT_LINUX,
+        BUILTIN_LABEL_ALL_LINUX,
+        BUILTIN_LABEL_CHROME,
+        BUILTIN_LABEL_MACOS_14_PLUS,
+        BUILTIN_LABEL_IOS,
+        BUILTIN_LABEL_IPADOS,
+        BUILTIN_LABEL_FEDORA_LINUX,
+        BUILTIN_LABEL_ANDROID,
+    ]
+    .into_iter()
+    .collect()
+}
+
+/// Returns a list of labels present in `unvalidated_labels` that could not be found
+/// in `valid_label_map`.
+pub fn detect_missing_labels(
+    valid_label_map: &std::collections::HashMap<String, u32>,
+    unvalidated_labels: &[String],
+) -> Vec<String> {
+    unvalidated_labels
+        .iter()
+        .filter_map(|raw| {
+            let label = raw.trim();
+            if !label.is_empty() && !valid_label_map.contains_key(label) {
+                Some(label.to_string())
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+impl LabelIdentsWithScope {
+    /// Returns whether two `LabelIdentsWithScope` values are equivalent.
+    pub fn equal(&self, other: &Self) -> bool {
+        if self.label_scope != other.label_scope {
+            return false;
+        }
+        if self.by_name.len() != other.by_name.len() {
+            return false;
+        }
+        for (k, v) in &self.by_name {
+            match other.by_name.get(k) {
+                Some(ov) if ov.label_id == v.label_id && ov.label_name == v.label_name => {}
+                _ => return false,
+            }
+        }
+        true
+    }
+}

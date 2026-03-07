@@ -21,8 +21,27 @@ pub const SOFTWARE_ARCH_MAX_LENGTH: usize = 16;
 pub const SOFTWARE_TEAM_IDENTIFIER_MAX_LENGTH: usize = 10;
 pub const SOFTWARE_TITLE_DISPLAY_NAME_MAX_LENGTH: usize = 255;
 pub const UPGRADE_CODE_EXPECTED_LENGTH: usize = 38;
+pub const SOFTWARE_VENDOR_MAX_LENGTH_FMT: &str = "%.111s...";
 pub const SOFTWARE_INSTALLER_URL_MAX_LENGTH: usize = 4000;
 pub const MAX_SOFTWARE_INSTALL_ATTEMPTS: u32 = 3;
+pub const BATCH_DOWNLOAD_MAX_RETRIES: u32 = 3;
+pub const BATCH_UPLOAD_MAX_RETRIES: u32 = 3;
+
+// ─── Software Installer Output Copy Constants ────────────────────────────────
+
+pub const SOFTWARE_INSTALLER_QUERY_FAIL_COPY: &str =
+    "Query didn't return result or failed\nInstall stopped";
+pub const SOFTWARE_INSTALLER_QUERY_SUCCESS_COPY: &str =
+    "Query returned result\nProceeding to install...";
+pub const SOFTWARE_INSTALLER_SCRIPTS_DISABLED_COPY: &str =
+    "Installing software...\nError: Scripts are disabled for this host. To run scripts, deploy the fleetd agent with --enable-scripts.";
+pub const SOFTWARE_INSTALLER_DOWNLOAD_FAILED_COPY: &str =
+    "Installing software...\nError: Software installer download failed.";
+
+/// Special exit code returned by fleetd when install was attempted on a host with scripts disabled.
+pub const EXIT_CODE_SCRIPTS_DISABLED: i32 = -2;
+/// Special exit code returned by fleetd when fleetd failed to download the installer.
+pub const EXIT_CODE_INSTALLER_DOWNLOAD_FAILED: i32 = -3;
 
 // ─── Software ────────────────────────────────────────────────────────────────
 
@@ -1107,4 +1126,357 @@ pub struct AppStoreAppUpdatePayload {
     pub configuration: Option<serde_json::Value>,
     #[serde(flatten)]
     pub auto_update_config: SoftwareAutoUpdateConfig,
+}
+
+// ─── VulnSoftwareFilter ─────────────────────────────────────────────────────
+
+/// VulnSoftwareFilter filters software for vulnerability scanning.
+#[derive(Debug, Clone, Default)]
+pub struct VulnSoftwareFilter {
+    pub host_id: Option<u32>,
+    /// LIKE filter on the software name.
+    pub name: String,
+    /// Exact match on the software source.
+    pub source: String,
+    /// Filter to kernel packages only (for RHEL goval-dictionary scanning).
+    pub kernels_only: bool,
+}
+
+// ─── SoftwareAutoUpdateScheduleFilter ────────────────────────────────────────
+
+/// SoftwareAutoUpdateScheduleFilter filters auto-update schedules.
+#[derive(Debug, Clone, Default)]
+pub struct SoftwareAutoUpdateScheduleFilter {
+    pub enabled: Option<bool>,
+}
+
+// ─── SoftwareInstallerStore trait ────────────────────────────────────────────
+
+/// SoftwareInstallerStore is the interface to store and retrieve software
+/// installer files. Fleet supports storing to the local filesystem and to an
+/// S3 bucket.
+///
+/// Note: This is a simplified Rust trait version of the Go interface. The actual
+/// I/O types differ from Go's io.ReadCloser/io.ReadSeeker.
+pub trait SoftwareInstallerStore: Send + Sync {
+    /// Get retrieves the installer content by ID, returning a reader and the content length.
+    fn get(
+        &self,
+        installer_id: &str,
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<
+                    Output = Result<(Box<dyn std::io::Read + Send>, i64), Box<dyn std::error::Error>>,
+                > + Send,
+        >,
+    >;
+
+    /// Put stores installer content by ID.
+    fn put(
+        &self,
+        installer_id: &str,
+        content: &[u8],
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<(), Box<dyn std::error::Error>>> + Send>,
+    >;
+
+    /// Exists checks if an installer exists by ID.
+    fn exists(
+        &self,
+        installer_id: &str,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<bool, Box<dyn std::error::Error>>> + Send>,
+    >;
+
+    /// Cleanup removes unused installers created before the given time.
+    fn cleanup(
+        &self,
+        used_installer_ids: &[String],
+        remove_created_before: chrono::DateTime<chrono::Utc>,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<i32, Box<dyn std::error::Error>>> + Send>,
+    >;
+
+    /// Sign generates a signed URL for the installer.
+    fn sign(
+        &self,
+        file_id: &str,
+        expires_in: std::time::Duration,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<String, Box<dyn std::error::Error>>> + Send>,
+    >;
+}
+
+// ─── UploadSoftwareInstallerPayload ──────────────────────────────────────────
+
+/// UploadSoftwareInstallerPayload is used for creating software installers.
+#[derive(Debug, Clone, Default)]
+pub struct UploadSoftwareInstallerPayload {
+    pub team_id: Option<u32>,
+    pub install_script: String,
+    pub pre_install_query: String,
+    pub post_install_script: String,
+    pub storage_id: String,
+    pub filename: String,
+    pub title: String,
+    pub version: String,
+    pub source: String,
+    pub platform: String,
+    pub bundle_identifier: String,
+    pub self_service: bool,
+    pub user_id: u32,
+    pub url: String,
+    pub fleet_maintained_app_id: Option<u32>,
+    /// RollbackVersion is the version to pin as "active" for a fleet-maintained app.
+    pub rollback_version: String,
+    /// FMAVersionCached indicates this FMA version is already cached.
+    pub fma_version_cached: bool,
+    pub package_ids: Vec<String>,
+    pub upgrade_code: String,
+    pub uninstall_script: String,
+    pub extension: String,
+    /// Keep saved value if None, otherwise set as indicated.
+    pub install_during_setup: Option<bool>,
+    /// Names of "include any" labels.
+    pub labels_include_any: Vec<String>,
+    /// Names of "exclude any" labels.
+    pub labels_exclude_any: Vec<String>,
+    pub automatic_install: bool,
+    pub automatic_install_query: String,
+    pub categories: Vec<String>,
+    pub category_ids: Vec<u32>,
+    pub display_name: String,
+}
+
+// ─── UpdateSoftwareInstallerPayload ──────────────────────────────────────────
+
+/// UpdateSoftwareInstallerPayload is used for updating software installers.
+#[derive(Debug, Clone, Default)]
+pub struct UpdateSoftwareInstallerPayload {
+    pub title_id: u32,
+    pub team_id: Option<u32>,
+    pub installer_id: u32,
+    pub user_id: u32,
+    pub install_script: Option<String>,
+    pub pre_install_query: Option<String>,
+    pub post_install_script: Option<String>,
+    pub self_service: Option<bool>,
+    pub uninstall_script: Option<String>,
+    pub storage_id: String,
+    pub filename: String,
+    pub version: String,
+    pub package_ids: Vec<String>,
+    pub upgrade_code: String,
+    /// Names of "include any" labels.
+    pub labels_include_any: Vec<String>,
+    /// Names of "exclude any" labels.
+    pub labels_exclude_any: Vec<String>,
+    pub categories: Vec<String>,
+    pub category_ids: Vec<u32>,
+    /// DisplayName is an end-user friendly name.
+    pub display_name: Option<String>,
+}
+
+// ─── ExistingSoftwareInstaller ───────────────────────────────────────────────
+
+/// ExistingSoftwareInstaller holds data about an existing software installer.
+#[derive(Debug, Clone, Default)]
+pub struct ExistingSoftwareInstaller {
+    pub installer_id: u32,
+    pub team_id: Option<u32>,
+    pub filename: String,
+    pub extension: String,
+    pub version: String,
+    pub platform: String,
+    pub source: String,
+    pub bundle_identifier: Option<String>,
+    pub title: String,
+    pub package_id_list: String,
+    pub package_ids: Vec<String>,
+}
+
+// ─── HostSoftwareInstallerResultAuthz ────────────────────────────────────────
+
+/// HostSoftwareInstallerResultAuthz is used for authorization of host software installer results.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct HostSoftwareInstallerResultAuthz {
+    pub host_team_id: Option<u32>,
+}
+
+// ─── SoftwarePackageSpec ─────────────────────────────────────────────────────
+
+/// SoftwarePackageSpec is used for gitops software package specifications.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct SoftwarePackageSpec {
+    #[serde(default)]
+    pub url: String,
+    #[serde(default)]
+    pub self_service: bool,
+    #[serde(default)]
+    pub pre_install_query: serde_json::Value,
+    #[serde(default)]
+    pub install_script: serde_json::Value,
+    #[serde(default)]
+    pub post_install_script: serde_json::Value,
+    #[serde(default)]
+    pub uninstall_script: serde_json::Value,
+    #[serde(default)]
+    pub labels_include_any: Vec<String>,
+    #[serde(default)]
+    pub labels_exclude_any: Vec<String>,
+    #[serde(rename = "setup_experience", skip_serializing_if = "Option::is_none")]
+    pub install_during_setup: Option<bool>,
+    #[serde(default)]
+    pub icon: serde_json::Value,
+    /// FMA slug.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub slug: Option<String>,
+    #[serde(default)]
+    pub version: String,
+    /// Resolved path of the file used to fill the software package.
+    #[serde(default)]
+    pub referenced_yaml_path: String,
+    #[serde(default)]
+    pub hash_sha256: String,
+    #[serde(default)]
+    pub categories: Vec<String>,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub display_name: String,
+}
+
+// ─── MaintainedAppSpec ───────────────────────────────────────────────────────
+
+/// MaintainedAppSpec is used for gitops fleet-maintained app specifications.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct MaintainedAppSpec {
+    #[serde(default)]
+    pub slug: String,
+    #[serde(default)]
+    pub version: String,
+    #[serde(default)]
+    pub self_service: bool,
+    #[serde(default)]
+    pub pre_install_query: serde_json::Value,
+    #[serde(default)]
+    pub install_script: serde_json::Value,
+    #[serde(default)]
+    pub post_install_script: serde_json::Value,
+    #[serde(default)]
+    pub uninstall_script: serde_json::Value,
+    #[serde(default)]
+    pub labels_include_any: Vec<String>,
+    #[serde(default)]
+    pub labels_exclude_any: Vec<String>,
+    #[serde(default)]
+    pub categories: Vec<String>,
+    #[serde(rename = "setup_experience", skip_serializing_if = "Option::is_none")]
+    pub install_during_setup: Option<bool>,
+    #[serde(default)]
+    pub icon: serde_json::Value,
+}
+
+// ─── Icon management types ───────────────────────────────────────────────────
+
+/// IconFileUpdate holds a title ID and file path for icon upload.
+#[derive(Debug, Clone, Default)]
+pub struct IconFileUpdate {
+    pub title_id: u32,
+    pub path: String,
+}
+
+/// IconMetaUpdate holds a title ID, path, and hash for icon metadata update.
+#[derive(Debug, Clone, Default)]
+pub struct IconMetaUpdate {
+    pub title_id: u32,
+    pub path: String,
+    pub hash: String,
+}
+
+/// IconGitOpsSettings holds configuration for icon processing during gitops.
+#[derive(Debug, Clone, Default)]
+pub struct IconGitOpsSettings {
+    pub concurrent_uploads: i32,
+    pub concurrent_updates: i32,
+    pub uploaded_hashes: Vec<String>,
+}
+
+/// IconChanges holds the set of icon changes to apply.
+#[derive(Debug, Clone, Default)]
+pub struct IconChanges {
+    pub team_id: u32,
+    pub uploaded_hashes: Vec<String>,
+    pub icons_to_upload: Vec<IconFileUpdate>,
+    pub icons_to_update: Vec<IconMetaUpdate>,
+    pub title_ids_to_remove_icons_from: Vec<u32>,
+}
+
+// ─── VPPBatchPayloadWithPlatform ─────────────────────────────────────────────
+
+/// VPPBatchPayloadWithPlatform is the payload for batch VPP app operations with resolved platform.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VPPBatchPayloadWithPlatform {
+    pub app_store_id: String,
+    pub self_service: bool,
+    pub platform: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub install_during_setup: Option<bool>,
+    #[serde(default)]
+    pub labels_exclude_any: Vec<String>,
+    #[serde(default)]
+    pub labels_include_any: Vec<String>,
+    #[serde(default)]
+    pub categories: Vec<String>,
+    #[serde(skip)]
+    pub category_ids: Vec<u32>,
+    #[serde(default)]
+    pub display_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub configuration: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auto_update_enabled: Option<bool>,
+    #[serde(rename = "auto_update_window_start", skip_serializing_if = "Option::is_none")]
+    pub auto_update_start_time: Option<String>,
+    #[serde(rename = "auto_update_window_end", skip_serializing_if = "Option::is_none")]
+    pub auto_update_end_time: Option<String>,
+}
+
+// ─── Helper implementations ──────────────────────────────────────────────────
+
+impl SoftwareIterQueryOptions {
+    /// IsValid checks that either excluded or included sources is specified but not both.
+    pub fn is_valid(&self) -> bool {
+        !(self.included_sources.len() != 0 && self.excluded_sources.len() != 0)
+    }
+}
+
+impl UpdateHostSoftwareDBResult {
+    /// Returns all software that should be currently installed on the host.
+    pub fn curr_installed(&self) -> Vec<Software> {
+        let delete_set: std::collections::HashSet<u32> =
+            self.deleted.iter().map(|d| d.id).collect();
+        let mut result: Vec<Software> = self
+            .was_curr_installed
+            .iter()
+            .filter(|c| !delete_set.contains(&c.id))
+            .cloned()
+            .collect();
+        result.extend(self.inserted.iter().cloned());
+        result
+    }
+}
+
+impl SoftwareInstallerStatus {
+    /// Returns true if the status is a valid software installer status.
+    pub fn is_valid(&self) -> bool {
+        matches!(
+            self,
+            SoftwareInstallerStatus::PendingInstall
+                | SoftwareInstallerStatus::FailedInstall
+                | SoftwareInstallerStatus::Installed
+                | SoftwareInstallerStatus::PendingUninstall
+                | SoftwareInstallerStatus::FailedUninstall
+                | SoftwareInstallerStatus::Pending
+                | SoftwareInstallerStatus::Failed
+        )
+    }
 }

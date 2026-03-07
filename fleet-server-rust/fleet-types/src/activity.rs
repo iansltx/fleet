@@ -1058,3 +1058,106 @@ pub struct ActivityDetailEditedEnrollSecrets {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub team_name: Option<String>,
 }
+
+// ---------------------------------------------------------------------------
+// Additional activity detail structs (Go types with team_id/team_name fields)
+// ---------------------------------------------------------------------------
+
+/// Details for enabled_macos_disk_encryption activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailEnabledMacosDiskEncryption {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_id: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_name: Option<String>,
+}
+
+/// Details for disabled_macos_disk_encryption activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailDisabledMacosDiskEncryption {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_id: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_name: Option<String>,
+}
+
+/// Details for enabled_recovery_lock_password activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailEnabledRecoveryLockPassword {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_id: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_name: Option<String>,
+}
+
+/// Details for disabled_recovery_lock_password activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailDisabledRecoveryLockPassword {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_id: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_name: Option<String>,
+}
+
+/// Details for enabled_macos_setup_end_user_auth activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailEnabledMacosSetupEndUserAuth {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_id: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_name: Option<String>,
+}
+
+/// Details for disabled_macos_setup_end_user_auth activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailDisabledMacosSetupEndUserAuth {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_id: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_name: Option<String>,
+}
+
+/// Details for edited_script activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailEditedScript {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_id: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_name: Option<String>,
+}
+
+/// Details for edited_windows_profile activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailEditedWindowsProfile {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_id: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_name: Option<String>,
+}
+
+/// Details for edited_declaration_profile activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailEditedDeclarationProfile {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_id: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_name: Option<String>,
+}
+
+/// Details for edited_android_profile activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailEditedAndroidProfile {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_id: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_name: Option<String>,
+}
+
+/// Details for edited_android_certificate activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailEditedAndroidCertificate {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_id: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub team_name: Option<String>,
+}

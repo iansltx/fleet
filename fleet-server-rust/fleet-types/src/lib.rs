@@ -5,7 +5,9 @@
 //! the Go types for JSON API responses.
 
 pub mod activity;
+pub mod android;
 pub mod blobstore;
+pub mod calendar;
 pub mod campaign;
 pub mod carve;
 pub mod certificate;
@@ -22,6 +24,7 @@ pub mod osquery;
 pub mod pack;
 pub mod policy;
 pub mod query;
+pub mod scim;
 pub mod script;
 pub mod service;
 pub mod session;
@@ -59,7 +62,8 @@ pub use enroll::{EnrollSecret, EnrollSecretSpec};
 pub use error::*;
 pub use host::{
     AggregatedMDMData, AggregatedMDMSolutions, AggregatedMDMStatus, AggregatedMacadminsData,
-    AggregatedMunkiIssue, AggregatedMunkiVersion, Host, HostBattery, HostDetail,
+    AggregatedMunkiIssue, AggregatedMunkiVersion, Host, HostBattery, HostCertificateNameDetails,
+    HostCertificatePayload, HostCertificateRecord, HostCertificateSource, HostDetail,
     HostDetailOptions, HostDeviceMapping, HostDiskEncryptionKey, HostEndUser, HostListOptions,
     HostLite, HostMDM, HostMDMCheckinInfo, HostMaintenanceWindow, HostMunkiInfo, HostMunkiIssue,
     HostStatus, HostSummary, HostUser, HostVulnerabilitySummary, MDMSolution, MacadminsData,
