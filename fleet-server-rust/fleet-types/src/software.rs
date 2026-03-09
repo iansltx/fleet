@@ -2,7 +2,6 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 use crate::vulnerability::CVE;
 
@@ -988,30 +987,8 @@ pub struct SoftwareSpec {
     pub app_store_apps: Vec<serde_json::Value>,
 }
 
-// ─── Agent Options (from agent_options.go) ───────────────────────────────────
-
-/// AgentOptions represents osquery agent options configuration.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AgentOptions {
-    #[serde(default, skip_serializing_if = "is_zero_i32")]
-    pub script_execution_timeout: i32,
-    pub config: serde_json::Value,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub overrides: Option<AgentOptionsOverrides>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub command_line_flags: Option<serde_json::Value>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub extensions: Option<serde_json::Value>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub update_channels: Option<serde_json::Value>,
-}
-
-/// AgentOptionsOverrides includes any platform-based overrides.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct AgentOptionsOverrides {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub platforms: Option<HashMap<String, serde_json::Value>>,
-}
+// Agent Options types have been moved to crate::agent_options.
+pub use crate::agent_options::{AgentOptions, AgentOptionsOverrides};
 
 // ─── In-House Apps (from in_house_apps.go) ───────────────────────────────────
 
