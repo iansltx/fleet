@@ -1161,3 +1161,169 @@ pub struct ActivityDetailEditedAndroidCertificate {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub team_name: Option<String>,
 }
+
+// --- Empty activity detail structs (no fields) ---
+
+/// Details for disabled_activity_automations activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailDisabledActivityAutomations {}
+
+/// Details for applied_spec_pack activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailAppliedSpecPack {}
+
+/// Details for user_added_by_sso activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailUserAddedBySSO {}
+
+/// Details for enabled_gitops_mode activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailEnabledGitOpsMode {}
+
+/// Details for disabled_gitops_mode activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailDisabledGitOpsMode {}
+
+/// Details for enabled_windows_mdm activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailEnabledWindowsMDM {}
+
+/// Details for disabled_windows_mdm activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailDisabledWindowsMDM {}
+
+/// Details for enabled_windows_mdm_migration activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailEnabledWindowsMDMMigration {}
+
+/// Details for disabled_windows_mdm_migration activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailDisabledWindowsMDMMigration {}
+
+/// Details for added_ndes_scep_proxy activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailAddedNDESSCEPProxy {}
+
+/// Details for deleted_ndes_scep_proxy activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailDeletedNDESSCEPProxy {}
+
+/// Details for edited_ndes_scep_proxy activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailEditedNDESSCEPProxy {}
+
+/// Details for enabled_android_mdm activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailEnabledAndroidMDM {}
+
+/// Details for disabled_android_mdm activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailDisabledAndroidMDM {}
+
+/// Details for added_conditional_access_integration_microsoft activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailAddedConditionalAccessIntegrationMicrosoft {}
+
+/// Details for deleted_conditional_access_integration_microsoft activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailDeletedConditionalAccessIntegrationMicrosoft {}
+
+/// Details for added_conditional_access_okta activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailAddedConditionalAccessOkta {}
+
+/// Details for deleted_conditional_access_okta activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailDeletedConditionalAccessOkta {}
+
+// --- Activity detail structs with a single `name` field ---
+
+/// Details for added_custom_scep_proxy activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailAddedCustomSCEPProxy {
+    pub name: String,
+}
+
+/// Details for deleted_custom_scep_proxy activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailDeletedCustomSCEPProxy {
+    pub name: String,
+}
+
+/// Details for edited_custom_scep_proxy activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailEditedCustomSCEPProxy {
+    pub name: String,
+}
+
+/// Details for added_digicert activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailAddedDigiCert {
+    pub name: String,
+}
+
+/// Details for deleted_digicert activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailDeletedDigiCert {
+    pub name: String,
+}
+
+/// Details for edited_digicert activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailEditedDigiCert {
+    pub name: String,
+}
+
+/// Details for added_hydrant activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailAddedHydrant {
+    pub name: String,
+}
+
+/// Details for deleted_hydrant activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailDeletedHydrant {
+    pub name: String,
+}
+
+/// Details for edited_hydrant activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailEditedHydrant {
+    pub name: String,
+}
+
+/// Details for added_custom_est_proxy activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailAddedCustomESTProxy {
+    pub name: String,
+}
+
+/// Details for deleted_custom_est_proxy activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailDeletedCustomESTProxy {
+    pub name: String,
+}
+
+/// Details for edited_custom_est_proxy activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailEditedCustomESTProxy {
+    pub name: String,
+}
+
+/// Details for added_smallstep activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailAddedSmallstep {
+    pub name: String,
+}
+
+/// Details for deleted_smallstep activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailDeletedSmallstep {
+    pub name: String,
+}
+
+/// Details for edited_smallstep activity.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActivityDetailEditedSmallstep {
+    pub name: String,
+}
