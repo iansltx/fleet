@@ -1327,3 +1327,73 @@ pub struct ActivityDetailDeletedSmallstep {
 pub struct ActivityDetailEditedSmallstep {
     pub name: String,
 }
+
+// --- Type aliases for activity detail types that share the same fields as existing structs ---
+// These provide 1:1 named equivalents for each Go activity type struct.
+
+/// Details for added_bootstrap_package activity.
+pub type ActivityDetailAddedBootstrapPackage = ActivityDetailBootstrapPackage;
+/// Details for deleted_bootstrap_package activity.
+pub type ActivityDetailDeletedBootstrapPackage = ActivityDetailBootstrapPackage;
+
+/// Details for added_script activity.
+pub type ActivityDetailAddedScript = ActivityDetailScript;
+/// Details for updated_script activity.
+pub type ActivityDetailUpdatedScript = ActivityDetailScript;
+/// Details for deleted_script activity.
+pub type ActivityDetailDeletedScript = ActivityDetailScript;
+
+/// Details for created_windows_profile activity.
+pub type ActivityDetailCreatedWindowsProfile = ActivityDetailWindowsProfile;
+/// Details for deleted_windows_profile activity.
+pub type ActivityDetailDeletedWindowsProfile = ActivityDetailWindowsProfile;
+
+/// Details for created_declaration_profile activity.
+pub type ActivityDetailCreatedDeclarationProfile = ActivityDetailDeclarationProfile;
+/// Details for deleted_declaration_profile activity.
+pub type ActivityDetailDeletedDeclarationProfile = ActivityDetailDeclarationProfile;
+
+/// Details for enabled_vpp activity.
+pub type ActivityDetailEnabledVPP = ActivityDetailVPP;
+/// Details for disabled_vpp activity.
+pub type ActivityDetailDisabledVPP = ActivityDetailVPP;
+
+/// Details for canceled_install_software activity.
+pub type ActivityDetailCanceledInstallSoftware = ActivityDetailCanceledSoftware;
+/// Details for canceled_uninstall_software activity.
+pub type ActivityDetailCanceledUninstallSoftware = ActivityDetailCanceledSoftware;
+/// Details for canceled_install_app_store_app activity.
+pub type ActivityDetailCanceledInstallAppStoreApp = ActivityDetailCanceledSoftware;
+
+/// Details for enabled_conditional_access_automations activity.
+pub type ActivityDetailEnabledConditionalAccessAutomations = ActivityDetailConditionalAccessAutomations;
+/// Details for disabled_conditional_access_automations activity.
+pub type ActivityDetailDisabledConditionalAccessAutomations = ActivityDetailConditionalAccessAutomations;
+
+/// Details for created_custom_variable activity.
+pub type ActivityDetailCreatedCustomVariable = ActivityDetailCustomVariable;
+/// Details for deleted_custom_variable activity.
+pub type ActivityDetailDeletedCustomVariable = ActivityDetailCustomVariable;
+
+/// Details for created_android_profile activity.
+pub type ActivityDetailCreatedAndroidProfile = ActivityDetailAndroidProfile;
+/// Details for deleted_android_profile activity.
+pub type ActivityDetailDeletedAndroidProfile = ActivityDetailAndroidProfile;
+
+/// Details for added_certificate activity.
+pub type ActivityDetailAddedCertificate = ActivityDetailCertificate;
+/// Details for deleted_certificate activity.
+pub type ActivityDetailDeletedCertificate = ActivityDetailCertificate;
+
+/// Details for added_microsoft_entra_tenant activity.
+pub type ActivityDetailAddedMicrosoftEntraTenant = ActivityDetailMicrosoftEntraTenant;
+/// Details for deleted_microsoft_entra_tenant activity.
+pub type ActivityDetailDeletedMicrosoftEntraTenant = ActivityDetailMicrosoftEntraTenant;
+
+/// Details for enabled_macos_update_new_hosts activity.
+pub type ActivityDetailEnabledMacosUpdateNewHosts = ActivityDetailMacosUpdateNewHosts;
+/// Details for disabled_macos_update_new_hosts activity.
+pub type ActivityDetailDisabledMacosUpdateNewHosts = ActivityDetailMacosUpdateNewHosts;
+
+/// Details for transferred_hosts activity (named TransferredHostsToTeam in Go).
+pub type ActivityDetailTransferredHostsToTeam = ActivityDetailTransferredHosts;
