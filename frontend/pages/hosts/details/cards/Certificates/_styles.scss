@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .certificates-card {
   @include vertical-card-layout;
 }

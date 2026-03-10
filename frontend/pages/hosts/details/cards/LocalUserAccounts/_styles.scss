@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .local-user-accounts-card {
   @include vertical-card-layout;
 

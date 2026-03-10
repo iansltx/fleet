@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .script-batch-hosts-table {
   .host-name-cell {
     display: flex;

@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .host-actions-dropdown {
   @include button-dropdown;
   color: $core-fleet-black;

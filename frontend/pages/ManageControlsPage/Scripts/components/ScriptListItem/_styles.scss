@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .script-list-item {
   .list-item__main-content {
     max-width: px-to-rem(800);

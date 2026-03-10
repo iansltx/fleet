@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .secret-editor-modal {
   &__reveal-secret {
     float: right;

@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .software-table {
   &__software-filter {
     min-width: 240px;

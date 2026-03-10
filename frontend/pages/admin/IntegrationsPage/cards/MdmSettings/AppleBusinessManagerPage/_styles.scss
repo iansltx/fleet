@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .apple-business-manager-page {
   @include vertical-page-layout;
 

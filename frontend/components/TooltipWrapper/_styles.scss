@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .component__tooltip-wrapper {
   &.show-arrow {
     @include tooltip5-arrow-styles;

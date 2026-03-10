@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .run-script-batch-modal {
   &__hide-main {
     visibility: hidden;

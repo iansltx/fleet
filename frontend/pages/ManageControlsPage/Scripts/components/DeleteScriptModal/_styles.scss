@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .delete-script-modal {
   &__script-name {
     font-weight: $bold;

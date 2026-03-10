@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .edit-software-modal {
   &__form-inputs {
     display: flex;

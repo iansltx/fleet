@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .user-registration {
   @include vertical-card-layout;
 

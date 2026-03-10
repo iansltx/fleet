@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .delete-integration-modal {
   &__url {
     font-weight: $bold;

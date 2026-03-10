@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .policies-paginated-list {
     &__header {
         font-weight: $bold;

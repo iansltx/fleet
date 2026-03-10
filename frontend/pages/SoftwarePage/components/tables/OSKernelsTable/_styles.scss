@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .software-vulnerabilities-table {
   // keeps table data within the table container at smaller screen sizes
   .data-table {

@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .okta-conditional-access-modal {
   .file-uploader {
     &__title,

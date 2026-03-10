@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .turn-off-apple-mdm-modal {
   &__info-header {
     margin-bottom: $pad-xlarge;

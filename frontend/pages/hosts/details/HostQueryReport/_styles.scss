@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .host-query-report {
   @include vertical-page-layout;
   @include color-contrasted-sections;

@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .modal {
   &__background {
     @include position(fixed, 0 0 0 0);

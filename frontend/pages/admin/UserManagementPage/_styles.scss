@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .user-management {
   &__api-only-user {
     @include grey-badge;

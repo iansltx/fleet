@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .bootstrap-package-table {
   // keep a minimum height to prevent UI jumping when the table data is done
   // loading.

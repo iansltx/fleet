@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .self-service-tiles-list {
   display: flex;
   gap: $pad-medium;

@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .target-chip-selector {
   padding: $pad-small;
   background-color: $core-fleet-white;

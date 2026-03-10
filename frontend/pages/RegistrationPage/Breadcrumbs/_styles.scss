@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .registration-breadcrumbs {
   background-color: $gradient-background; // Solid color, gradient starts below it
   display: flex;
@@ -36,7 +38,7 @@
     }
 
     &::after {
-      @extend %fleeticon;
+      @include fleeticon;
       @include size(24px);
       min-height: 24px;
       background-color: transparent;

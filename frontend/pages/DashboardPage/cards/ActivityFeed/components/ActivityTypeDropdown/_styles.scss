@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .activity-type-dropdown {
   &__search-field {
     position: sticky;

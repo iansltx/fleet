@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .org-info {
   &__logo-field {
     margin-bottom: $pad-icon;

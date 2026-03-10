@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .inherited-badge {
   &__element-text {
     font-weight: $bold;

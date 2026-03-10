@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .avatar {
   @include size(120px);
   display: block;

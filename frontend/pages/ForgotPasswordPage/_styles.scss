@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .forgot-password {
   &__email {
     font-weight: $bold;

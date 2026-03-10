@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .tooltip-truncated-cell {
   display: flex;
   align-items: center; // For badges, etc

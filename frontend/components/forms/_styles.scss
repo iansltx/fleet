@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .form {
   // Used on login forms
   &__base-error {

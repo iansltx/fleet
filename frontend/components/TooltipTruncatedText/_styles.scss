@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .tooltip-truncated-text {
   // we want this component to take up the full width of its parent container.
   // This means the width where the truncation occurs must be defined in the

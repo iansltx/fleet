@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .bootstrap-package-list-item {
   @include list-item;
   &__list-item-button {

@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .host-target,
 .label-target {
   @include vertical-page-tab-panel-layout;

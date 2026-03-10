@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .dashboard-info-card {
   @include vertical-card-layout;
 

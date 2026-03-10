@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .windows-automatic-enrollment-page {
   @include vertical-page-layout;
 

@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .platform-selector {
   // override global form-field width: 100%
   width: auto;

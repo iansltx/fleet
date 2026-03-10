@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .performance-impact-cell {
   .__react_component_tooltip {
     @include tooltip-text;

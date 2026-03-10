@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .activity-feed {
   @include vertical-card-layout;
   position: relative;

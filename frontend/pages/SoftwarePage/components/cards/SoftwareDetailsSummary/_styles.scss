@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .software-details-summary {
   display: flex;
   gap: $pad-medium;

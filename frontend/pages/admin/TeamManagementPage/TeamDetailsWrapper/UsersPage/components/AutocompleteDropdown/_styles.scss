@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .autocomplete-dropdown {
   .Select {
     border: solid 1px $ui-fleet-black-10;

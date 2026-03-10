@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 /** Button universal styling:
 - Border radius: 4px
 - Darken on hover
@@ -7,96 +9,6 @@
 */
 
 $base-class: "button";
-
-@mixin button-focus-outline() {
-  &::after {
-    content: "";
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    border: 1px solid $core-focused-outline;
-    border-radius: $border-radius;
-  }
-}
-
-@mixin unstyled-button-focus-outline($offset: 1px) {
-  outline-color: $core-focused-outline;
-  outline-offset: $offset;
-  outline-style: solid;
-  outline-width: 1px;
-}
-
-// Buttons with background colors
-@mixin button-pad-8px-16px {
-  padding: $pad-small $pad-medium;
-  height: 36px;
-}
-
-// Buttons without background colors
-@mixin button-pad-8px-8px {
-  padding: $pad-small $pad-small;
-  height: 36px;
-}
-
-// Size small buttons (with and without background colors)
-@mixin button-pad-4px-8px {
-  padding: $pad-xsmall $pad-small;
-  height: 28px;
-}
-
-@mixin button-variant(
-  $color,
-  $hover: null,
-  $active: null,
-  $inverse: false,
-  $unstyled: false
-) {
-  background-color: $color;
-
-  @if $inverse {
-    @include button-pad-8px-8px;
-
-    &__small {
-      @include button-pad-4px-8px;
-    }
-
-    &:hover {
-      background-color: $ui-fleet-black-5;
-
-      &:active {
-        background-color: $ui-fleet-black-5-down;
-      }
-    }
-
-    &:focus-visible {
-      @include button-focus-outline();
-    }
-  } @else if $unstyled {
-    &:hover:not(.button--disabled) {
-      background-color: $hover;
-
-      &:active {
-        background-color: $active;
-      }
-    }
-
-    &:focus-visible {
-      @include unstyled-button-focus-outline();
-    }
-  } @else {
-    &:hover:not(.button--disabled) {
-      background-color: $hover;
-
-      &:active {
-        background-color: $active;
-      }
-    }
-
-    &:focus-visible {
-      @include button-focus-outline();
-    }
-  }
-}
 
 .#{$base-class} {
   @include button-pad-8px-16px;

@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 // Allows tooltip truncation on initial render
 .os-type-cell {
   display: flex;

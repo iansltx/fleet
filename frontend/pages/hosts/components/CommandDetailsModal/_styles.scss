@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .command-details-modal {
   &__modal-content {
     display: flex;

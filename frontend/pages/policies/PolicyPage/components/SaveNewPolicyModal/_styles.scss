@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .critical-checkbox-wrapper .fleet-checkbox__label {
   font-weight: $bold;
 }

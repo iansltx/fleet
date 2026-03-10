@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .calendars-integration {
   @include vertical-card-layout;
 

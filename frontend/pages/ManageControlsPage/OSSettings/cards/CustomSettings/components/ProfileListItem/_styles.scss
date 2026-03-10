@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .profile-list-item {
   &__profile-details {
     display: flex;

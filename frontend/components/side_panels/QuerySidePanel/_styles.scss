@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .query-side-panel {
   position: relative;
   overflow: unset !important; // was unnecessary and broke close button positioning

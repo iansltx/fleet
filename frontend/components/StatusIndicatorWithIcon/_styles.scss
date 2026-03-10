@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .status-indicator-with-icon {
   // default layout is horizontal
   &__value {

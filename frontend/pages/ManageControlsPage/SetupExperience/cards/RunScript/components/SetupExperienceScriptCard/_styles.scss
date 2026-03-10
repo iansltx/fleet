@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .setup-experience-script-card {
   display: flex;
   gap: $pad-medium;

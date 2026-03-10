@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .login-form {
   gap: $gap-page-component; // 24px between buttons and form
 

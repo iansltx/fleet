@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .platform-cell {
   &__wrapper {
     display: inline-flex;

@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .end-user-authentication {
   @include vertical-card-layout;
 }

@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .software-options-selector {
   &__categories-selector {
     display: flex;

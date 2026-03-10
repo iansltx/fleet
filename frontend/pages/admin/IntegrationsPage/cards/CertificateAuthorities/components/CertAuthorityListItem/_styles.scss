@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .cert-authority-list-item {
   &__action-button {
     width: 40px;

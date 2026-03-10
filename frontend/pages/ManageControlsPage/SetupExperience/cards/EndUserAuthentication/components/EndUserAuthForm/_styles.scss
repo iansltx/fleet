@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .end-user-auth-form {
   form > p {
     font-size: $x-small;

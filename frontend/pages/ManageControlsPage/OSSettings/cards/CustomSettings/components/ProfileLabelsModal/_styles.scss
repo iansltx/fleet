@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .profile-labels-modal {
   &__description {
     font-size: $x-small;

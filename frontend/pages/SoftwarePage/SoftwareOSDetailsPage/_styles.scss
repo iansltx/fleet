@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .software-os-details-page {
   @include vertical-page-layout;
 

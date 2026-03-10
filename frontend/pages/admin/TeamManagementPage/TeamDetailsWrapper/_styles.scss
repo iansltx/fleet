@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .team-details {
   @include vertical-page-layout;
 

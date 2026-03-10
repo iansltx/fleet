@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .delete-secret-modal {
   &__error {
     color: $ui-error;

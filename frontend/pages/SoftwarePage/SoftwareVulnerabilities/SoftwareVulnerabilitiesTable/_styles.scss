@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .software-vulnerabilities-table {
   &__exploited-vulnerabilities-filter {
     min-width: 255px;

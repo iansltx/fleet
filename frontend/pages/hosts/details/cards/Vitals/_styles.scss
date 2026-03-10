@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .vitals-card {
   @include vertical-card-layout;
 

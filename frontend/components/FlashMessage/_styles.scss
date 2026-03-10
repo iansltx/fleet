@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 // Allows for centering flash message for short and long, wrapped messages
 .flash-message-container {
   @include position(fixed);

@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .installer-details-widget {
   display: flex;
   gap: $pad-medium;

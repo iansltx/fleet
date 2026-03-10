@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .hosts-filter-block {
   &__labels-active-filter-wrap {
     display: flex;

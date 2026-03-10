@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .remove-user-modal {
   &__name,
   &__team-name {

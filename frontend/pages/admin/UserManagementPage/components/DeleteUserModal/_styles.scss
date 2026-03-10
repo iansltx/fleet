@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .delete-user-modal {
   &__name {
     font-weight: $bold;

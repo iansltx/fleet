@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .welcome-host {
   p {
     font-size: $x-small;

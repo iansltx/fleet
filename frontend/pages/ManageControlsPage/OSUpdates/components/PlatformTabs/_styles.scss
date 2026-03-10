@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .platform-tabs {
   &__tab-panel {
     display: grid;

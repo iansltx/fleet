@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .pack-composer {
   @include vertical-page-layout;
   overflow: inherit;

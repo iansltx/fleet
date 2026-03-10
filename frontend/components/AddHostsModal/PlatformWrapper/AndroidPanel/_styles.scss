@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .android-panel {
   &__enroll-link input {
     font-family: "SourceCodePro", $monospace;

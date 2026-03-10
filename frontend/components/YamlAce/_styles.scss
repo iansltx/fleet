@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .yaml-ace {
   max-height: 408px;
   // Added to remove the "popping" effect when the editor first loads.

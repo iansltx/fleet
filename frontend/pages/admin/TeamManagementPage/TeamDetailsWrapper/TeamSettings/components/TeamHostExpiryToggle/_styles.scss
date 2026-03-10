@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .team-host-expiry-toggle {
   &__add-custom-window {
     display: inline-flex;

@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .os-updates-current-version-section {
   @include vertical-page-layout;
 

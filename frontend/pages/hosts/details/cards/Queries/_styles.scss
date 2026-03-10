@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .host-queries-card {
   @include vertical-page-tab-panel-layout;
 

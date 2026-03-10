@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .app-store-details-modal {
   &__modal-content {
     display: flex;

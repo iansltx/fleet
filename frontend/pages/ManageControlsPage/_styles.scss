@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .manage-controls-page {
   @include vertical-page-layout;
 

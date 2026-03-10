@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .feed-list-item {
   display: grid; // Grid system is used to create variable solid line lengths
   grid-template-columns: 16px 16px 8px 1fr;

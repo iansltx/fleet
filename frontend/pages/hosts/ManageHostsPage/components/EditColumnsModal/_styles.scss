@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .edit-columns-modal {
   &__column-headers {
     display: grid;

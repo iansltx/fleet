@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .bootstrap-package-modal {
   &__package-name {
     margin: 0 0 $pad-xsmall;

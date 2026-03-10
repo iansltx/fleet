@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .host-header {
   &__device-status-tag-wrapper {
     // We are aligning self on the tag wrapper to center it vertically with the Host title.

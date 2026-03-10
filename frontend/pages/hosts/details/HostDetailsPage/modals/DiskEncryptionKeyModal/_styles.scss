@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .disk-encryption-key-modal {
   .input-field {
     font-family: "SourceCodePro", $monospace;

@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .dropdown {
   &__custom-value {
     display: inline-flex;

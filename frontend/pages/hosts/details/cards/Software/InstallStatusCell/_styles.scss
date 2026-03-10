@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .install-status-cell {
   width: 142px; // Prevent status change from installer action from changing cell width while maintaining tooltip centering
 

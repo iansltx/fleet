@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .change-management {
   @include vertical-page-layout;
 }

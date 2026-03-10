@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .categories-menu {
   @include side-nav-list;
   &__category-link {

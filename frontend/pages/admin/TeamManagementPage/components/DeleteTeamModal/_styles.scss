@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .delete-team-modal {
   &__name {
     font-weight: $bold;

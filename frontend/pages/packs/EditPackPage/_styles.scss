@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .edit-pack-page {
   @include vertical-page-layout;
   overflow: initial; // Removes weird overflow auto second scrollbar when select targets dropdown is open

@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .agent-options-card {
   @include vertical-card-layout;
 

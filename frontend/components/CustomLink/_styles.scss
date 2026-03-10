@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .custom-link {
   @include link;
   @include animated-bottom-border($core-fleet-black, $ui-fleet-black-25);

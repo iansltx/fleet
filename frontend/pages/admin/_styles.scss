@@ -1,4 +1,6 @@
-@import "../../../node_modules/react-tabs/style/react-tabs.scss";
+@use "styles/vars" as *;
+
+@use "../../../node_modules/react-tabs/style/react-tabs.scss";
 
 .admin-wrapper {
   // we turn off overflow on the settings page as it seems to mess with our

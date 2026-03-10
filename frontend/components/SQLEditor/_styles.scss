@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .sql-editor {
   &__label {
     font-size: $x-small;

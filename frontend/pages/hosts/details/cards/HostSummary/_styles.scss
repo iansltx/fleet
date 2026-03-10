@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .host-summary-card {
   display: flex;
   gap: $pad-medium $pad-xxlarge;

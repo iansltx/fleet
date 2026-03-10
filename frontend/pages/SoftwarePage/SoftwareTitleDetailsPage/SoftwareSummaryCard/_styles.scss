@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .software-summary-card {
   @include vertical-card-layout;
 }

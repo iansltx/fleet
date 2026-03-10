@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .vpp-page {
   @include vertical-page-layout;
 

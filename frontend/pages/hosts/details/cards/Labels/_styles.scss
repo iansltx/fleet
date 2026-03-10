@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .host-labels-card {
   @include vertical-card-layout;
   .button,

@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .teams-cell {
   &__team-text-with-tooltip {
     display: inline-block;

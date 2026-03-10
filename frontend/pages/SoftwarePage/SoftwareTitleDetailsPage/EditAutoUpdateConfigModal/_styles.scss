@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .edit-auto-update-config-modal {
   .modal__content {
     @include vertical-modal-layout;

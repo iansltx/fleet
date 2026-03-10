@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .edit-teams-vpp-modal {
   .component__tooltip-wrapper__element {
     width: 100%; // default component style was causing the select box not to be full width

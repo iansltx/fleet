@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .script-batch-progress {
   @include vertical-page-layout;
   font-size: $x-small;

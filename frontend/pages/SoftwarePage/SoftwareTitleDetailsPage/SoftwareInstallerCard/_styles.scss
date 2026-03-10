@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .software-installer-card {
   @include vertical-card-layout;
   justify-content: space-between;

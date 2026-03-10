@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .host-software-card {
   @include vertical-page-tab-panel-layout;
 

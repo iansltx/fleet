@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .pack-info-side-panel {
   @include vertical-page-tab-panel-layout;
 

@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .run-script-batch-paginated-list {
   .paginated-list__row {
     display: flex;

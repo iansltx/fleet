@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .vpp-table {
   // The desired behavior is to remove the location header and cell as the
   // viewport gets smaller. This is achieved by using the max-width media query

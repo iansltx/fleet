@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .disk-encryption-table {
   .data-table-block .data-table tbody td .w250 {
     min-width: auto;

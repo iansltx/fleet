@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .edit-query-page {
   @include vertical-page-layout;
 

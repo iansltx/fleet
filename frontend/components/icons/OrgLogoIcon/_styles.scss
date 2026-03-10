@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .org-logo-icon {
   // ensures consistent nav bar height regardless of the logo image used
   min-height: 24px;

@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .custom-label-group-heading {
   &__label-title {
     color: $core-fleet-black;

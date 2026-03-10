@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .fleet-slider {
   transition: background-color 150ms ease-in-out;
   background-color: $ui-fleet-black-50;

@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .fleet-maintained-app-details-page {
   &__back-to-add-software {
     margin-bottom: $pad-medium;

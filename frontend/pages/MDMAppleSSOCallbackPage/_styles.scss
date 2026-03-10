@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .mdm-apple-sso-callback-page {
   // expand width and height to make entire viewport a white background
   height: 100vh;

@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .status-indicator {
   // Query automations status
   &--query-automations-on {

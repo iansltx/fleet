@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .installer-status-table {
   &__status-title {
     display: flex;

@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .vulnerabilities-cell {
   &__vulnerability-text-with-tooltip {
     display: inline-block;

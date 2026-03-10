@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .os-settings {
   @include flex-column-32px-gap;
   margin-top: $gap-page-component; // Required as these Tabs don't use TabPanel

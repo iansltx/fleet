@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .apple-mdm-page {
   @include vertical-page-layout;
 

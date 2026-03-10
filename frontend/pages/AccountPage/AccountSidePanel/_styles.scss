@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .account-side-panel {
   @include vertical-card-layout;
   $gap-data-sets: $pad-medium;

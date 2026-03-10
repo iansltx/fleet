@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .modal-footer {
   &__content-wrapper {
     align-self: flex-end;

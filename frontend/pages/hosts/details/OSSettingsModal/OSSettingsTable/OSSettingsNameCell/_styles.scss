@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .os-settings-name-cell {
   display: flex;
   gap: $pad-small;

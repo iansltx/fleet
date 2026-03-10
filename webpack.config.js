@@ -105,6 +105,7 @@ const config = {
               api: "modern-compiler",
               sourceMap: true,
               sassOptions: {
+                loadPaths: [path.resolve(repo, "frontend")],
                 importers: [sassGlobImporter],
               },
             },

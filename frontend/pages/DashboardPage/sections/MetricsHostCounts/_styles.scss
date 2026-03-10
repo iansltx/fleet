@@ -1,3 +1,5 @@
+@use "styles/vars" as *;
+
 .metrics-host-counts {
   display: grid;
   gap: $pad-smedium;
