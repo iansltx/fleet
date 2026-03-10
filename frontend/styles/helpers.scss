@@ -1,7 +1,8 @@
+@use "sass:math";
 @import "var/global.scss";
 
 $base-font-size: 16;
 
 @function px-to-rem($px) {
-  @return ($px / $base-font-size) + rem;
+  @return math.div($px, $base-font-size) + rem;
 }

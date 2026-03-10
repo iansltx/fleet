@@ -1,3 +1,5 @@
+@use "sass:math";
+
 // 2025 branding
 $core-fleet-black: #192147;
 $core-fleet-green: #009a7d;
@@ -76,17 +78,17 @@ $transparent: rgba(255, 255, 255, 0);
 
 // Opaque colors for table shadows
 // l = lowest color  a = (255-l)/255
-$ui-vibrant-blue-10-alpha: (255-240)/255; // rgba(241, 240, 255)
+$ui-vibrant-blue-10-alpha: math.div(255-240, 255); // rgba(241, 240, 255)
 $ui-vibrant-blue-10-opaque: rgba(
-  (241-240) / $ui-vibrant-blue-10-alpha,
-  (240-240) / $ui-vibrant-blue-10-alpha,
-  (255-240) / $ui-vibrant-blue-10-alpha,
+  math.div(241-240, $ui-vibrant-blue-10-alpha),
+  math.div(240-240, $ui-vibrant-blue-10-alpha),
+  math.div(255-240, $ui-vibrant-blue-10-alpha),
   $ui-vibrant-blue-10-alpha
 );
-$ui-off-white-alpha: (255-249)/255; // rgba(249, 250, 252)
+$ui-off-white-alpha: math.div(255-249, 255); // rgba(249, 250, 252)
 $ui-off-white-opaque: rgba(
-  (249-249) / $ui-off-white-alpha,
-  (250-249) / $ui-off-white-alpha,
-  (252-249) / $ui-off-white-alpha,
+  math.div(249-249, $ui-off-white-alpha),
+  math.div(250-249, $ui-off-white-alpha),
+  math.div(252-249, $ui-off-white-alpha),
   $ui-off-white-alpha
 );
