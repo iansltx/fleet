@@ -6,7 +6,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const WebpackNotifierPlugin = require("webpack-notifier");
 const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
-const globImporter = require("node-sass-glob-importer");
+const sassGlobImporter = require("./frontend/sass-glob-importer");
 
 const DEV_SOURCE_MAPS = "eval-source-map";
 
@@ -102,10 +102,10 @@ const config = {
           {
             loader: "sass-loader",
             options: {
+              api: "modern-compiler",
               sourceMap: true,
               sassOptions: {
-                silenceDeprecations: ["legacy-js-api"],
-                importer: globImporter(),
+                importers: [sassGlobImporter],
               },
             },
           },
