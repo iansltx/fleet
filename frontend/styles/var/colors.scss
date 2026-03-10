@@ -1,3 +1,4 @@
+@use "sass:color";
 @use "sass:math";
 
 // 2025 branding
@@ -13,10 +14,10 @@ $ui-fleet-black-5: #f4f4f6;
 $core-focused-outline: $core-fleet-black;
 
 // 2025 secondary colors
-$ui-fleet-black-75-over: darken(#515774, 5%);
-$ui-fleet-black-75-down: darken(#515774, 10%);
-$core-fleet-green-over: darken(#009a7d, 5%);
-$core-fleet-green-down: darken(#009a7d, 10%);
+$ui-fleet-black-75-over: color.adjust(#515774, $lightness: -5%);
+$ui-fleet-black-75-down: color.adjust(#515774, $lightness: -10%);
+$core-fleet-green-over: color.adjust(#009a7d, $lightness: -5%);
+$core-fleet-green-down: color.adjust(#009a7d, $lightness: -10%);
 $ui-fleet-black-5-down: #f0f1f4; // As specified in design system
 
 // Core
