@@ -62,11 +62,11 @@
     flex-direction: column;
     gap: 8px;
     text-align: center;
+    color: $core-fleet-black;
+    font-size: $x-small;
     .graphic {
       margin-bottom: 8px;
     }
-    color: $core-fleet-black;
-    font-size: $x-small;
   }
   &__header {
     font-weight: $bold;

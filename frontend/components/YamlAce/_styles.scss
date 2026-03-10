@@ -1,5 +1,8 @@
 .yaml-ace {
   max-height: 408px;
+  // Added to remove the "popping" effect when the editor first loads.
+  min-height: 408px;
+
   &__wrapper {
     &--error {
       .ace-fleet {
@@ -10,9 +13,6 @@
       @include disabled($allow-pointer-events: true);
     }
   }
-
-  // Added to remove the "popping" effect when the editor first loads.
-  min-height: 408px;
 
   .ace_gutter-layer {
     min-height: 408px;

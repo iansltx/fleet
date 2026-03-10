@@ -133,28 +133,28 @@ $base-class: "button";
   }
 
   &--default {
+    display: flex;
+    text-wrap: nowrap;
     @include button-variant(
       $core-fleet-green,
       $core-fleet-green-over,
       $core-fleet-green-down
     );
-    display: flex;
-    text-wrap: nowrap;
   }
 
   &--success {
-    @include button-variant($ui-success, $ui-success-over, $ui-success-down);
     display: flex;
     text-wrap: nowrap;
+    @include button-variant($ui-success, $ui-success-over, $ui-success-down);
   }
 
   &--alert {
+    display: flex;
     @include button-variant(
       $core-vibrant-red,
       $core-vibrant-red-over,
       $core-vibrant-red-down
     );
-    display: flex;
 
     .loading-spinner {
       &__ring {
@@ -172,13 +172,15 @@ $base-class: "button";
       null,
       $inverse: true
     );
-    color: $core-fleet-green;
-    border: 1px solid $core-fleet-green;
-    box-sizing: border-box;
-    font-size: $xx-small;
-    padding: $pad-xsmall 10px;
-    height: 24px;
-    white-space: nowrap;
+    & {
+      color: $core-fleet-green;
+      border: 1px solid $core-fleet-green;
+      box-sizing: border-box;
+      font-size: $xx-small;
+      padding: $pad-xsmall 10px;
+      height: 24px;
+      white-space: nowrap;
+    }
 
     &:active {
       box-shadow: inset 2px 2px 2px rgba(0, 0, 0, 0.25);
@@ -191,7 +193,6 @@ $base-class: "button";
   }
 
   &--text-link {
-    @include button-variant(transparent);
     border: 0;
     box-shadow: none;
     color: $ui-fleet-black-75;
@@ -202,6 +203,7 @@ $base-class: "button";
     height: auto;
     line-height: normal;
     text-align: left;
+    @include button-variant(transparent);
 
     &:focus {
       outline: none;
@@ -227,7 +229,6 @@ $base-class: "button";
   }
 
   &--text-link-dark {
-    @include button-variant(transparent);
     border: 0;
     box-shadow: none;
     color: $core-fleet-black;
@@ -238,6 +239,7 @@ $base-class: "button";
     height: auto;
     line-height: normal;
     text-align: left;
+    @include button-variant(transparent);
 
     &:focus {
       outline: none;
@@ -260,20 +262,21 @@ $base-class: "button";
   &--text-icon,
   &--icon {
     @include button-variant(
-      $core-fleet-white,
+      transparent,
       $core-fleet-green-over,
       $core-fleet-green-down,
       $inverse: true
     );
-    background-color: transparent;
-    padding: 0;
-    border: 0;
-    box-shadow: none;
-    color: $ui-fleet-black-75;
-    font-size: $x-small;
-    font-weight: $bold;
-    cursor: pointer;
-    white-space: nowrap;
+    & {
+      padding: 0;
+      border: 0;
+      box-shadow: none;
+      color: $ui-fleet-black-75;
+      font-size: $x-small;
+      font-weight: $bold;
+      cursor: pointer;
+      white-space: nowrap;
+    }
 
     img {
       transform: scale(0.5);
@@ -341,7 +344,6 @@ $base-class: "button";
 
   // Used for primary buttons with green icon and green text, no underline on hover
   &--brand-inverse-icon {
-    @include button-variant(transparent);
     @include button-pad-8px-8px;
     border: 0;
     box-shadow: none;
@@ -350,6 +352,7 @@ $base-class: "button";
     font-weight: $bold;
     cursor: pointer;
     white-space: nowrap;
+    @include button-variant(transparent);
 
     &__small {
       @include button-pad-4px-8px;
@@ -418,14 +421,13 @@ $base-class: "button";
   }
 
   &--icon {
+    width: 36px; // Matches Figma design for icon-only buttons
     @include button-variant(
-      $core-fleet-white,
+      transparent,
       $core-fleet-green-over,
       $core-fleet-green-down,
       $inverse: true
     );
-    background-color: transparent;
-    width: 36px; // Matches Figma design for icon-only buttons
 
     &__small {
       width: 28px; // Matches Figma design for small icon-only buttons
@@ -433,15 +435,14 @@ $base-class: "button";
   }
 
   &--inverse {
+    color: $ui-fleet-black-75;
+    box-sizing: border-box;
     @include button-variant(
-      $core-fleet-white,
+      transparent,
       $core-fleet-green-over,
       $core-fleet-green-down,
       $inverse: true
     );
-    background-color: transparent;
-    color: $ui-fleet-black-75;
-    box-sizing: border-box;
 
     .children-wrapper {
       gap: $pad-small; // For icons next to text like Pagination buttons
@@ -449,14 +450,14 @@ $base-class: "button";
   }
 
   &--inverse-alert {
+    color: $core-vibrant-red;
+    box-sizing: border-box;
     @include button-variant(
       $core-fleet-white,
       $core-vibrant-red-over,
       $core-vibrant-red-down,
       $inverse: true
     );
-    color: $core-vibrant-red;
-    box-sizing: border-box;
   }
 
   &--disabled {
@@ -464,7 +465,6 @@ $base-class: "button";
   }
 
   &--unstyled {
-    @include button-variant(transparent, null, null, false, $unstyled: true);
     border: 0;
     box-shadow: none;
     color: $core-fleet-black;
@@ -474,6 +474,7 @@ $base-class: "button";
     height: auto;
     line-height: normal;
     font-weight: normal;
+    @include button-variant(transparent, null, null, false, $unstyled: true);
 
     &:active {
       box-shadow: none;
@@ -482,7 +483,6 @@ $base-class: "button";
   }
 
   &--unstyled-modal-query {
-    @include button-variant(transparent, null, null, false, $unstyled: true);
     border: 0;
     box-shadow: none;
     color: $core-fleet-black;
@@ -495,6 +495,7 @@ $base-class: "button";
     width: 100%;
     border-radius: 0px;
     border-bottom: 1px solid $ui-fleet-black-10;
+    @include button-variant(transparent, null, null, false, $unstyled: true);
 
     &:active {
       box-shadow: none;

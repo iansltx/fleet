@@ -1,11 +1,12 @@
 .script-batch-host-count-cell {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
   &__cancel-button {
     transition: opacity 250ms;
     opacity: 0;
   }
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 
   .children-wrapper {
     .icon {
