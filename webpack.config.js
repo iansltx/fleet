@@ -104,6 +104,7 @@ const config = {
             options: {
               sourceMap: true,
               sassOptions: {
+                silenceDeprecations: ["legacy-js-api"],
                 importer: globImporter(),
               },
             },
