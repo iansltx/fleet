@@ -1,3 +1,5 @@
+@use "sass:color";
+
 @keyframes fade-in {
     from {
         opacity: 0;
@@ -38,8 +40,6 @@
         transform: translateX(0);
     }
 }
-
-@use "sass:color";
 
 .loading-placeholder {
     $from: #f5f5f5;
