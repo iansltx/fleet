@@ -1,3 +1,31 @@
+@use "sass:list";
+
+// Mixins previously provided by bourbon
+@mixin clearfix {
+  &::after {
+    clear: both;
+    content: "";
+    display: table;
+  }
+}
+
+@mixin size($value) {
+  width: $value;
+  height: $value;
+}
+
+@mixin position($position: relative, $coordinates: null null null null) {
+  position: $position;
+  $top: list.nth($coordinates, 1);
+  $right: list.nth($coordinates, 2);
+  $bottom: list.nth($coordinates, 3);
+  $left: list.nth($coordinates, 4);
+  @if $top != null { top: $top; }
+  @if $right != null { right: $right; }
+  @if $bottom != null { bottom: $bottom; }
+  @if $left != null { left: $left; }
+}
+
 $min-width: $break-xs;
 $medium-width: 1024px;
 $desktop-width: 1200px;

@@ -2,7 +2,6 @@ require("es6-promise").polyfill();
 
 const path = require("path");
 const webpack = require("webpack");
-const bourbon = require("node-bourbon").includePaths;
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const WebpackNotifierPlugin = require("webpack-notifier");
@@ -105,7 +104,6 @@ const config = {
             options: {
               sourceMap: true,
               sassOptions: {
-                includePaths: bourbon,
                 importer: globImporter(),
               },
             },
